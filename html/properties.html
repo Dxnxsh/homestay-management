@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8">
+    <title>Properties</title>
+    <link rel="stylesheet" href="../css/propertiesStyle.css">
+    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   </head>
+<body>
+  <div class="sidebar close">
+    <div class="logo-details">
+      <img src="../images/logo.png" alt="Serena Sanctuary logo" class="logo-icon">
+      <span class="logo_name">Serena Sanctuary</span>
+    </div>
+    <ul class="nav-links">
+      <li>
+        <a href="dashboard.html">
+          <i class='bxr  bx-dashboard'></i> 
+          <span class="link_name">Dashboard</span>
+        </a>
+        <ul class="sub-menu blank">
+          <li><a class="link_name" href="dashboard.html">Dashboard</a></li>
+        </ul>
+      </li>
+      <li>
+        <div class="icon-link">
+          <a href="manage.html">
+            <i class='bxr  bx-list-square'></i>
+            <span class="link_name">Manage</span>
+          </a>
+          <i class='bx bxs-chevron-down arrow' ></i>
+        </div>
+        <ul class="sub-menu">
+          <li><a class="link_name" href="manage.html">Manage</a></li>
+          <li><a href="guests.html">Guests</a></li>
+          <li><a href="staff.html">Staff</a></li>
+          <li><a href="properties.html">Properties</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="billing.html">
+          <i class='bxr  bx-print-dollar'></i>
+          <span class="link_name">Billing</span>
+        </a>
+        <ul class="sub-menu blank">
+          <li><a class="link_name" href="billing.html">Billing</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="bookings.html">
+          <i class='bxr  bx-home-add'></i>
+          <span class="link_name">Bookings</span>
+        </a>
+        <ul class="sub-menu blank">
+          <li><a class="link_name" href="bookings.html">Bookings</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="calendar.html">
+          <i class='bxr  bx-calendar-alt'></i> 
+          <span class="link_name">Calendar</span>
+        </a>
+        <ul class="sub-menu blank">
+          <li><a class="link_name" href="calendar.html">Calendar</a></li>
+        </ul>
+      </li>
+      <li>
+        <div class="icon-link">
+          <a href="reports.html">
+            <i class='bxr  bx-file-report'></i> 
+            <span class="link_name">Reports</span>
+          </a>
+          <i class='bx bxs-chevron-down arrow' ></i>
+        </div>
+        <ul class="sub-menu">
+          <li><a class="link_name" href="reports.html">Reports</a></li>
+          <li><a href="fullReports.html">Full Reports</a></li>
+          <li><a href="summary.html">Summary</a></li>
+          <li><a href="analytics.html">Analytics</a></li>
+        </ul>
+      </li>
+    <div class="profile-details">
+      <div class="profile-content">
+        <img src="../images/profile.png" alt="profileImg">
+      </div>
+      <div class="name-job">
+        <div class="profile_name">Shafiq</div>
+        <div class="job">Admin</div>
+      </div>
+      <i class='bxr  bx-arrow-out-left-circle-half'></i> 
+    </div>
+  </li>
+</ul>
+  </div>
+
+  <section class="home-section">
+    <div class="home-content">
+      <i class='bx bx-menu' ></i>
+      <span class="text">Serena Sanctuary</span>
+    </div>
+    <div class="page-heading">
+      <h1>Properties</h1>
+    </div>
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-content">
+        <p>&copy; 2025 Serena Sanctuary. All rights reserved.</p>
+        <p>Designed with <i class='bxr bx-heart'></i> for your comfort</p>
+      </div>
+    </footer>
+  </section>
+
+  <script>
+  let arrow = document.querySelectorAll(".arrow");
+  for (var i = 0; i < arrow.length; i++) {
+    arrow[i].addEventListener("click", (e)=>{
+   let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+   arrowParent.classList.toggle("showMenu");
+    });
+  }
+  let sidebar = document.querySelector(".sidebar");
+  let sidebarBtn = document.querySelector(".bx-menu");
+  console.log(sidebarBtn);
+  sidebarBtn.addEventListener("click", ()=>{
+    sidebar.classList.toggle("close");
+  });
+  </script>
+</body>
+</html>
