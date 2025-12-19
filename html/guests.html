@@ -104,7 +104,99 @@
     </div>
     <!-- Content -->
     <div class="content">
-      
+      <div class="button-container">
+        <div class="spinner-container">
+          <div class="spinner-select-wrapper">
+            <select class="spinner-select" id="sortOrder">
+              <option value="">Select Order</option>
+              <option value="ascending">Ascending</option>
+              <option value="descending">Descending</option>
+            </select>
+          </div>
+          <div class="spinner-select-wrapper">
+            <select class="spinner-select" id="sortBy">
+              <option value="">Sort By</option>
+              <option value="alphabetical">By Alphabetical</option>
+              <option value="gender">By Gender</option>
+              <option value="type">By Type</option>
+            </select>
+          </div>
+        </div>
+        <form class="search-form">
+          <div class="search-container">
+            <div class="search-by">
+              <select id="searchType" name="search-type">
+                <option value="id">ID</option>
+                <option value="name">Name</option>
+                <option value="phone">Phone No.</option>
+              </select>
+            </div>
+            <div class="search-input">
+              <input id="search" type="text" placeholder="Search Guests" />
+            </div>
+            <div class="search-button">
+              <button class="btn-search" type="button" aria-label="Search">
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="table-container">
+        <table class="guests-table">
+          <thead>
+            <tr>
+              <th>Guest ID</th>
+              <th>Guest Name</th>
+              <th>Phone No.</th>
+              <th>Gender</th>
+              <th>Email</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody id="guestsTableBody">
+            <tr data-date="2025-01-15" data-name="John Doe" data-gender="Male" data-type="Regular">
+              <td>G001</td>
+              <td>John Doe</td>
+              <td>+1 234-567-8900</td>
+              <td>Male</td>
+              <td>john.doe@email.com</td>
+              <td>Regular</td>
+            </tr>
+            <tr data-date="2025-01-20" data-name="Jane Smith" data-gender="Female" data-type="VIP">
+              <td>G002</td>
+              <td>Jane Smith</td>
+              <td>+1 234-567-8901</td>
+              <td>Female</td>
+              <td>jane.smith@email.com</td>
+              <td>VIP</td>
+            </tr>
+            <tr data-date="2025-01-10" data-name="Michael Johnson" data-gender="Male" data-type="Regular">
+              <td>G003</td>
+              <td>Michael Johnson</td>
+              <td>+1 234-567-8902</td>
+              <td>Male</td>
+              <td>michael.j@email.com</td>
+              <td>Regular</td>
+            </tr>
+            <tr data-date="2025-01-25" data-name="Sarah Williams" data-gender="Female" data-type="Corporate">
+              <td>G004</td>
+              <td>Sarah Williams</td>
+              <td>+1 234-567-8903</td>
+              <td>Female</td>
+              <td>sarah.w@email.com</td>
+              <td>Corporate</td>
+            </tr>
+            <tr data-date="2025-01-12" data-name="David Brown" data-gender="Male" data-type="Regular">
+              <td>G005</td>
+              <td>David Brown</td>
+              <td>+1 234-567-8904</td>
+              <td>Male</td>
+              <td>david.brown@email.com</td>
+              <td>Regular</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     <!-- Footer -->
     <footer class="footer">
@@ -129,6 +221,99 @@
   sidebarBtn.addEventListener("click", ()=>{
     sidebar.classList.toggle("close");
   });
+
+  // Sorting functionality
+  const sortOrderSelect = document.getElementById('sortOrder');
+  const sortBySelect = document.getElementById('sortBy');
+  const tableBody = document.getElementById('guestsTableBody');
+
+  function sortTable() {
+    const sortBy = sortBySelect.value;
+    const sortOrder = sortOrderSelect.value;
+
+    if (!sortBy || !sortOrder) {
+      return; // Don't sort if either option is not selected
+    }
+
+    const rows = Array.from(tableBody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+      let comparison = 0;
+      
+      switch(sortBy) {
+        case 'date':
+          const dateA = new Date(a.getAttribute('data-date'));
+          const dateB = new Date(b.getAttribute('data-date'));
+          comparison = dateA - dateB;
+          break;
+        case 'alphabetical':
+          const nameA = a.getAttribute('data-name').toLowerCase();
+          const nameB = b.getAttribute('data-name').toLowerCase();
+          comparison = nameA.localeCompare(nameB);
+          break;
+        case 'gender':
+          const genderA = a.getAttribute('data-gender');
+          const genderB = b.getAttribute('data-gender');
+          comparison = genderA.localeCompare(genderB);
+          break;
+        case 'type':
+          const typeA = a.getAttribute('data-type');
+          const typeB = b.getAttribute('data-type');
+          comparison = typeA.localeCompare(typeB);
+          break;
+      }
+      
+      // Apply sort order (ascending or descending)
+      return sortOrder === 'ascending' ? comparison : -comparison;
+    });
+
+    // Clear the table body and append sorted rows
+    tableBody.innerHTML = '';
+    rows.forEach(row => tableBody.appendChild(row));
+  }
+
+  // Add event listeners to both spinners
+  sortOrderSelect.addEventListener('change', sortTable);
+  sortBySelect.addEventListener('change', sortTable);
+
+  // Search functionality
+  const searchInput = document.getElementById('search');
+  const searchButton = document.querySelector('.btn-search');
+  const searchTypeSelect = document.getElementById('searchType');
+  let allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+  function performSearch() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const searchType = searchTypeSelect.value;
+    
+    allRows.forEach(row => {
+      let matches = false;
+      
+      if (searchType === 'id') {
+        const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+        matches = id.includes(searchTerm);
+      } else if (searchType === 'name') {
+        const name = row.getAttribute('data-name').toLowerCase();
+        matches = name.includes(searchTerm);
+      } else if (searchType === 'phone') {
+        const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        matches = phone.includes(searchTerm);
+      }
+      
+      row.style.display = matches ? '' : 'none';
+    });
+  }
+
+  searchButton.addEventListener('click', performSearch);
+  searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      performSearch();
+    }
+  });
+
+  // Store original rows for search
+  allRows = Array.from(tableBody.querySelectorAll('tr'));
   </script>
 </body>
 </html>
