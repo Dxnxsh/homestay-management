@@ -129,6 +129,7 @@
                 <option value="id">ID</option>
                 <option value="name">Name</option>
                 <option value="phone">Phone No.</option>
+                <option value="email">Email</option>
               </select>
             </div>
             <div class="search-input">
@@ -401,6 +402,9 @@
       } else if (searchType === 'phone') {
         const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
         matches = phone.includes(searchTerm);
+      } else if (searchType === 'email') {
+        const email = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
+        matches = email.includes(searchTerm);
       }
       
       row.style.display = matches ? '' : 'none';
