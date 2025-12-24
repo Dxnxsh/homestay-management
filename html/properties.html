@@ -117,8 +117,7 @@
             <select class="spinner-select" id="sortBy">
               <option value="">Sort By</option>
               <option value="alphabetical">By Alphabetical</option>
-              <option value="type">By Type</option>
-              <option value="status">By Status</option>
+              <option value="rentPrice">By Rent Price</option>
             </select>
           </div>
         </div>
@@ -128,8 +127,9 @@
               <select id="searchType" name="search-type">
                 <option value="id">ID</option>
                 <option value="name">Name</option>
-                <option value="type">Type</option>
-                <option value="location">Location</option>
+                <option value="address">Address</option>
+                <option value="phone">Office Phone</option>
+                <option value="staffId">Staff ID</option>
               </select>
             </div>
             <div class="search-input">
@@ -148,69 +148,69 @@
             <tr>
               <th>Property ID</th>
               <th>Property Name</th>
-              <th>Type</th>
-              <th>Location</th>
-              <th>Capacity</th>
-              <th>Status</th>
+              <th>Address</th>
+              <th>Office Phone No.</th>
+              <th>Rent Price (per night)</th>
+              <th>Staff ID</th>
               <th>Manage</th>
             </tr>
           </thead>
           <tbody id="propertiesTableBody">
-            <tr data-name="Villa Serenity" data-type="Villa" data-status="Available">
+            <tr data-name="Villa Serenity" data-rent-price="500">
               <td>P001</td>
               <td>Villa Serenity</td>
-              <td>Villa</td>
-              <td>Langkawi</td>
-              <td>8</td>
-              <td>Available</td>
+              <td>123 Jalan Pantai Cenang, Langkawi, Kedah 07000</td>
+              <td>+604-955-1234</td>
+              <td>RM 500</td>
+              <td>S001</td>
               <td>
                 <button class="btn-update" onclick="updateProperty('P001')">Update</button>
                 <button class="btn-delete" onclick="deleteProperty('P001')">Delete</button>
               </td>
             </tr>
-            <tr data-name="Beach House Paradise" data-type="Beach House" data-status="Occupied">
+            <tr data-name="Beach House Paradise" data-rent-price="450">
               <td>P002</td>
               <td>Beach House Paradise</td>
-              <td>Beach House</td>
-              <td>Penang</td>
-              <td>6</td>
-              <td>Occupied</td>
+              <td>456 Batu Ferringhi, Penang 11100</td>
+              <td>+604-881-5678</td>
+              <td>RM 450</td>
+              <td>S002</td>
               <td>
                 <button class="btn-update" onclick="updateProperty('P002')">Update</button>
                 <button class="btn-delete" onclick="deleteProperty('P002')">Delete</button>
               </td>
             </tr>
-            <tr data-name="Mountain View Cabin" data-type="Cabin" data-status="Available">
+            <tr data-name="Mountain View Cabin" data-rent-price="350">
               <td>P003</td>
               <td>Mountain View Cabin</td>
-              <td>Cabin</td>
-              <td>Cameron Highlands</td>
-              <td>4</td>
-              <td>Available</td>
+              <td>789 Brinchang, Cameron Highlands, Pahang 39000</td>
+              <td>+605-491-9012</td>
+              <td>RM 350</td>
+              <td>S001</td>
               <td>
                 <button class="btn-update" onclick="updateProperty('P003')">Update</button>
                 <button class="btn-delete" onclick="deleteProperty('P003')">Delete</button>
               </td>
             </tr>
-            <tr data-name="City Apartment Suite" data-type="Apartment" data-status="Maintenance">
+            <tr data-name="City Apartment Suite" data-rent-price="400">
               <td>P004</td>
               <td>City Apartment Suite</td>
-              <td>Apartment</td>
-              <td>Kuala Lumpur</td>
-              <td>4</td>
-              <td>Maintenance</td>
+              <td>321 Jalan Bukit Bintang, Kuala Lumpur 50250</td>
+              <td>+603-2145-3456</td>
+              <td>RM 400</td>
+              <td>S002</td>
               <td>
                 <button class="btn-update" onclick="updateProperty('P004')">Update</button>
                 <button class="btn-delete" onclick="deleteProperty('P004')">Delete</button>
               </td>
             </tr>
-            <tr data-name="Riverside Bungalow" data-type="Bungalow" data-status="Available">
+            <tr data-name="Riverside Bungalow" data-rent-price="550">
               <td>P005</td>
               <td>Riverside Bungalow</td>
-              <td>Bungalow</td>
-              <td>Melaka</td>
-              <td>10</td>
-              <td>Available</td>
+              <td>654 Jalan Parameswara, Melaka 75000</td>
+              <td>+606-281-7890</td>
+              <td>RM 550</td>
+              <td>S001</td>
               <td>
                 <button class="btn-update" onclick="updateProperty('P005')">Update</button>
                 <button class="btn-delete" onclick="deleteProperty('P005')">Delete</button>
@@ -245,29 +245,25 @@
           <input type="text" id="updatePropertyName" name="propertyName" required>
         </div>
         <div class="form-group">
-          <label for="updateType">Type</label>
-          <select id="updateType" name="type" required>
-            <option value="Villa">Villa</option>
-            <option value="Beach House">Beach House</option>
-            <option value="Cabin">Cabin</option>
-            <option value="Apartment">Apartment</option>
-            <option value="Bungalow">Bungalow</option>
-          </select>
+          <label for="updateAddress">Address</label>
+          <input type="text" id="updateAddress" name="address" required>
         </div>
         <div class="form-group">
-          <label for="updateLocation">Location</label>
-          <input type="text" id="updateLocation" name="location" required>
+          <label for="updateOfficePhone">Office Phone No.</label>
+          <input type="text" id="updateOfficePhone" name="officePhone" required>
         </div>
         <div class="form-group">
-          <label for="updateCapacity">Capacity</label>
-          <input type="number" id="updateCapacity" name="capacity" required min="1">
+          <label for="updateRentPrice">Rent Price (per night)</label>
+          <input type="number" id="updateRentPrice" name="rentPrice" required min="0" step="0.01">
         </div>
         <div class="form-group">
-          <label for="updateStatus">Status</label>
-          <select id="updateStatus" name="status" required>
-            <option value="Available">Available</option>
-            <option value="Occupied">Occupied</option>
-            <option value="Maintenance">Maintenance</option>
+          <label for="updateStaffId">Staff ID</label>
+          <select id="updateStaffId" name="staffId" required>
+            <option value="S001">S001 - Ahmad Zulkifli bin Hassan</option>
+            <option value="S002">S002 - Nurul Aina binti Mohd Ali</option>
+            <option value="S003">S003 - Lim Chee Keong</option>
+            <option value="S004">S004 - Siti Fatimah binti Abdullah</option>
+            <option value="S005">S005 - Muhammad Farhan bin Ismail</option>
           </select>
         </div>
         <div class="form-actions">
@@ -317,15 +313,10 @@
           const nameB = b.getAttribute('data-name').toLowerCase();
           comparison = nameA.localeCompare(nameB);
           break;
-        case 'type':
-          const typeA = a.getAttribute('data-type');
-          const typeB = b.getAttribute('data-type');
-          comparison = typeA.localeCompare(typeB);
-          break;
-        case 'status':
-          const statusA = a.getAttribute('data-status');
-          const statusB = b.getAttribute('data-status');
-          comparison = statusA.localeCompare(statusB);
+        case 'rentPrice':
+          const priceA = parseFloat(a.getAttribute('data-rent-price'));
+          const priceB = parseFloat(b.getAttribute('data-rent-price'));
+          comparison = priceA - priceB;
           break;
       }
       
@@ -358,12 +349,15 @@
       } else if (searchType === 'name') {
         const name = row.getAttribute('data-name').toLowerCase();
         matches = name.includes(searchTerm);
-      } else if (searchType === 'type') {
-        const type = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-        matches = type.includes(searchTerm);
-      } else if (searchType === 'location') {
-        const location = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
-        matches = location.includes(searchTerm);
+      } else if (searchType === 'address') {
+        const address = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        matches = address.includes(searchTerm);
+      } else if (searchType === 'phone') {
+        const phone = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+        matches = phone.includes(searchTerm);
+      } else if (searchType === 'staffId') {
+        const staffId = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
+        matches = staffId.includes(searchTerm);
       }
       
       row.style.display = matches ? '' : 'none';
@@ -401,18 +395,18 @@
     const currentData = {
       id: cells[0].textContent.trim(),
       name: cells[1].textContent.trim(),
-      type: cells[2].textContent.trim(),
-      location: cells[3].textContent.trim(),
-      capacity: cells[4].textContent.trim(),
-      status: cells[5].textContent.trim()
+      address: cells[2].textContent.trim(),
+      officePhone: cells[3].textContent.trim(),
+      rentPrice: cells[4].textContent.trim().replace('RM ', '').trim(),
+      staffId: cells[5].textContent.trim()
     };
     
     document.getElementById('updatePropertyId').value = currentData.id;
     document.getElementById('updatePropertyName').value = currentData.name;
-    document.getElementById('updateType').value = currentData.type;
-    document.getElementById('updateLocation').value = currentData.location;
-    document.getElementById('updateCapacity').value = currentData.capacity;
-    document.getElementById('updateStatus').value = currentData.status;
+    document.getElementById('updateAddress').value = currentData.address;
+    document.getElementById('updateOfficePhone').value = currentData.officePhone;
+    document.getElementById('updateRentPrice').value = currentData.rentPrice;
+    document.getElementById('updateStaffId').value = currentData.staffId;
     
     document.getElementById('updateModal').setAttribute('data-target-row', propertyId);
     document.getElementById('updateModal').style.display = 'block';
@@ -429,10 +423,10 @@
     const propertyId = document.getElementById('updatePropertyId').value;
     const updatedData = {
       name: document.getElementById('updatePropertyName').value.trim(),
-      type: document.getElementById('updateType').value,
-      location: document.getElementById('updateLocation').value.trim(),
-      capacity: document.getElementById('updateCapacity').value.trim(),
-      status: document.getElementById('updateStatus').value
+      address: document.getElementById('updateAddress').value.trim(),
+      officePhone: document.getElementById('updateOfficePhone').value.trim(),
+      rentPrice: parseFloat(document.getElementById('updateRentPrice').value),
+      staffId: document.getElementById('updateStaffId').value
     };
     
     const rows = tableBody.querySelectorAll('tr');
@@ -441,14 +435,13 @@
       if (idCell && idCell.textContent.trim() === propertyId) {
         const cells = row.querySelectorAll('td');
         cells[1].textContent = updatedData.name;
-        cells[2].textContent = updatedData.type;
-        cells[3].textContent = updatedData.location;
-        cells[4].textContent = updatedData.capacity;
-        cells[5].textContent = updatedData.status;
+        cells[2].textContent = updatedData.address;
+        cells[3].textContent = updatedData.officePhone;
+        cells[4].textContent = 'RM ' + updatedData.rentPrice.toFixed(0);
+        cells[5].textContent = updatedData.staffId;
         
         row.setAttribute('data-name', updatedData.name);
-        row.setAttribute('data-type', updatedData.type);
-        row.setAttribute('data-status', updatedData.status);
+        row.setAttribute('data-rent-price', updatedData.rentPrice);
         
         allRows = Array.from(tableBody.querySelectorAll('tr'));
         closeUpdateModal();

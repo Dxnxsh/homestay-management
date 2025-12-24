@@ -117,8 +117,7 @@
             <select class="spinner-select" id="sortBy">
               <option value="">Sort By</option>
               <option value="alphabetical">By Alphabetical</option>
-              <option value="gender">By Gender</option>
-              <option value="position">By Position</option>
+              <option value="type">By Type</option>
             </select>
           </div>
         </div>
@@ -149,68 +148,74 @@
               <th>Staff ID</th>
               <th>Staff Name</th>
               <th>Phone No.</th>
-              <th>Gender</th>
               <th>Email</th>
-              <th>Position</th>
+              <th>Password</th>
+              <th>Type</th>
+              <th>Manager ID</th>
               <th>Manage</th>
             </tr>
           </thead>
           <tbody id="staffTableBody">
-            <tr data-name="Ahmad Zulkifli bin Hassan" data-gender="Male" data-position="Manager">
+            <tr data-name="Ahmad Zulkifli bin Hassan" data-type="Full Time">
               <td>S001</td>
               <td>Ahmad Zulkifli bin Hassan</td>
               <td>+6011-234-5678</td>
-              <td>Male</td>
               <td>ahmad.zulkifli@serenasanctuary.com</td>
-              <td>Manager</td>
+              <td>••••••••</td>
+              <td>Full Time</td>
+              <td>-</td>
               <td>
                 <button class="btn-update" onclick="updateStaff('S001')">Update</button>
                 <button class="btn-delete" onclick="deleteStaff('S001')">Delete</button>
               </td>
             </tr>
-            <tr data-name="Nurul Aina binti Mohd Ali" data-gender="Female" data-position="Receptionist">
+            <tr data-name="Nurul Aina binti Mohd Ali" data-type="Full Time">
               <td>S002</td>
               <td>Nurul Aina binti Mohd Ali</td>
               <td>+6012-345-6789</td>
-              <td>Female</td>
               <td>nurul.aina@serenasanctuary.com</td>
-              <td>Receptionist</td>
+              <td>••••••••</td>
+              <td>Full Time</td>
+              <td>-</td>
               <td>
                 <button class="btn-update" onclick="updateStaff('S002')">Update</button>
                 <button class="btn-delete" onclick="deleteStaff('S002')">Delete</button>
               </td>
             </tr>
-            <tr data-name="Lim Chee Keong" data-gender="Male" data-position="Housekeeper">
+            <tr data-name="Lim Chee Keong" data-type="Part Time">
               <td>S003</td>
               <td>Lim Chee Keong</td>
               <td>+6013-456-7890</td>
-              <td>Male</td>
               <td>lim.cheekeong@serenasanctuary.com</td>
-              <td>Housekeeper</td>
+              <td>••••••••</td>
+              <td>Part Time</td>
+              <td>S001</td>
               <td>
                 <button class="btn-update" onclick="updateStaff('S003')">Update</button>
                 <button class="btn-delete" onclick="deleteStaff('S003')">Delete</button>
               </td>
             </tr>
-            <tr data-name="Siti Fatimah binti Abdullah" data-gender="Female" data-position="Housekeeper">
+            <tr data-name="Siti Fatimah binti Abdullah" data-type="Part Time">
               <td>S004</td>
               <td>Siti Fatimah binti Abdullah</td>
               <td>+6014-567-8901</td>
-              <td>Female</td>
               <td>siti.fatimah@serenasanctuary.com</td>
-              <td>Housekeeper</td>
+              <td>••••••••</td>
+              <td>Part Time</td>
+              <td>S001</td>
               <td>
                 <button class="btn-update" onclick="updateStaff('S004')">Update</button>
                 <button class="btn-delete" onclick="deleteStaff('S004')">Delete</button>
               </td>
             </tr>
-            <tr data-name="Muhammad Farhan bin Ismail" data-gender="Male" data-position="Maintenance">
+            <tr data-name="Muhammad Farhan bin Ismail" data-type="Part Time">
               <td>S005</td>
               <td>Muhammad Farhan bin Ismail</td>
               <td>+6015-678-9012</td>
-              <td>Male</td>
               <td>farhan.ismail@serenasanctuary.com</td>
-              <td>Maintenance</td>
+              <td>••••••••</td>
+              <td>Part Time</td>
+              <td>S002</td>
               <td>
                 <button class="btn-update" onclick="updateStaff('S005')">Update</button>
                 <button class="btn-delete" onclick="deleteStaff('S005')">Delete</button>
@@ -249,23 +254,24 @@
           <input type="text" id="updatePhone" name="phone" required>
         </div>
         <div class="form-group">
-          <label for="updateGender">Gender</label>
-          <select id="updateGender" name="gender" required>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label for="updateEmail">Email</label>
           <input type="email" id="updateEmail" name="email" required>
         </div>
         <div class="form-group">
-          <label for="updatePosition">Position</label>
-          <select id="updatePosition" name="position" required>
-            <option value="Manager">Manager</option>
-            <option value="Receptionist">Receptionist</option>
-            <option value="Housekeeper">Housekeeper</option>
-            <option value="Maintenance">Maintenance</option>
+          <label for="updatePassword">Password</label>
+          <input type="password" id="updatePassword" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="updateType">Type</label>
+          <select id="updateType" name="type" required onchange="toggleManagerId()">
+            <option value="Full Time">Full Time</option>
+            <option value="Part Time">Part Time</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="updateManagerId">Manager ID</label>
+          <select id="updateManagerId" name="managerId">
+            <option value="">-</option>
           </select>
         </div>
         <div class="form-actions">
@@ -315,15 +321,10 @@
           const nameB = b.getAttribute('data-name').toLowerCase();
           comparison = nameA.localeCompare(nameB);
           break;
-        case 'gender':
-          const genderA = a.getAttribute('data-gender');
-          const genderB = b.getAttribute('data-gender');
-          comparison = genderA.localeCompare(genderB);
-          break;
-        case 'position':
-          const positionA = a.getAttribute('data-position');
-          const positionB = b.getAttribute('data-position');
-          comparison = positionA.localeCompare(positionB);
+        case 'type':
+          const typeA = a.getAttribute('data-type');
+          const typeB = b.getAttribute('data-type');
+          comparison = typeA.localeCompare(typeB);
           break;
       }
       
@@ -360,7 +361,7 @@
         const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
         matches = phone.includes(searchTerm);
       } else if (searchType === 'email') {
-        const email = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
+        const email = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
         matches = email.includes(searchTerm);
       }
       
@@ -400,18 +401,22 @@
       id: cells[0].textContent.trim(),
       name: cells[1].textContent.trim(),
       phone: cells[2].textContent.trim(),
-      gender: cells[3].textContent.trim(),
-      email: cells[4].textContent.trim(),
-      position: cells[5].textContent.trim()
+      email: cells[3].textContent.trim(),
+      password: cells[4].textContent.trim(),
+      type: cells[5].textContent.trim(),
+      managerId: cells[6].textContent.trim() === '-' ? '' : cells[6].textContent.trim()
     };
     
     document.getElementById('updateStaffId').value = currentData.id;
     document.getElementById('updateStaffName').value = currentData.name;
     document.getElementById('updatePhone').value = currentData.phone;
-    const genderValue = currentData.gender.charAt(0).toUpperCase() + currentData.gender.slice(1).toLowerCase();
-    document.getElementById('updateGender').value = genderValue;
     document.getElementById('updateEmail').value = currentData.email;
-    document.getElementById('updatePosition').value = currentData.position;
+    document.getElementById('updatePassword').value = currentData.password === '••••••••' ? '' : currentData.password;
+    document.getElementById('updateType').value = currentData.type;
+    
+    // Populate manager dropdown first, then set value
+    toggleManagerId();
+    document.getElementById('updateManagerId').value = currentData.managerId;
     
     document.getElementById('updateModal').setAttribute('data-target-row', staffId);
     document.getElementById('updateModal').style.display = 'block';
@@ -422,16 +427,69 @@
     document.getElementById('updateStaffForm').reset();
   }
 
+  function toggleManagerId() {
+    const typeSelect = document.getElementById('updateType');
+    const managerIdSelect = document.getElementById('updateManagerId');
+    const currentStaffId = document.getElementById('updateStaffId').value;
+    
+    if (typeSelect.value === 'Full Time') {
+      managerIdSelect.value = '';
+      managerIdSelect.disabled = true;
+      managerIdSelect.required = false;
+    } else {
+      managerIdSelect.disabled = false;
+      managerIdSelect.required = true;
+      
+      // Populate Manager ID dropdown with Full Time staff (excluding current staff)
+      managerIdSelect.innerHTML = '<option value="">-</option>';
+      const rows = tableBody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const idCell = row.querySelector('td:first-child');
+        const typeCell = row.querySelector('td:nth-child(6)');
+        const nameCell = row.querySelector('td:nth-child(2)');
+        
+        if (idCell && typeCell && nameCell) {
+          const staffId = idCell.textContent.trim();
+          const staffType = typeCell.textContent.trim();
+          const staffName = nameCell.textContent.trim();
+          
+          if (staffType === 'Full Time' && staffId !== currentStaffId) {
+            const option = document.createElement('option');
+            option.value = staffId;
+            option.textContent = staffId + ' - ' + staffName;
+            managerIdSelect.appendChild(option);
+          }
+        }
+      });
+    }
+  }
+
   document.getElementById('updateStaffForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
     const staffId = document.getElementById('updateStaffId').value;
+    const typeValue = document.getElementById('updateType').value;
+    const managerIdValue = document.getElementById('updateManagerId').value;
+    
+    // Validate: Full Time should have no Manager ID
+    if (typeValue === 'Full Time' && managerIdValue !== '') {
+      alert('Full Time staff cannot have a Manager ID. Please set Manager ID to "-"');
+      return;
+    }
+    
+    // Validate: Part Time must have a Manager ID
+    if (typeValue === 'Part Time' && managerIdValue === '') {
+      alert('Part Time staff must have a Manager ID');
+      return;
+    }
+    
     const updatedData = {
       name: document.getElementById('updateStaffName').value.trim(),
       phone: document.getElementById('updatePhone').value.trim(),
-      gender: document.getElementById('updateGender').value,
       email: document.getElementById('updateEmail').value.trim(),
-      position: document.getElementById('updatePosition').value
+      password: document.getElementById('updatePassword').value.trim() || '••••••••',
+      type: typeValue,
+      managerId: typeValue === 'Full Time' ? '-' : managerIdValue
     };
     
     const rows = tableBody.querySelectorAll('tr');
@@ -441,13 +499,13 @@
         const cells = row.querySelectorAll('td');
         cells[1].textContent = updatedData.name;
         cells[2].textContent = updatedData.phone;
-        cells[3].textContent = updatedData.gender;
-        cells[4].textContent = updatedData.email;
-        cells[5].textContent = updatedData.position;
+        cells[3].textContent = updatedData.email;
+        cells[4].textContent = updatedData.password;
+        cells[5].textContent = updatedData.type;
+        cells[6].textContent = updatedData.managerId;
         
         row.setAttribute('data-name', updatedData.name);
-        row.setAttribute('data-gender', updatedData.gender);
-        row.setAttribute('data-position', updatedData.position);
+        row.setAttribute('data-type', updatedData.type);
         
         allRows = Array.from(tableBody.querySelectorAll('tr'));
         closeUpdateModal();
@@ -483,3 +541,4 @@
   </script>
 </body>
 </html>
+
