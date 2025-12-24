@@ -685,6 +685,7 @@ body {
   white-space: nowrap;
 }
 
+.btn-details,
 .btn-update,
 .btn-delete {
   padding: 6px 12px;
@@ -696,6 +697,17 @@ body {
   font-weight: 500;
   font-family: 'Poppins', sans-serif;
   transition: all 0.2s ease;
+}
+
+.btn-details {
+  background-color: #34A853;
+  color: #fff;
+}
+
+.btn-details:hover {
+  background-color: #2E8B47;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(52, 168, 83, 0.3);
 }
 
 .btn-update {
@@ -720,6 +732,7 @@ body {
   box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
 }
 
+.btn-details:active,
 .btn-update:active,
 .btn-delete:active {
   transform: translateY(0);
@@ -740,6 +753,7 @@ body {
     font-size: 13px;
   }
   
+  .btn-details,
   .btn-update,
   .btn-delete {
     padding: 5px 10px;

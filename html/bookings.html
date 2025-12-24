@@ -152,11 +152,12 @@
               <th>Homestay ID</th>
               <th>Guest ID</th>
               <th>Bill No.</th>
+              <th>Details</th>
               <th>Manage</th>
             </tr>
           </thead>
           <tbody id="bookingsTableBody">
-            <tr data-date="2025-01-15" data-deposit="300">
+            <tr data-date="2025-01-15" data-deposit="300" data-adults="2" data-children="1" data-staff="S001">
               <td>BK001</td>
               <td>2025-01-15</td>
               <td>2025-01-18</td>
@@ -165,11 +166,14 @@
               <td>G001</td>
               <td>B001</td>
               <td>
+                <button class="btn-details" onclick="viewBookingDetails('BK001')">Details</button>
+              </td>
+              <td>
                 <button class="btn-update" onclick="updateBooking('BK001')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK001')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-01-20" data-deposit="270">
+            <tr data-date="2025-01-20" data-deposit="270" data-adults="2" data-children="0" data-staff="S002">
               <td>BK002</td>
               <td>2025-01-20</td>
               <td>2025-01-23</td>
@@ -178,11 +182,14 @@
               <td>G002</td>
               <td>B002</td>
               <td>
+                <button class="btn-details" onclick="viewBookingDetails('BK002')">Details</button>
+              </td>
+              <td>
                 <button class="btn-update" onclick="updateBooking('BK002')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK002')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-01-25" data-deposit="240">
+            <tr data-date="2025-01-25" data-deposit="240" data-adults="1" data-children="2" data-staff="S001">
               <td>BK003</td>
               <td>2025-01-25</td>
               <td>2025-01-28</td>
@@ -191,11 +198,14 @@
               <td>G003</td>
               <td>B003</td>
               <td>
+                <button class="btn-details" onclick="viewBookingDetails('BK003')">Details</button>
+              </td>
+              <td>
                 <button class="btn-update" onclick="updateBooking('BK003')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK003')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-02-01" data-deposit="330">
+            <tr data-date="2025-02-01" data-deposit="330" data-adults="4" data-children="0" data-staff="S002">
               <td>BK004</td>
               <td>2025-02-01</td>
               <td>2025-02-04</td>
@@ -204,11 +214,14 @@
               <td>G004</td>
               <td>B004</td>
               <td>
+                <button class="btn-details" onclick="viewBookingDetails('BK004')">Details</button>
+              </td>
+              <td>
                 <button class="btn-update" onclick="updateBooking('BK004')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK004')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-02-05" data-deposit="300">
+            <tr data-date="2025-02-05" data-deposit="300" data-adults="2" data-children="1" data-staff="S001">
               <td>BK005</td>
               <td>2025-02-05</td>
               <td>2025-02-08</td>
@@ -216,6 +229,9 @@
               <td>P001</td>
               <td>G005</td>
               <td>-</td>
+              <td>
+                <button class="btn-details" onclick="viewBookingDetails('BK005')">Details</button>
+              </td>
               <td>
                 <button class="btn-update" onclick="updateBooking('BK005')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK005')">Delete</button>
@@ -232,6 +248,61 @@
       </div>
     </footer>
   </section>
+
+  <!-- Booking Details Modal -->
+  <div id="detailsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Booking Details</h2>
+        <span class="close-modal" onclick="closeDetailsModal()">&times;</span>
+      </div>
+      <div class="modal-form">
+        <div class="form-group">
+          <label>Booking ID</label>
+          <input type="text" id="detailsBookingId" readonly>
+        </div>
+        <div class="form-group">
+          <label>Check-in Date</label>
+          <input type="text" id="detailsCheckIn" readonly>
+        </div>
+        <div class="form-group">
+          <label>Check-out Date</label>
+          <input type="text" id="detailsCheckOut" readonly>
+        </div>
+        <div class="form-group">
+          <label>Number of Adults</label>
+          <input type="text" id="detailsNumAdults" readonly>
+        </div>
+        <div class="form-group">
+          <label>Number of Children</label>
+          <input type="text" id="detailsNumChildren" readonly>
+        </div>
+        <div class="form-group">
+          <label>Deposit Amount</label>
+          <input type="text" id="detailsDeposit" readonly>
+        </div>
+        <div class="form-group">
+          <label>Homestay ID</label>
+          <input type="text" id="detailsHomestayId" readonly>
+        </div>
+        <div class="form-group">
+          <label>Guest ID</label>
+          <input type="text" id="detailsGuestId" readonly>
+        </div>
+        <div class="form-group">
+          <label>Staff ID</label>
+          <input type="text" id="detailsStaffId" readonly>
+        </div>
+        <div class="form-group">
+          <label>Bill No.</label>
+          <input type="text" id="detailsBillNo" readonly>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="closeDetailsModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Update Booking Modal -->
   <div id="updateModal" class="modal">
@@ -254,6 +325,14 @@
           <input type="date" id="updateCheckOut" name="checkOut" required>
         </div>
         <div class="form-group">
+          <label for="updateNumAdults">Number of Adults</label>
+          <input type="number" id="updateNumAdults" name="numAdults" required min="1">
+        </div>
+        <div class="form-group">
+          <label for="updateNumChildren">Number of Children</label>
+          <input type="number" id="updateNumChildren" name="numChildren" required min="0">
+        </div>
+        <div class="form-group">
           <label for="updateDeposit">Deposit Amount</label>
           <input type="number" id="updateDeposit" name="deposit" required min="0" step="0.01">
         </div>
@@ -264,6 +343,10 @@
         <div class="form-group">
           <label for="updateGuestId">Guest ID</label>
           <input type="text" id="updateGuestId" name="guestId" required>
+        </div>
+        <div class="form-group">
+          <label for="updateStaffId">Staff ID</label>
+          <input type="text" id="updateStaffId" name="staffId" required>
         </div>
         <div class="form-group">
           <label for="updateBillNo">Bill No.</label>
@@ -399,15 +482,21 @@
       deposit: cells[3].textContent.trim().replace('RM ', '').trim(),
       homestayId: cells[4].textContent.trim(),
       guestId: cells[5].textContent.trim(),
-      billNo: cells[6].textContent.trim() === '-' ? '' : cells[6].textContent.trim()
+      billNo: cells[6].textContent.trim() === '-' ? '' : cells[6].textContent.trim(),
+      numAdults: targetRow.getAttribute('data-adults') || '2',
+      numChildren: targetRow.getAttribute('data-children') || '0',
+      staffId: targetRow.getAttribute('data-staff') || 'S001'
     };
     
     document.getElementById('updateBookingId').value = currentData.bookingId;
     document.getElementById('updateCheckIn').value = currentData.checkIn;
     document.getElementById('updateCheckOut').value = currentData.checkOut;
+    document.getElementById('updateNumAdults').value = currentData.numAdults;
+    document.getElementById('updateNumChildren').value = currentData.numChildren;
     document.getElementById('updateDeposit').value = currentData.deposit;
     document.getElementById('updateHomestayId').value = currentData.homestayId;
     document.getElementById('updateGuestId').value = currentData.guestId;
+    document.getElementById('updateStaffId').value = currentData.staffId;
     document.getElementById('updateBillNo').value = currentData.billNo;
     
     document.getElementById('updateModal').setAttribute('data-target-row', bookingId);
@@ -419,6 +508,41 @@
     document.getElementById('updateBookingForm').reset();
   }
 
+  function viewBookingDetails(bookingId) {
+    const rows = tableBody.querySelectorAll('tr');
+    let targetRow = null;
+    
+    rows.forEach(row => {
+      const idCell = row.querySelector('td:first-child');
+      if (idCell && idCell.textContent.trim() === bookingId) {
+        targetRow = row;
+      }
+    });
+    
+    if (!targetRow) {
+      alert('Booking not found!');
+      return;
+    }
+    
+    const cells = targetRow.querySelectorAll('td');
+    document.getElementById('detailsBookingId').value = cells[0].textContent.trim();
+    document.getElementById('detailsCheckIn').value = cells[1].textContent.trim();
+    document.getElementById('detailsCheckOut').value = cells[2].textContent.trim();
+    document.getElementById('detailsNumAdults').value = targetRow.getAttribute('data-adults') || 'N/A';
+    document.getElementById('detailsNumChildren').value = targetRow.getAttribute('data-children') || '0';
+    document.getElementById('detailsDeposit').value = cells[3].textContent.trim();
+    document.getElementById('detailsHomestayId').value = cells[4].textContent.trim();
+    document.getElementById('detailsGuestId').value = cells[5].textContent.trim();
+    document.getElementById('detailsStaffId').value = targetRow.getAttribute('data-staff') || 'N/A';
+    document.getElementById('detailsBillNo').value = cells[6].textContent.trim() === '-' ? 'Not assigned' : cells[6].textContent.trim();
+    
+    document.getElementById('detailsModal').style.display = 'block';
+  }
+
+  function closeDetailsModal() {
+    document.getElementById('detailsModal').style.display = 'none';
+  }
+
   document.getElementById('updateBookingForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -426,9 +550,12 @@
     const updatedData = {
       checkIn: document.getElementById('updateCheckIn').value,
       checkOut: document.getElementById('updateCheckOut').value,
+      numAdults: document.getElementById('updateNumAdults').value,
+      numChildren: document.getElementById('updateNumChildren').value,
       deposit: parseFloat(document.getElementById('updateDeposit').value),
       homestayId: document.getElementById('updateHomestayId').value.trim(),
       guestId: document.getElementById('updateGuestId').value.trim(),
+      staffId: document.getElementById('updateStaffId').value.trim(),
       billNo: document.getElementById('updateBillNo').value.trim() || '-'
     };
     
@@ -446,6 +573,9 @@
         
         row.setAttribute('data-date', updatedData.checkIn);
         row.setAttribute('data-deposit', updatedData.deposit);
+        row.setAttribute('data-adults', updatedData.numAdults);
+        row.setAttribute('data-children', updatedData.numChildren);
+        row.setAttribute('data-staff', updatedData.staffId);
         
         allRows = Array.from(tableBody.querySelectorAll('tr'));
         closeUpdateModal();
@@ -456,9 +586,13 @@
   });
 
   window.onclick = function(event) {
-    const modal = document.getElementById('updateModal');
-    if (event.target === modal) {
+    const updateModal = document.getElementById('updateModal');
+    const detailsModal = document.getElementById('detailsModal');
+    if (event.target === updateModal) {
       closeUpdateModal();
+    }
+    if (event.target === detailsModal) {
+      closeDetailsModal();
     }
   }
 

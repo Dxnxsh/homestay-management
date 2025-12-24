@@ -152,11 +152,12 @@
               <th>Payment Method</th>
               <th>Guest ID</th>
               <th>Staff ID</th>
+              <th>Details</th>
               <th>Manage</th>
             </tr>
           </thead>
           <tbody id="billingTableBody">
-            <tr data-date="2025-01-15" data-amount="1500" data-status="Paid">
+            <tr data-date="2025-01-15" data-amount="1500" data-status="Paid" data-subtotal="1400" data-disc="50" data-tax="100" data-late="50" data-payment-date="2025-01-15">
               <td>B001</td>
               <td>2025-01-15</td>
               <td>RM 1,500</td>
@@ -165,11 +166,14 @@
               <td>G001</td>
               <td>S001</td>
               <td>
+                <button class="btn-details" onclick="viewBillDetails('B001')">Details</button>
+              </td>
+              <td>
                 <button class="btn-update" onclick="updateBill('B001')">Update</button>
                 <button class="btn-delete" onclick="deleteBill('B001')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-01-20" data-amount="1350" data-status="Pending">
+            <tr data-date="2025-01-20" data-amount="1350" data-status="Pending" data-subtotal="1300" data-disc="30" data-tax="80" data-late="0" data-payment-date="">
               <td>B002</td>
               <td>2025-01-20</td>
               <td>RM 1,350</td>
@@ -178,11 +182,14 @@
               <td>G002</td>
               <td>S002</td>
               <td>
+                <button class="btn-details" onclick="viewBillDetails('B002')">Details</button>
+              </td>
+              <td>
                 <button class="btn-update" onclick="updateBill('B002')">Update</button>
                 <button class="btn-delete" onclick="deleteBill('B002')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-01-25" data-amount="1200" data-status="Paid">
+            <tr data-date="2025-01-25" data-amount="1200" data-status="Paid" data-subtotal="1150" data-disc="20" data-tax="70" data-late="0" data-payment-date="2025-01-25">
               <td>B003</td>
               <td>2025-01-25</td>
               <td>RM 1,200</td>
@@ -191,11 +198,14 @@
               <td>G003</td>
               <td>S001</td>
               <td>
+                <button class="btn-details" onclick="viewBillDetails('B003')">Details</button>
+              </td>
+              <td>
                 <button class="btn-update" onclick="updateBill('B003')">Update</button>
                 <button class="btn-delete" onclick="deleteBill('B003')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-02-01" data-amount="1650" data-status="Pending">
+            <tr data-date="2025-02-01" data-amount="1650" data-status="Pending" data-subtotal="1600" data-disc="40" data-tax="90" data-late="0" data-payment-date="">
               <td>B004</td>
               <td>2025-02-01</td>
               <td>RM 1,650</td>
@@ -203,6 +213,9 @@
               <td>Cash</td>
               <td>G004</td>
               <td>S002</td>
+              <td>
+                <button class="btn-details" onclick="viewBillDetails('B004')">Details</button>
+              </td>
               <td>
                 <button class="btn-update" onclick="updateBill('B004')">Update</button>
                 <button class="btn-delete" onclick="deleteBill('B004')">Delete</button>
@@ -219,6 +232,69 @@
         </div>
       </footer>
     </section>
+
+    <!-- Bill Details Modal -->
+    <div id="detailsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Bill Details</h2>
+          <span class="close-modal" onclick="closeDetailsModal()">&times;</span>
+        </div>
+        <div class="modal-form">
+          <div class="form-group">
+            <label>Bill No.</label>
+            <input type="text" id="detailsBillNo" readonly>
+          </div>
+          <div class="form-group">
+            <label>Bill Date</label>
+            <input type="text" id="detailsBillDate" readonly>
+          </div>
+          <div class="form-group">
+            <label>Bill Subtotal</label>
+            <input type="text" id="detailsSubtotal" readonly>
+          </div>
+          <div class="form-group">
+            <label>Discount Amount</label>
+            <input type="text" id="detailsDiscAmount" readonly>
+          </div>
+          <div class="form-group">
+            <label>Tax Amount</label>
+            <input type="text" id="detailsTaxAmount" readonly>
+          </div>
+          <div class="form-group">
+            <label>Late Charges</label>
+            <input type="text" id="detailsLateCharges" readonly>
+          </div>
+          <div class="form-group">
+            <label>Total Amount</label>
+            <input type="text" id="detailsTotalAmount" readonly>
+          </div>
+          <div class="form-group">
+            <label>Bill Status</label>
+            <input type="text" id="detailsBillStatus" readonly>
+          </div>
+          <div class="form-group">
+            <label>Payment Date</label>
+            <input type="text" id="detailsPaymentDate" readonly>
+          </div>
+          <div class="form-group">
+            <label>Payment Method</label>
+            <input type="text" id="detailsPaymentMethod" readonly>
+          </div>
+          <div class="form-group">
+            <label>Guest ID</label>
+            <input type="text" id="detailsGuestId" readonly>
+          </div>
+          <div class="form-group">
+            <label>Staff ID</label>
+            <input type="text" id="detailsStaffId" readonly>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="closeDetailsModal()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Update Bill Modal -->
     <div id="updateModal" class="modal">
@@ -237,8 +313,24 @@
             <input type="date" id="updateBillDate" name="billDate" required>
           </div>
           <div class="form-group">
+            <label for="updateSubtotal">Bill Subtotal</label>
+            <input type="number" id="updateSubtotal" name="subtotal" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="updateDiscAmount">Discount Amount</label>
+            <input type="number" id="updateDiscAmount" name="discAmount" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="updateTaxAmount">Tax Amount</label>
+            <input type="number" id="updateTaxAmount" name="taxAmount" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="updateLateCharges">Late Charges</label>
+            <input type="number" id="updateLateCharges" name="lateCharges" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
             <label for="updateAmount">Total Amount</label>
-            <input type="number" id="updateAmount" name="amount" required min="0" step="0.01">
+            <input type="number" id="updateAmount" name="amount" required min="0" step="0.01" readonly>
           </div>
           <div class="form-group">
             <label for="updateStatus">Bill Status</label>
@@ -246,6 +338,10 @@
               <option value="Paid">Paid</option>
               <option value="Pending">Pending</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label for="updatePaymentDate">Payment Date</label>
+            <input type="date" id="updatePaymentDate" name="paymentDate">
           </div>
           <div class="form-group">
             <label for="updatePaymentMethod">Payment Method</label>
@@ -399,24 +495,102 @@
           status: cells[3].textContent.trim(),
           paymentMethod: cells[4].textContent.trim(),
           guestId: cells[5].textContent.trim(),
-          staffId: cells[6].textContent.trim()
+          staffId: cells[6].textContent.trim(),
+          subtotal: targetRow.getAttribute('data-subtotal') || '0',
+          discAmount: targetRow.getAttribute('data-disc') || '0',
+          taxAmount: targetRow.getAttribute('data-tax') || '0',
+          lateCharges: targetRow.getAttribute('data-late') || '0',
+          paymentDate: targetRow.getAttribute('data-payment-date') || ''
         };
         
         document.getElementById('updateBillNo').value = currentData.billNo;
         document.getElementById('updateBillDate').value = currentData.billDate;
+        document.getElementById('updateSubtotal').value = currentData.subtotal;
+        document.getElementById('updateDiscAmount').value = currentData.discAmount;
+        document.getElementById('updateTaxAmount').value = currentData.taxAmount;
+        document.getElementById('updateLateCharges').value = currentData.lateCharges;
         document.getElementById('updateAmount').value = currentData.amount;
         document.getElementById('updateStatus').value = currentData.status;
+        document.getElementById('updatePaymentDate').value = currentData.paymentDate;
         document.getElementById('updatePaymentMethod').value = currentData.paymentMethod;
         document.getElementById('updateGuestId').value = currentData.guestId;
         document.getElementById('updateStaffId').value = currentData.staffId;
+        
+        // Calculate initial total
+        calculateTotal();
         
         document.getElementById('updateModal').setAttribute('data-target-row', billNo);
         document.getElementById('updateModal').style.display = 'block';
       }
 
+      function calculateTotal() {
+        const subtotal = parseFloat(document.getElementById('updateSubtotal').value) || 0;
+        const discAmount = parseFloat(document.getElementById('updateDiscAmount').value) || 0;
+        const taxAmount = parseFloat(document.getElementById('updateTaxAmount').value) || 0;
+        const lateCharges = parseFloat(document.getElementById('updateLateCharges').value) || 0;
+        const total = subtotal - discAmount + taxAmount + lateCharges;
+        document.getElementById('updateAmount').value = total.toFixed(2);
+      }
+      
+      // Set up event listeners for total calculation
+      document.addEventListener('DOMContentLoaded', function() {
+        const subtotalInput = document.getElementById('updateSubtotal');
+        const discInput = document.getElementById('updateDiscAmount');
+        const taxInput = document.getElementById('updateTaxAmount');
+        const lateInput = document.getElementById('updateLateCharges');
+        
+        if (subtotalInput) subtotalInput.addEventListener('input', calculateTotal);
+        if (discInput) discInput.addEventListener('input', calculateTotal);
+        if (taxInput) taxInput.addEventListener('input', calculateTotal);
+        if (lateInput) lateInput.addEventListener('input', calculateTotal);
+      });
+
       function closeUpdateModal() {
         document.getElementById('updateModal').style.display = 'none';
         document.getElementById('updateBillForm').reset();
+      }
+
+      function viewBillDetails(billNo) {
+        const rows = tableBody.querySelectorAll('tr');
+        let targetRow = null;
+        
+        rows.forEach(row => {
+          const idCell = row.querySelector('td:first-child');
+          if (idCell && idCell.textContent.trim() === billNo) {
+            targetRow = row;
+          }
+        });
+        
+        if (!targetRow) {
+          alert('Bill not found!');
+          return;
+        }
+        
+        const cells = targetRow.querySelectorAll('td');
+        const subtotal = parseFloat(targetRow.getAttribute('data-subtotal')) || 0;
+        const discAmount = parseFloat(targetRow.getAttribute('data-disc')) || 0;
+        const taxAmount = parseFloat(targetRow.getAttribute('data-tax')) || 0;
+        const lateCharges = parseFloat(targetRow.getAttribute('data-late')) || 0;
+        const paymentDate = targetRow.getAttribute('data-payment-date') || '';
+        
+        document.getElementById('detailsBillNo').value = cells[0].textContent.trim();
+        document.getElementById('detailsBillDate').value = cells[1].textContent.trim();
+        document.getElementById('detailsSubtotal').value = 'RM ' + subtotal.toLocaleString();
+        document.getElementById('detailsDiscAmount').value = 'RM ' + discAmount.toLocaleString();
+        document.getElementById('detailsTaxAmount').value = 'RM ' + taxAmount.toLocaleString();
+        document.getElementById('detailsLateCharges').value = 'RM ' + lateCharges.toLocaleString();
+        document.getElementById('detailsTotalAmount').value = cells[2].textContent.trim();
+        document.getElementById('detailsBillStatus').value = cells[3].textContent.trim();
+        document.getElementById('detailsPaymentDate').value = paymentDate || 'Not paid yet';
+        document.getElementById('detailsPaymentMethod').value = cells[4].textContent.trim();
+        document.getElementById('detailsGuestId').value = cells[5].textContent.trim();
+        document.getElementById('detailsStaffId').value = cells[6].textContent.trim();
+        
+        document.getElementById('detailsModal').style.display = 'block';
+      }
+
+      function closeDetailsModal() {
+        document.getElementById('detailsModal').style.display = 'none';
       }
 
       document.getElementById('updateBillForm').addEventListener('submit', function(e) {
@@ -425,8 +599,13 @@
         const billNo = document.getElementById('updateBillNo').value;
         const updatedData = {
           billDate: document.getElementById('updateBillDate').value,
+          subtotal: parseFloat(document.getElementById('updateSubtotal').value),
+          discAmount: parseFloat(document.getElementById('updateDiscAmount').value),
+          taxAmount: parseFloat(document.getElementById('updateTaxAmount').value),
+          lateCharges: parseFloat(document.getElementById('updateLateCharges').value),
           amount: parseFloat(document.getElementById('updateAmount').value),
           status: document.getElementById('updateStatus').value,
+          paymentDate: document.getElementById('updatePaymentDate').value,
           paymentMethod: document.getElementById('updatePaymentMethod').value,
           guestId: document.getElementById('updateGuestId').value.trim(),
           staffId: document.getElementById('updateStaffId').value.trim()
@@ -440,6 +619,15 @@
             cells[1].textContent = updatedData.billDate;
             cells[2].textContent = 'RM ' + updatedData.amount.toLocaleString();
             cells[3].textContent = updatedData.status;
+            
+            row.setAttribute('data-date', updatedData.billDate);
+            row.setAttribute('data-amount', updatedData.amount);
+            row.setAttribute('data-status', updatedData.status);
+            row.setAttribute('data-subtotal', updatedData.subtotal);
+            row.setAttribute('data-disc', updatedData.discAmount);
+            row.setAttribute('data-tax', updatedData.taxAmount);
+            row.setAttribute('data-late', updatedData.lateCharges);
+            row.setAttribute('data-payment-date', updatedData.paymentDate || '');
             cells[4].textContent = updatedData.paymentMethod;
             cells[5].textContent = updatedData.guestId;
             cells[6].textContent = updatedData.staffId;
@@ -457,13 +645,15 @@
       });
 
       window.onclick = function(event) {
-        const modal = document.getElementById('updateModal');
-        if (event.target === modal) {
+        const updateModal = document.getElementById('updateModal');
+        const detailsModal = document.getElementById('detailsModal');
+        if (event.target === updateModal) {
           closeUpdateModal();
         }
+        if (event.target === detailsModal) {
+          closeDetailsModal();
+        }
       }
-
-      document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
 
       function deleteBill(billNo) {
         if (confirm('Are you sure you want to delete bill ' + billNo + '?')) {
