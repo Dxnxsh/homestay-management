@@ -102,6 +102,124 @@
     <div class="page-heading">
       <h1>Bookings</h1>
     </div>
+    <!-- Content -->
+    <div class="content">
+      <div class="button-container">
+        <div class="spinner-container">
+          <div class="spinner-select-wrapper">
+            <select class="spinner-select" id="sortOrder">
+              <option value="">Select Order</option>
+              <option value="ascending">Ascending</option>
+              <option value="descending">Descending</option>
+            </select>
+          </div>
+          <div class="spinner-select-wrapper">
+            <select class="spinner-select" id="sortBy">
+              <option value="">Sort By</option>
+              <option value="alphabetical">By Alphabetical</option>
+              <option value="date">By Date</option>
+              <option value="status">By Status</option>
+            </select>
+          </div>
+        </div>
+        <form class="search-form">
+          <div class="search-container">
+            <div class="search-by">
+              <select id="searchType" name="search-type">
+                <option value="id">Booking ID</option>
+                <option value="guestId">Guest ID</option>
+                <option value="propertyId">Property ID</option>
+                <option value="status">Status</option>
+              </select>
+            </div>
+            <div class="search-input">
+              <input id="search" type="text" placeholder="Search Bookings" />
+            </div>
+            <div class="search-button">
+              <button class="btn-search" type="button" aria-label="Search">
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="table-container">
+        <table class="guests-table">
+          <thead>
+            <tr>
+              <th>Booking ID</th>
+              <th>Guest ID</th>
+              <th>Property ID</th>
+              <th>Check-in Date</th>
+              <th>Check-out Date</th>
+              <th>Status</th>
+              <th>Manage</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsTableBody">
+            <tr data-name="G001" data-date="2025-01-15" data-status="Confirmed">
+              <td>BK001</td>
+              <td>G001</td>
+              <td>P001</td>
+              <td>2025-01-15</td>
+              <td>2025-01-18</td>
+              <td>Confirmed</td>
+              <td>
+                <button class="btn-update" onclick="updateBooking('BK001')">Update</button>
+                <button class="btn-delete" onclick="deleteBooking('BK001')">Delete</button>
+              </td>
+            </tr>
+            <tr data-name="G002" data-date="2025-01-20" data-status="Pending">
+              <td>BK002</td>
+              <td>G002</td>
+              <td>P002</td>
+              <td>2025-01-20</td>
+              <td>2025-01-23</td>
+              <td>Pending</td>
+              <td>
+                <button class="btn-update" onclick="updateBooking('BK002')">Update</button>
+                <button class="btn-delete" onclick="deleteBooking('BK002')">Delete</button>
+              </td>
+            </tr>
+            <tr data-name="G003" data-date="2025-01-25" data-status="Confirmed">
+              <td>BK003</td>
+              <td>G003</td>
+              <td>P003</td>
+              <td>2025-01-25</td>
+              <td>2025-01-28</td>
+              <td>Confirmed</td>
+              <td>
+                <button class="btn-update" onclick="updateBooking('BK003')">Update</button>
+                <button class="btn-delete" onclick="deleteBooking('BK003')">Delete</button>
+              </td>
+            </tr>
+            <tr data-name="G004" data-date="2025-02-01" data-status="Cancelled">
+              <td>BK004</td>
+              <td>G004</td>
+              <td>P004</td>
+              <td>2025-02-01</td>
+              <td>2025-02-04</td>
+              <td>Cancelled</td>
+              <td>
+                <button class="btn-update" onclick="updateBooking('BK004')">Update</button>
+                <button class="btn-delete" onclick="deleteBooking('BK004')">Delete</button>
+              </td>
+            </tr>
+            <tr data-name="G005" data-date="2025-02-05" data-status="Pending">
+              <td>BK005</td>
+              <td>G005</td>
+              <td>P001</td>
+              <td>2025-02-05</td>
+              <td>2025-02-08</td>
+              <td>Pending</td>
+              <td>
+                <button class="btn-update" onclick="updateBooking('BK005')">Update</button>
+                <button class="btn-delete" onclick="deleteBooking('BK005')">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-content">
@@ -110,11 +228,55 @@
     </footer>
   </section>
 
+  <!-- Update Booking Modal -->
+  <div id="updateModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Update Booking Details</h2>
+        <span class="close-modal">&times;</span>
+      </div>
+      <form id="updateBookingForm" class="modal-form">
+        <div class="form-group">
+          <label for="updateBookingId">Booking ID</label>
+          <input type="text" id="updateBookingId" name="bookingId" readonly>
+        </div>
+        <div class="form-group">
+          <label for="updateGuestId">Guest ID</label>
+          <input type="text" id="updateGuestId" name="guestId" required>
+        </div>
+        <div class="form-group">
+          <label for="updatePropertyId">Property ID</label>
+          <input type="text" id="updatePropertyId" name="propertyId" required>
+        </div>
+        <div class="form-group">
+          <label for="updateCheckIn">Check-in Date</label>
+          <input type="date" id="updateCheckIn" name="checkIn" required>
+        </div>
+        <div class="form-group">
+          <label for="updateCheckOut">Check-out Date</label>
+          <input type="date" id="updateCheckOut" name="checkOut" required>
+        </div>
+        <div class="form-group">
+          <label for="updateStatus">Status</label>
+          <select id="updateStatus" name="status" required>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Pending">Pending</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
+          <button type="submit" class="btn-save">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
   let arrow = document.querySelectorAll(".arrow");
   for (var i = 0; i < arrow.length; i++) {
     arrow[i].addEventListener("click", (e)=>{
-   let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+   let arrowParent = e.target.parentElement.parentElement;
    arrowParent.classList.toggle("showMenu");
     });
   }
@@ -124,6 +286,195 @@
   sidebarBtn.addEventListener("click", ()=>{
     sidebar.classList.toggle("close");
   });
+
+  // Sorting functionality
+  const sortOrderSelect = document.getElementById('sortOrder');
+  const sortBySelect = document.getElementById('sortBy');
+  const tableBody = document.getElementById('bookingsTableBody');
+
+  function sortTable() {
+    const sortBy = sortBySelect.value;
+    const sortOrder = sortOrderSelect.value;
+
+    if (!sortBy || !sortOrder) {
+      return;
+    }
+
+    const rows = Array.from(tableBody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+      let comparison = 0;
+      
+      switch(sortBy) {
+        case 'alphabetical':
+          const nameA = a.getAttribute('data-name').toLowerCase();
+          const nameB = b.getAttribute('data-name').toLowerCase();
+          comparison = nameA.localeCompare(nameB);
+          break;
+        case 'date':
+          const dateA = new Date(a.getAttribute('data-date'));
+          const dateB = new Date(b.getAttribute('data-date'));
+          comparison = dateA - dateB;
+          break;
+        case 'status':
+          const statusA = a.getAttribute('data-status');
+          const statusB = b.getAttribute('data-status');
+          comparison = statusA.localeCompare(statusB);
+          break;
+      }
+      
+      return sortOrder === 'ascending' ? comparison : -comparison;
+    });
+
+    tableBody.innerHTML = '';
+    rows.forEach(row => tableBody.appendChild(row));
+  }
+
+  sortOrderSelect.addEventListener('change', sortTable);
+  sortBySelect.addEventListener('change', sortTable);
+
+  // Search functionality
+  const searchInput = document.getElementById('search');
+  const searchButton = document.querySelector('.btn-search');
+  const searchTypeSelect = document.getElementById('searchType');
+  let allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+  function performSearch() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const searchType = searchTypeSelect.value;
+    
+    allRows.forEach(row => {
+      let matches = false;
+      
+      if (searchType === 'id') {
+        const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+        matches = id.includes(searchTerm);
+      } else if (searchType === 'guestId') {
+        const guestId = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        matches = guestId.includes(searchTerm);
+      } else if (searchType === 'propertyId') {
+        const propertyId = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        matches = propertyId.includes(searchTerm);
+      } else if (searchType === 'status') {
+        const status = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
+        matches = status.includes(searchTerm);
+      }
+      
+      row.style.display = matches ? '' : 'none';
+    });
+  }
+
+  searchButton.addEventListener('click', performSearch);
+  searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      performSearch();
+    }
+  });
+
+  allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+  // Update and Delete functions
+  function updateBooking(bookingId) {
+    const rows = tableBody.querySelectorAll('tr');
+    let targetRow = null;
+    
+    rows.forEach(row => {
+      const idCell = row.querySelector('td:first-child');
+      if (idCell && idCell.textContent.trim() === bookingId) {
+        targetRow = row;
+      }
+    });
+    
+    if (!targetRow) {
+      alert('Booking not found!');
+      return;
+    }
+    
+    const cells = targetRow.querySelectorAll('td');
+    const currentData = {
+      id: cells[0].textContent.trim(),
+      guestId: cells[1].textContent.trim(),
+      propertyId: cells[2].textContent.trim(),
+      checkIn: cells[3].textContent.trim(),
+      checkOut: cells[4].textContent.trim(),
+      status: cells[5].textContent.trim()
+    };
+    
+    document.getElementById('updateBookingId').value = currentData.id;
+    document.getElementById('updateGuestId').value = currentData.guestId;
+    document.getElementById('updatePropertyId').value = currentData.propertyId;
+    document.getElementById('updateCheckIn').value = currentData.checkIn;
+    document.getElementById('updateCheckOut').value = currentData.checkOut;
+    document.getElementById('updateStatus').value = currentData.status;
+    
+    document.getElementById('updateModal').setAttribute('data-target-row', bookingId);
+    document.getElementById('updateModal').style.display = 'block';
+  }
+
+  function closeUpdateModal() {
+    document.getElementById('updateModal').style.display = 'none';
+    document.getElementById('updateBookingForm').reset();
+  }
+
+  document.getElementById('updateBookingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const bookingId = document.getElementById('updateBookingId').value;
+    const updatedData = {
+      guestId: document.getElementById('updateGuestId').value.trim(),
+      propertyId: document.getElementById('updatePropertyId').value.trim(),
+      checkIn: document.getElementById('updateCheckIn').value,
+      checkOut: document.getElementById('updateCheckOut').value,
+      status: document.getElementById('updateStatus').value
+    };
+    
+    const rows = tableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+      const idCell = row.querySelector('td:first-child');
+      if (idCell && idCell.textContent.trim() === bookingId) {
+        const cells = row.querySelectorAll('td');
+        cells[1].textContent = updatedData.guestId;
+        cells[2].textContent = updatedData.propertyId;
+        cells[3].textContent = updatedData.checkIn;
+        cells[4].textContent = updatedData.checkOut;
+        cells[5].textContent = updatedData.status;
+        
+        row.setAttribute('data-name', updatedData.guestId);
+        row.setAttribute('data-date', updatedData.checkIn);
+        row.setAttribute('data-status', updatedData.status);
+        
+        allRows = Array.from(tableBody.querySelectorAll('tr'));
+        closeUpdateModal();
+        alert('Booking details updated successfully!');
+        return;
+      }
+    });
+  });
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('updateModal');
+    if (event.target === modal) {
+      closeUpdateModal();
+    }
+  }
+
+  document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
+
+  function deleteBooking(bookingId) {
+    if (confirm('Are you sure you want to delete booking ' + bookingId + '?')) {
+      const rows = tableBody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const idCell = row.querySelector('td:first-child');
+        if (idCell && idCell.textContent.trim() === bookingId) {
+          row.remove();
+          allRows = Array.from(tableBody.querySelectorAll('tr'));
+          alert('Booking deleted successfully!');
+          return;
+        }
+      });
+    }
+  }
   </script>
 </body>
 </html>

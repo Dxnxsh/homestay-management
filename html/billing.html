@@ -101,6 +101,118 @@
       <div class="page-heading">
         <h1>Billing</h1>
       </div>
+      <!-- Content -->
+      <div class="content">
+        <div class="button-container">
+          <div class="spinner-container">
+            <div class="spinner-select-wrapper">
+              <select class="spinner-select" id="sortOrder">
+                <option value="">Select Order</option>
+                <option value="ascending">Ascending</option>
+                <option value="descending">Descending</option>
+              </select>
+            </div>
+            <div class="spinner-select-wrapper">
+              <select class="spinner-select" id="sortBy">
+                <option value="">Sort By</option>
+                <option value="alphabetical">By Alphabetical</option>
+                <option value="date">By Date</option>
+                <option value="amount">By Amount</option>
+                <option value="status">By Status</option>
+              </select>
+            </div>
+          </div>
+          <form class="search-form">
+            <div class="search-container">
+              <div class="search-by">
+                <select id="searchType" name="search-type">
+                  <option value="id">Bill ID</option>
+                  <option value="guestId">Guest ID</option>
+                  <option value="propertyId">Property ID</option>
+                  <option value="status">Status</option>
+                </select>
+              </div>
+              <div class="search-input">
+                <input id="search" type="text" placeholder="Search Bills" />
+              </div>
+              <div class="search-button">
+                <button class="btn-search" type="button" aria-label="Search">
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="table-container">
+          <table class="guests-table">
+            <thead>
+              <tr>
+                <th>Bill ID</th>
+                <th>Guest ID</th>
+                <th>Property ID</th>
+                <th>Check-in Date</th>
+                <th>Check-out Date</th>
+                <th>Total Amount</th>
+                <th>Status</th>
+                <th>Manage</th>
+              </tr>
+            </thead>
+            <tbody id="billingTableBody">
+              <tr data-name="G001" data-date="2025-01-15" data-amount="1500" data-status="Paid">
+                <td>B001</td>
+                <td>G001</td>
+                <td>P001</td>
+                <td>2025-01-15</td>
+                <td>2025-01-18</td>
+                <td>RM 1,500</td>
+                <td>Paid</td>
+                <td>
+                  <button class="btn-update" onclick="updateBill('B001')">Update</button>
+                  <button class="btn-delete" onclick="deleteBill('B001')">Delete</button>
+                </td>
+              </tr>
+              <tr data-name="G002" data-date="2025-01-20" data-amount="1350" data-status="Unpaid">
+                <td>B002</td>
+                <td>G002</td>
+                <td>P002</td>
+                <td>2025-01-20</td>
+                <td>2025-01-23</td>
+                <td>RM 1,350</td>
+                <td>Unpaid</td>
+                <td>
+                  <button class="btn-update" onclick="updateBill('B002')">Update</button>
+                  <button class="btn-delete" onclick="deleteBill('B002')">Delete</button>
+                </td>
+              </tr>
+              <tr data-name="G003" data-date="2025-01-25" data-amount="1200" data-status="Paid">
+                <td>B003</td>
+                <td>G003</td>
+                <td>P003</td>
+                <td>2025-01-25</td>
+                <td>2025-01-28</td>
+                <td>RM 1,200</td>
+                <td>Paid</td>
+                <td>
+                  <button class="btn-update" onclick="updateBill('B003')">Update</button>
+                  <button class="btn-delete" onclick="deleteBill('B003')">Delete</button>
+                </td>
+              </tr>
+              <tr data-name="G004" data-date="2025-02-01" data-amount="1650" data-status="Unpaid">
+                <td>B004</td>
+                <td>G004</td>
+                <td>P004</td>
+                <td>2025-02-01</td>
+                <td>2025-02-04</td>
+                <td>RM 1,650</td>
+                <td>Unpaid</td>
+                <td>
+                  <button class="btn-update" onclick="updateBill('B004')">Update</button>
+                  <button class="btn-delete" onclick="deleteBill('B004')">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
       <!-- Footer -->
       <footer class="footer">
         <div class="footer-content">
@@ -109,11 +221,58 @@
       </footer>
     </section>
 
+    <!-- Update Bill Modal -->
+    <div id="updateModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Update Bill Details</h2>
+          <span class="close-modal">&times;</span>
+        </div>
+        <form id="updateBillForm" class="modal-form">
+          <div class="form-group">
+            <label for="updateBillId">Bill ID</label>
+            <input type="text" id="updateBillId" name="billId" readonly>
+          </div>
+          <div class="form-group">
+            <label for="updateGuestId">Guest ID</label>
+            <input type="text" id="updateGuestId" name="guestId" required>
+          </div>
+          <div class="form-group">
+            <label for="updatePropertyId">Property ID</label>
+            <input type="text" id="updatePropertyId" name="propertyId" required>
+          </div>
+          <div class="form-group">
+            <label for="updateCheckIn">Check-in Date</label>
+            <input type="date" id="updateCheckIn" name="checkIn" required>
+          </div>
+          <div class="form-group">
+            <label for="updateCheckOut">Check-out Date</label>
+            <input type="date" id="updateCheckOut" name="checkOut" required>
+          </div>
+          <div class="form-group">
+            <label for="updateAmount">Total Amount</label>
+            <input type="number" id="updateAmount" name="amount" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="updateStatus">Status</label>
+            <select id="updateStatus" name="status" required>
+              <option value="Paid">Paid</option>
+              <option value="Unpaid">Unpaid</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
+            <button type="submit" class="btn-save">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script>
       let arrow = document.querySelectorAll(".arrow");
       for (var i = 0; i < arrow.length; i++) {
         arrow[i].addEventListener("click", (e) => {
-          let arrowParent = e.target.parentElement.parentElement; // selecting main parent of arrow
+          let arrowParent = e.target.parentElement.parentElement;
           arrowParent.classList.toggle("showMenu");
         });
       }
@@ -123,6 +282,205 @@
       sidebarBtn.addEventListener("click", () => {
         sidebar.classList.toggle("close");
       });
+
+      // Sorting functionality
+      const sortOrderSelect = document.getElementById('sortOrder');
+      const sortBySelect = document.getElementById('sortBy');
+      const tableBody = document.getElementById('billingTableBody');
+
+      function sortTable() {
+        const sortBy = sortBySelect.value;
+        const sortOrder = sortOrderSelect.value;
+
+        if (!sortBy || !sortOrder) {
+          return;
+        }
+
+        const rows = Array.from(tableBody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+          let comparison = 0;
+          
+          switch(sortBy) {
+            case 'alphabetical':
+              const nameA = a.getAttribute('data-name').toLowerCase();
+              const nameB = b.getAttribute('data-name').toLowerCase();
+              comparison = nameA.localeCompare(nameB);
+              break;
+            case 'date':
+              const dateA = new Date(a.getAttribute('data-date'));
+              const dateB = new Date(b.getAttribute('data-date'));
+              comparison = dateA - dateB;
+              break;
+            case 'amount':
+              const amountA = parseFloat(a.getAttribute('data-amount'));
+              const amountB = parseFloat(b.getAttribute('data-amount'));
+              comparison = amountA - amountB;
+              break;
+            case 'status':
+              const statusA = a.getAttribute('data-status');
+              const statusB = b.getAttribute('data-status');
+              comparison = statusA.localeCompare(statusB);
+              break;
+          }
+          
+          return sortOrder === 'ascending' ? comparison : -comparison;
+        });
+
+        tableBody.innerHTML = '';
+        rows.forEach(row => tableBody.appendChild(row));
+      }
+
+      sortOrderSelect.addEventListener('change', sortTable);
+      sortBySelect.addEventListener('change', sortTable);
+
+      // Search functionality
+      const searchInput = document.getElementById('search');
+      const searchButton = document.querySelector('.btn-search');
+      const searchTypeSelect = document.getElementById('searchType');
+      let allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+      function performSearch() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const searchType = searchTypeSelect.value;
+        
+        allRows.forEach(row => {
+          let matches = false;
+          
+          if (searchType === 'id') {
+            const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+            matches = id.includes(searchTerm);
+          } else if (searchType === 'guestId') {
+            const guestId = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            matches = guestId.includes(searchTerm);
+          } else if (searchType === 'propertyId') {
+            const propertyId = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+            matches = propertyId.includes(searchTerm);
+          } else if (searchType === 'status') {
+            const status = row.querySelector('td:nth-child(7)').textContent.toLowerCase();
+            matches = status.includes(searchTerm);
+          }
+          
+          row.style.display = matches ? '' : 'none';
+        });
+      }
+
+      searchButton.addEventListener('click', performSearch);
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          performSearch();
+        }
+      });
+
+      allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+      // Update and Delete functions
+      function updateBill(billId) {
+        const rows = tableBody.querySelectorAll('tr');
+        let targetRow = null;
+        
+        rows.forEach(row => {
+          const idCell = row.querySelector('td:first-child');
+          if (idCell && idCell.textContent.trim() === billId) {
+            targetRow = row;
+          }
+        });
+        
+        if (!targetRow) {
+          alert('Bill not found!');
+          return;
+        }
+        
+        const cells = targetRow.querySelectorAll('td');
+        const currentData = {
+          id: cells[0].textContent.trim(),
+          guestId: cells[1].textContent.trim(),
+          propertyId: cells[2].textContent.trim(),
+          checkIn: cells[3].textContent.trim(),
+          checkOut: cells[4].textContent.trim(),
+          amount: cells[5].textContent.trim().replace('RM ', '').replace(',', '').trim(),
+          status: cells[6].textContent.trim()
+        };
+        
+        document.getElementById('updateBillId').value = currentData.id;
+        document.getElementById('updateGuestId').value = currentData.guestId;
+        document.getElementById('updatePropertyId').value = currentData.propertyId;
+        document.getElementById('updateCheckIn').value = currentData.checkIn;
+        document.getElementById('updateCheckOut').value = currentData.checkOut;
+        document.getElementById('updateAmount').value = currentData.amount;
+        document.getElementById('updateStatus').value = currentData.status;
+        
+        document.getElementById('updateModal').setAttribute('data-target-row', billId);
+        document.getElementById('updateModal').style.display = 'block';
+      }
+
+      function closeUpdateModal() {
+        document.getElementById('updateModal').style.display = 'none';
+        document.getElementById('updateBillForm').reset();
+      }
+
+      document.getElementById('updateBillForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const billId = document.getElementById('updateBillId').value;
+        const updatedData = {
+          guestId: document.getElementById('updateGuestId').value.trim(),
+          propertyId: document.getElementById('updatePropertyId').value.trim(),
+          checkIn: document.getElementById('updateCheckIn').value,
+          checkOut: document.getElementById('updateCheckOut').value,
+          amount: parseFloat(document.getElementById('updateAmount').value),
+          status: document.getElementById('updateStatus').value
+        };
+        
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+          const idCell = row.querySelector('td:first-child');
+          if (idCell && idCell.textContent.trim() === billId) {
+            const cells = row.querySelectorAll('td');
+            cells[1].textContent = updatedData.guestId;
+            cells[2].textContent = updatedData.propertyId;
+            cells[3].textContent = updatedData.checkIn;
+            cells[4].textContent = updatedData.checkOut;
+            cells[5].textContent = 'RM ' + updatedData.amount.toLocaleString();
+            cells[6].textContent = updatedData.status;
+            
+            row.setAttribute('data-name', updatedData.guestId);
+            row.setAttribute('data-date', updatedData.checkIn);
+            row.setAttribute('data-amount', updatedData.amount);
+            row.setAttribute('data-status', updatedData.status);
+            
+            allRows = Array.from(tableBody.querySelectorAll('tr'));
+            closeUpdateModal();
+            alert('Bill details updated successfully!');
+            return;
+          }
+        });
+      });
+
+      window.onclick = function(event) {
+        const modal = document.getElementById('updateModal');
+        if (event.target === modal) {
+          closeUpdateModal();
+        }
+      }
+
+      document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
+
+      function deleteBill(billId) {
+        if (confirm('Are you sure you want to delete bill ' + billId + '?')) {
+          const rows = tableBody.querySelectorAll('tr');
+          rows.forEach(row => {
+            const idCell = row.querySelector('td:first-child');
+            if (idCell && idCell.textContent.trim() === billId) {
+              row.remove();
+              allRows = Array.from(tableBody.querySelectorAll('tr'));
+              alert('Bill deleted successfully!');
+              return;
+            }
+          });
+        }
+      }
     </script>
   </body>
 </html>
