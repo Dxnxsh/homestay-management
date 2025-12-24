@@ -9,6 +9,8 @@
 /* Body css*/
 body {
     background: linear-gradient(to right, rgb(255, 255, 255), rgb(254, 215, 173));
+    min-height: 100vh;
+    background-attachment: fixed;
 }
 /* Sidebar css*/
 .sidebar{
@@ -234,7 +236,7 @@ body {
 .home-section{
   position: relative;
   background: linear-gradient(to right, rgb(255, 255, 255), rgb(255, 235, 213));
-  height: 100vh;
+  min-height: 100vh;
   left: 260px;
   width: calc(100% - 260px);
   transition: all 0.5s ease;
