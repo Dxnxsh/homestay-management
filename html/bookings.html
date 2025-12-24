@@ -116,9 +116,8 @@
           <div class="spinner-select-wrapper">
             <select class="spinner-select" id="sortBy">
               <option value="">Sort By</option>
-              <option value="alphabetical">By Alphabetical</option>
-              <option value="date">By Date</option>
-              <option value="status">By Status</option>
+              <option value="date">By Check-in Date</option>
+              <option value="deposit">By Deposit Amount</option>
             </select>
           </div>
         </div>
@@ -128,8 +127,8 @@
               <select id="searchType" name="search-type">
                 <option value="id">Booking ID</option>
                 <option value="guestId">Guest ID</option>
-                <option value="propertyId">Property ID</option>
-                <option value="status">Status</option>
+                <option value="homestayId">Homestay ID</option>
+                <option value="billNo">Bill No.</option>
               </select>
             </div>
             <div class="search-input">
@@ -147,70 +146,76 @@
           <thead>
             <tr>
               <th>Booking ID</th>
-              <th>Guest ID</th>
-              <th>Property ID</th>
               <th>Check-in Date</th>
               <th>Check-out Date</th>
-              <th>Status</th>
+              <th>Deposit Amount</th>
+              <th>Homestay ID</th>
+              <th>Guest ID</th>
+              <th>Bill No.</th>
               <th>Manage</th>
             </tr>
           </thead>
           <tbody id="bookingsTableBody">
-            <tr data-name="G001" data-date="2025-01-15" data-status="Confirmed">
+            <tr data-date="2025-01-15" data-deposit="300">
               <td>BK001</td>
-              <td>G001</td>
-              <td>P001</td>
               <td>2025-01-15</td>
               <td>2025-01-18</td>
-              <td>Confirmed</td>
+              <td>RM 300</td>
+              <td>P001</td>
+              <td>G001</td>
+              <td>B001</td>
               <td>
                 <button class="btn-update" onclick="updateBooking('BK001')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK001')">Delete</button>
               </td>
             </tr>
-            <tr data-name="G002" data-date="2025-01-20" data-status="Pending">
+            <tr data-date="2025-01-20" data-deposit="270">
               <td>BK002</td>
-              <td>G002</td>
-              <td>P002</td>
               <td>2025-01-20</td>
               <td>2025-01-23</td>
-              <td>Pending</td>
+              <td>RM 270</td>
+              <td>P002</td>
+              <td>G002</td>
+              <td>B002</td>
               <td>
                 <button class="btn-update" onclick="updateBooking('BK002')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK002')">Delete</button>
               </td>
             </tr>
-            <tr data-name="G003" data-date="2025-01-25" data-status="Confirmed">
+            <tr data-date="2025-01-25" data-deposit="240">
               <td>BK003</td>
-              <td>G003</td>
-              <td>P003</td>
               <td>2025-01-25</td>
               <td>2025-01-28</td>
-              <td>Confirmed</td>
+              <td>RM 240</td>
+              <td>P003</td>
+              <td>G003</td>
+              <td>B003</td>
               <td>
                 <button class="btn-update" onclick="updateBooking('BK003')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK003')">Delete</button>
               </td>
             </tr>
-            <tr data-name="G004" data-date="2025-02-01" data-status="Cancelled">
+            <tr data-date="2025-02-01" data-deposit="330">
               <td>BK004</td>
-              <td>G004</td>
-              <td>P004</td>
               <td>2025-02-01</td>
               <td>2025-02-04</td>
-              <td>Cancelled</td>
+              <td>RM 330</td>
+              <td>P004</td>
+              <td>G004</td>
+              <td>B004</td>
               <td>
                 <button class="btn-update" onclick="updateBooking('BK004')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK004')">Delete</button>
               </td>
             </tr>
-            <tr data-name="G005" data-date="2025-02-05" data-status="Pending">
+            <tr data-date="2025-02-05" data-deposit="300">
               <td>BK005</td>
-              <td>G005</td>
-              <td>P001</td>
               <td>2025-02-05</td>
               <td>2025-02-08</td>
-              <td>Pending</td>
+              <td>RM 300</td>
+              <td>P001</td>
+              <td>G005</td>
+              <td>-</td>
               <td>
                 <button class="btn-update" onclick="updateBooking('BK005')">Update</button>
                 <button class="btn-delete" onclick="deleteBooking('BK005')">Delete</button>
@@ -241,14 +246,6 @@
           <input type="text" id="updateBookingId" name="bookingId" readonly>
         </div>
         <div class="form-group">
-          <label for="updateGuestId">Guest ID</label>
-          <input type="text" id="updateGuestId" name="guestId" required>
-        </div>
-        <div class="form-group">
-          <label for="updatePropertyId">Property ID</label>
-          <input type="text" id="updatePropertyId" name="propertyId" required>
-        </div>
-        <div class="form-group">
           <label for="updateCheckIn">Check-in Date</label>
           <input type="date" id="updateCheckIn" name="checkIn" required>
         </div>
@@ -257,12 +254,20 @@
           <input type="date" id="updateCheckOut" name="checkOut" required>
         </div>
         <div class="form-group">
-          <label for="updateStatus">Status</label>
-          <select id="updateStatus" name="status" required>
-            <option value="Confirmed">Confirmed</option>
-            <option value="Pending">Pending</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
+          <label for="updateDeposit">Deposit Amount</label>
+          <input type="number" id="updateDeposit" name="deposit" required min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label for="updateHomestayId">Homestay ID</label>
+          <input type="text" id="updateHomestayId" name="homestayId" required>
+        </div>
+        <div class="form-group">
+          <label for="updateGuestId">Guest ID</label>
+          <input type="text" id="updateGuestId" name="guestId" required>
+        </div>
+        <div class="form-group">
+          <label for="updateBillNo">Bill No.</label>
+          <input type="text" id="updateBillNo" name="billNo">
         </div>
         <div class="form-actions">
           <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
@@ -306,20 +311,15 @@
       let comparison = 0;
       
       switch(sortBy) {
-        case 'alphabetical':
-          const nameA = a.getAttribute('data-name').toLowerCase();
-          const nameB = b.getAttribute('data-name').toLowerCase();
-          comparison = nameA.localeCompare(nameB);
-          break;
         case 'date':
           const dateA = new Date(a.getAttribute('data-date'));
           const dateB = new Date(b.getAttribute('data-date'));
           comparison = dateA - dateB;
           break;
-        case 'status':
-          const statusA = a.getAttribute('data-status');
-          const statusB = b.getAttribute('data-status');
-          comparison = statusA.localeCompare(statusB);
+        case 'deposit':
+          const depositA = parseFloat(a.getAttribute('data-deposit'));
+          const depositB = parseFloat(b.getAttribute('data-deposit'));
+          comparison = depositA - depositB;
           break;
       }
       
@@ -350,14 +350,14 @@
         const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
         matches = id.includes(searchTerm);
       } else if (searchType === 'guestId') {
-        const guestId = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const guestId = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
         matches = guestId.includes(searchTerm);
-      } else if (searchType === 'propertyId') {
-        const propertyId = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-        matches = propertyId.includes(searchTerm);
-      } else if (searchType === 'status') {
-        const status = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
-        matches = status.includes(searchTerm);
+      } else if (searchType === 'homestayId') {
+        const homestayId = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
+        matches = homestayId.includes(searchTerm);
+      } else if (searchType === 'billNo') {
+        const billNo = row.querySelector('td:nth-child(7)').textContent.toLowerCase();
+        matches = billNo.includes(searchTerm);
       }
       
       row.style.display = matches ? '' : 'none';
@@ -393,20 +393,22 @@
     
     const cells = targetRow.querySelectorAll('td');
     const currentData = {
-      id: cells[0].textContent.trim(),
-      guestId: cells[1].textContent.trim(),
-      propertyId: cells[2].textContent.trim(),
-      checkIn: cells[3].textContent.trim(),
-      checkOut: cells[4].textContent.trim(),
-      status: cells[5].textContent.trim()
+      bookingId: cells[0].textContent.trim(),
+      checkIn: cells[1].textContent.trim(),
+      checkOut: cells[2].textContent.trim(),
+      deposit: cells[3].textContent.trim().replace('RM ', '').trim(),
+      homestayId: cells[4].textContent.trim(),
+      guestId: cells[5].textContent.trim(),
+      billNo: cells[6].textContent.trim() === '-' ? '' : cells[6].textContent.trim()
     };
     
-    document.getElementById('updateBookingId').value = currentData.id;
-    document.getElementById('updateGuestId').value = currentData.guestId;
-    document.getElementById('updatePropertyId').value = currentData.propertyId;
+    document.getElementById('updateBookingId').value = currentData.bookingId;
     document.getElementById('updateCheckIn').value = currentData.checkIn;
     document.getElementById('updateCheckOut').value = currentData.checkOut;
-    document.getElementById('updateStatus').value = currentData.status;
+    document.getElementById('updateDeposit').value = currentData.deposit;
+    document.getElementById('updateHomestayId').value = currentData.homestayId;
+    document.getElementById('updateGuestId').value = currentData.guestId;
+    document.getElementById('updateBillNo').value = currentData.billNo;
     
     document.getElementById('updateModal').setAttribute('data-target-row', bookingId);
     document.getElementById('updateModal').style.display = 'block';
@@ -422,11 +424,12 @@
     
     const bookingId = document.getElementById('updateBookingId').value;
     const updatedData = {
-      guestId: document.getElementById('updateGuestId').value.trim(),
-      propertyId: document.getElementById('updatePropertyId').value.trim(),
       checkIn: document.getElementById('updateCheckIn').value,
       checkOut: document.getElementById('updateCheckOut').value,
-      status: document.getElementById('updateStatus').value
+      deposit: parseFloat(document.getElementById('updateDeposit').value),
+      homestayId: document.getElementById('updateHomestayId').value.trim(),
+      guestId: document.getElementById('updateGuestId').value.trim(),
+      billNo: document.getElementById('updateBillNo').value.trim() || '-'
     };
     
     const rows = tableBody.querySelectorAll('tr');
@@ -434,15 +437,15 @@
       const idCell = row.querySelector('td:first-child');
       if (idCell && idCell.textContent.trim() === bookingId) {
         const cells = row.querySelectorAll('td');
-        cells[1].textContent = updatedData.guestId;
-        cells[2].textContent = updatedData.propertyId;
-        cells[3].textContent = updatedData.checkIn;
-        cells[4].textContent = updatedData.checkOut;
-        cells[5].textContent = updatedData.status;
+        cells[1].textContent = updatedData.checkIn;
+        cells[2].textContent = updatedData.checkOut;
+        cells[3].textContent = 'RM ' + updatedData.deposit.toFixed(0);
+        cells[4].textContent = updatedData.homestayId;
+        cells[5].textContent = updatedData.guestId;
+        cells[6].textContent = updatedData.billNo;
         
-        row.setAttribute('data-name', updatedData.guestId);
         row.setAttribute('data-date', updatedData.checkIn);
-        row.setAttribute('data-status', updatedData.status);
+        row.setAttribute('data-deposit', updatedData.deposit);
         
         allRows = Array.from(tableBody.querySelectorAll('tr'));
         closeUpdateModal();
