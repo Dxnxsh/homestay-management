@@ -102,6 +102,124 @@
     <div class="page-heading">
       <h1>Staff</h1>
     </div>
+    <!-- Content -->
+    <div class="content">
+      <div class="button-container">
+        <div class="spinner-container">
+          <div class="spinner-select-wrapper">
+            <select class="spinner-select" id="sortOrder">
+              <option value="">Select Order</option>
+              <option value="ascending">Ascending</option>
+              <option value="descending">Descending</option>
+            </select>
+          </div>
+          <div class="spinner-select-wrapper">
+            <select class="spinner-select" id="sortBy">
+              <option value="">Sort By</option>
+              <option value="alphabetical">By Alphabetical</option>
+              <option value="gender">By Gender</option>
+              <option value="position">By Position</option>
+            </select>
+          </div>
+        </div>
+        <form class="search-form">
+          <div class="search-container">
+            <div class="search-by">
+              <select id="searchType" name="search-type">
+                <option value="id">ID</option>
+                <option value="name">Name</option>
+                <option value="phone">Phone No.</option>
+                <option value="email">Email</option>
+              </select>
+            </div>
+            <div class="search-input">
+              <input id="search" type="text" placeholder="Search Staff" />
+            </div>
+            <div class="search-button">
+              <button class="btn-search" type="button" aria-label="Search">
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="table-container">
+        <table class="guests-table">
+          <thead>
+            <tr>
+              <th>Staff ID</th>
+              <th>Staff Name</th>
+              <th>Phone No.</th>
+              <th>Gender</th>
+              <th>Email</th>
+              <th>Position</th>
+              <th>Manage</th>
+            </tr>
+          </thead>
+          <tbody id="staffTableBody">
+            <tr data-name="Ahmad Zulkifli bin Hassan" data-gender="Male" data-position="Manager">
+              <td>S001</td>
+              <td>Ahmad Zulkifli bin Hassan</td>
+              <td>+6011-234-5678</td>
+              <td>Male</td>
+              <td>ahmad.zulkifli@serenasanctuary.com</td>
+              <td>Manager</td>
+              <td>
+                <button class="btn-update" onclick="updateStaff('S001')">Update</button>
+                <button class="btn-delete" onclick="deleteStaff('S001')">Delete</button>
+              </td>
+            </tr>
+            <tr data-name="Nurul Aina binti Mohd Ali" data-gender="Female" data-position="Receptionist">
+              <td>S002</td>
+              <td>Nurul Aina binti Mohd Ali</td>
+              <td>+6012-345-6789</td>
+              <td>Female</td>
+              <td>nurul.aina@serenasanctuary.com</td>
+              <td>Receptionist</td>
+              <td>
+                <button class="btn-update" onclick="updateStaff('S002')">Update</button>
+                <button class="btn-delete" onclick="deleteStaff('S002')">Delete</button>
+              </td>
+            </tr>
+            <tr data-name="Lim Chee Keong" data-gender="Male" data-position="Housekeeper">
+              <td>S003</td>
+              <td>Lim Chee Keong</td>
+              <td>+6013-456-7890</td>
+              <td>Male</td>
+              <td>lim.cheekeong@serenasanctuary.com</td>
+              <td>Housekeeper</td>
+              <td>
+                <button class="btn-update" onclick="updateStaff('S003')">Update</button>
+                <button class="btn-delete" onclick="deleteStaff('S003')">Delete</button>
+              </td>
+            </tr>
+            <tr data-name="Siti Fatimah binti Abdullah" data-gender="Female" data-position="Housekeeper">
+              <td>S004</td>
+              <td>Siti Fatimah binti Abdullah</td>
+              <td>+6014-567-8901</td>
+              <td>Female</td>
+              <td>siti.fatimah@serenasanctuary.com</td>
+              <td>Housekeeper</td>
+              <td>
+                <button class="btn-update" onclick="updateStaff('S004')">Update</button>
+                <button class="btn-delete" onclick="deleteStaff('S004')">Delete</button>
+              </td>
+            </tr>
+            <tr data-name="Muhammad Farhan bin Ismail" data-gender="Male" data-position="Maintenance">
+              <td>S005</td>
+              <td>Muhammad Farhan bin Ismail</td>
+              <td>+6015-678-9012</td>
+              <td>Male</td>
+              <td>farhan.ismail@serenasanctuary.com</td>
+              <td>Maintenance</td>
+              <td>
+                <button class="btn-update" onclick="updateStaff('S005')">Update</button>
+                <button class="btn-delete" onclick="deleteStaff('S005')">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-content">
@@ -109,6 +227,54 @@
       </div>
     </footer>
   </section>
+
+  <!-- Update Staff Modal -->
+  <div id="updateModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Update Staff Details</h2>
+        <span class="close-modal">&times;</span>
+      </div>
+      <form id="updateStaffForm" class="modal-form">
+        <div class="form-group">
+          <label for="updateStaffId">Staff ID</label>
+          <input type="text" id="updateStaffId" name="staffId" readonly>
+        </div>
+        <div class="form-group">
+          <label for="updateStaffName">Staff Name</label>
+          <input type="text" id="updateStaffName" name="staffName" required>
+        </div>
+        <div class="form-group">
+          <label for="updatePhone">Phone No.</label>
+          <input type="text" id="updatePhone" name="phone" required>
+        </div>
+        <div class="form-group">
+          <label for="updateGender">Gender</label>
+          <select id="updateGender" name="gender" required>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="updateEmail">Email</label>
+          <input type="email" id="updateEmail" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="updatePosition">Position</label>
+          <select id="updatePosition" name="position" required>
+            <option value="Manager">Manager</option>
+            <option value="Receptionist">Receptionist</option>
+            <option value="Housekeeper">Housekeeper</option>
+            <option value="Maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
+          <button type="submit" class="btn-save">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script>
   let arrow = document.querySelectorAll(".arrow");
@@ -124,6 +290,196 @@
   sidebarBtn.addEventListener("click", ()=>{
     sidebar.classList.toggle("close");
   });
+
+  // Sorting functionality
+  const sortOrderSelect = document.getElementById('sortOrder');
+  const sortBySelect = document.getElementById('sortBy');
+  const tableBody = document.getElementById('staffTableBody');
+
+  function sortTable() {
+    const sortBy = sortBySelect.value;
+    const sortOrder = sortOrderSelect.value;
+
+    if (!sortBy || !sortOrder) {
+      return;
+    }
+
+    const rows = Array.from(tableBody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+      let comparison = 0;
+      
+      switch(sortBy) {
+        case 'alphabetical':
+          const nameA = a.getAttribute('data-name').toLowerCase();
+          const nameB = b.getAttribute('data-name').toLowerCase();
+          comparison = nameA.localeCompare(nameB);
+          break;
+        case 'gender':
+          const genderA = a.getAttribute('data-gender');
+          const genderB = b.getAttribute('data-gender');
+          comparison = genderA.localeCompare(genderB);
+          break;
+        case 'position':
+          const positionA = a.getAttribute('data-position');
+          const positionB = b.getAttribute('data-position');
+          comparison = positionA.localeCompare(positionB);
+          break;
+      }
+      
+      return sortOrder === 'ascending' ? comparison : -comparison;
+    });
+
+    tableBody.innerHTML = '';
+    rows.forEach(row => tableBody.appendChild(row));
+  }
+
+  sortOrderSelect.addEventListener('change', sortTable);
+  sortBySelect.addEventListener('change', sortTable);
+
+  // Search functionality
+  const searchInput = document.getElementById('search');
+  const searchButton = document.querySelector('.btn-search');
+  const searchTypeSelect = document.getElementById('searchType');
+  let allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+  function performSearch() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const searchType = searchTypeSelect.value;
+    
+    allRows.forEach(row => {
+      let matches = false;
+      
+      if (searchType === 'id') {
+        const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+        matches = id.includes(searchTerm);
+      } else if (searchType === 'name') {
+        const name = row.getAttribute('data-name').toLowerCase();
+        matches = name.includes(searchTerm);
+      } else if (searchType === 'phone') {
+        const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        matches = phone.includes(searchTerm);
+      } else if (searchType === 'email') {
+        const email = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
+        matches = email.includes(searchTerm);
+      }
+      
+      row.style.display = matches ? '' : 'none';
+    });
+  }
+
+  searchButton.addEventListener('click', performSearch);
+  searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      performSearch();
+    }
+  });
+
+  allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+  // Update and Delete functions
+  function updateStaff(staffId) {
+    const rows = tableBody.querySelectorAll('tr');
+    let targetRow = null;
+    
+    rows.forEach(row => {
+      const idCell = row.querySelector('td:first-child');
+      if (idCell && idCell.textContent.trim() === staffId) {
+        targetRow = row;
+      }
+    });
+    
+    if (!targetRow) {
+      alert('Staff not found!');
+      return;
+    }
+    
+    const cells = targetRow.querySelectorAll('td');
+    const currentData = {
+      id: cells[0].textContent.trim(),
+      name: cells[1].textContent.trim(),
+      phone: cells[2].textContent.trim(),
+      gender: cells[3].textContent.trim(),
+      email: cells[4].textContent.trim(),
+      position: cells[5].textContent.trim()
+    };
+    
+    document.getElementById('updateStaffId').value = currentData.id;
+    document.getElementById('updateStaffName').value = currentData.name;
+    document.getElementById('updatePhone').value = currentData.phone;
+    const genderValue = currentData.gender.charAt(0).toUpperCase() + currentData.gender.slice(1).toLowerCase();
+    document.getElementById('updateGender').value = genderValue;
+    document.getElementById('updateEmail').value = currentData.email;
+    document.getElementById('updatePosition').value = currentData.position;
+    
+    document.getElementById('updateModal').setAttribute('data-target-row', staffId);
+    document.getElementById('updateModal').style.display = 'block';
+  }
+
+  function closeUpdateModal() {
+    document.getElementById('updateModal').style.display = 'none';
+    document.getElementById('updateStaffForm').reset();
+  }
+
+  document.getElementById('updateStaffForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const staffId = document.getElementById('updateStaffId').value;
+    const updatedData = {
+      name: document.getElementById('updateStaffName').value.trim(),
+      phone: document.getElementById('updatePhone').value.trim(),
+      gender: document.getElementById('updateGender').value,
+      email: document.getElementById('updateEmail').value.trim(),
+      position: document.getElementById('updatePosition').value
+    };
+    
+    const rows = tableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+      const idCell = row.querySelector('td:first-child');
+      if (idCell && idCell.textContent.trim() === staffId) {
+        const cells = row.querySelectorAll('td');
+        cells[1].textContent = updatedData.name;
+        cells[2].textContent = updatedData.phone;
+        cells[3].textContent = updatedData.gender;
+        cells[4].textContent = updatedData.email;
+        cells[5].textContent = updatedData.position;
+        
+        row.setAttribute('data-name', updatedData.name);
+        row.setAttribute('data-gender', updatedData.gender);
+        row.setAttribute('data-position', updatedData.position);
+        
+        allRows = Array.from(tableBody.querySelectorAll('tr'));
+        closeUpdateModal();
+        alert('Staff details updated successfully!');
+        return;
+      }
+    });
+  });
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('updateModal');
+    if (event.target === modal) {
+      closeUpdateModal();
+    }
+  }
+
+  document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
+
+  function deleteStaff(staffId) {
+    if (confirm('Are you sure you want to delete staff ' + staffId + '?')) {
+      const rows = tableBody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const idCell = row.querySelector('td:first-child');
+        if (idCell && idCell.textContent.trim() === staffId) {
+          row.remove();
+          allRows = Array.from(tableBody.querySelectorAll('tr'));
+          alert('Staff deleted successfully!');
+          return;
+        }
+      });
+    }
+  }
   </script>
 </body>
 </html>
