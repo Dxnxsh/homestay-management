@@ -113,24 +113,23 @@
               </select>
             </div>
             <div class="spinner-select-wrapper">
-              <select class="spinner-select" id="sortBy">
-                <option value="">Sort By</option>
-                <option value="alphabetical">By Alphabetical</option>
-                <option value="date">By Date</option>
-                <option value="amount">By Amount</option>
-                <option value="status">By Status</option>
-              </select>
+            <select class="spinner-select" id="sortBy">
+              <option value="">Sort By</option>
+              <option value="date">By Date</option>
+              <option value="amount">By Amount</option>
+              <option value="status">By Status</option>
+            </select>
             </div>
           </div>
           <form class="search-form">
             <div class="search-container">
               <div class="search-by">
-                <select id="searchType" name="search-type">
-                  <option value="id">Bill ID</option>
-                  <option value="guestId">Guest ID</option>
-                  <option value="propertyId">Property ID</option>
-                  <option value="status">Status</option>
-                </select>
+              <select id="searchType" name="search-type">
+                <option value="billNo">Bill No.</option>
+                <option value="guestId">Guest ID</option>
+                <option value="staffId">Staff ID</option>
+                <option value="status">Status</option>
+              </select>
               </div>
               <div class="search-input">
                 <input id="search" type="text" placeholder="Search Bills" />
@@ -144,72 +143,72 @@
         </div>
         <div class="table-container">
           <table class="guests-table">
-            <thead>
-              <tr>
-                <th>Bill ID</th>
-                <th>Guest ID</th>
-                <th>Property ID</th>
-                <th>Check-in Date</th>
-                <th>Check-out Date</th>
-                <th>Total Amount</th>
-                <th>Status</th>
-                <th>Manage</th>
-              </tr>
-            </thead>
-            <tbody id="billingTableBody">
-              <tr data-name="G001" data-date="2025-01-15" data-amount="1500" data-status="Paid">
-                <td>B001</td>
-                <td>G001</td>
-                <td>P001</td>
-                <td>2025-01-15</td>
-                <td>2025-01-18</td>
-                <td>RM 1,500</td>
-                <td>Paid</td>
-                <td>
-                  <button class="btn-update" onclick="updateBill('B001')">Update</button>
-                  <button class="btn-delete" onclick="deleteBill('B001')">Delete</button>
-                </td>
-              </tr>
-              <tr data-name="G002" data-date="2025-01-20" data-amount="1350" data-status="Unpaid">
-                <td>B002</td>
-                <td>G002</td>
-                <td>P002</td>
-                <td>2025-01-20</td>
-                <td>2025-01-23</td>
-                <td>RM 1,350</td>
-                <td>Unpaid</td>
-                <td>
-                  <button class="btn-update" onclick="updateBill('B002')">Update</button>
-                  <button class="btn-delete" onclick="deleteBill('B002')">Delete</button>
-                </td>
-              </tr>
-              <tr data-name="G003" data-date="2025-01-25" data-amount="1200" data-status="Paid">
-                <td>B003</td>
-                <td>G003</td>
-                <td>P003</td>
-                <td>2025-01-25</td>
-                <td>2025-01-28</td>
-                <td>RM 1,200</td>
-                <td>Paid</td>
-                <td>
-                  <button class="btn-update" onclick="updateBill('B003')">Update</button>
-                  <button class="btn-delete" onclick="deleteBill('B003')">Delete</button>
-                </td>
-              </tr>
-              <tr data-name="G004" data-date="2025-02-01" data-amount="1650" data-status="Unpaid">
-                <td>B004</td>
-                <td>G004</td>
-                <td>P004</td>
-                <td>2025-02-01</td>
-                <td>2025-02-04</td>
-                <td>RM 1,650</td>
-                <td>Unpaid</td>
-                <td>
-                  <button class="btn-update" onclick="updateBill('B004')">Update</button>
-                  <button class="btn-delete" onclick="deleteBill('B004')">Delete</button>
-                </td>
-              </tr>
-            </tbody>
+          <thead>
+            <tr>
+              <th>Bill No.</th>
+              <th>Bill Date</th>
+              <th>Total Amount</th>
+              <th>Bill Status</th>
+              <th>Payment Method</th>
+              <th>Guest ID</th>
+              <th>Staff ID</th>
+              <th>Manage</th>
+            </tr>
+          </thead>
+          <tbody id="billingTableBody">
+            <tr data-date="2025-01-15" data-amount="1500" data-status="Paid">
+              <td>B001</td>
+              <td>2025-01-15</td>
+              <td>RM 1,500</td>
+              <td>Paid</td>
+              <td>Bank in</td>
+              <td>G001</td>
+              <td>S001</td>
+              <td>
+                <button class="btn-update" onclick="updateBill('B001')">Update</button>
+                <button class="btn-delete" onclick="deleteBill('B001')">Delete</button>
+              </td>
+            </tr>
+            <tr data-date="2025-01-20" data-amount="1350" data-status="Pending">
+              <td>B002</td>
+              <td>2025-01-20</td>
+              <td>RM 1,350</td>
+              <td>Pending</td>
+              <td>Cash</td>
+              <td>G002</td>
+              <td>S002</td>
+              <td>
+                <button class="btn-update" onclick="updateBill('B002')">Update</button>
+                <button class="btn-delete" onclick="deleteBill('B002')">Delete</button>
+              </td>
+            </tr>
+            <tr data-date="2025-01-25" data-amount="1200" data-status="Paid">
+              <td>B003</td>
+              <td>2025-01-25</td>
+              <td>RM 1,200</td>
+              <td>Paid</td>
+              <td>Bank in</td>
+              <td>G003</td>
+              <td>S001</td>
+              <td>
+                <button class="btn-update" onclick="updateBill('B003')">Update</button>
+                <button class="btn-delete" onclick="deleteBill('B003')">Delete</button>
+              </td>
+            </tr>
+            <tr data-date="2025-02-01" data-amount="1650" data-status="Pending">
+              <td>B004</td>
+              <td>2025-02-01</td>
+              <td>RM 1,650</td>
+              <td>Pending</td>
+              <td>Cash</td>
+              <td>G004</td>
+              <td>S002</td>
+              <td>
+                <button class="btn-update" onclick="updateBill('B004')">Update</button>
+                <button class="btn-delete" onclick="deleteBill('B004')">Delete</button>
+              </td>
+            </tr>
+          </tbody>
           </table>
         </div>
       </div>
@@ -230,35 +229,40 @@
         </div>
         <form id="updateBillForm" class="modal-form">
           <div class="form-group">
-            <label for="updateBillId">Bill ID</label>
-            <input type="text" id="updateBillId" name="billId" readonly>
+            <label for="updateBillNo">Bill No.</label>
+            <input type="text" id="updateBillNo" name="billNo" readonly>
           </div>
           <div class="form-group">
-            <label for="updateGuestId">Guest ID</label>
-            <input type="text" id="updateGuestId" name="guestId" required>
-          </div>
-          <div class="form-group">
-            <label for="updatePropertyId">Property ID</label>
-            <input type="text" id="updatePropertyId" name="propertyId" required>
-          </div>
-          <div class="form-group">
-            <label for="updateCheckIn">Check-in Date</label>
-            <input type="date" id="updateCheckIn" name="checkIn" required>
-          </div>
-          <div class="form-group">
-            <label for="updateCheckOut">Check-out Date</label>
-            <input type="date" id="updateCheckOut" name="checkOut" required>
+            <label for="updateBillDate">Bill Date</label>
+            <input type="date" id="updateBillDate" name="billDate" required>
           </div>
           <div class="form-group">
             <label for="updateAmount">Total Amount</label>
             <input type="number" id="updateAmount" name="amount" required min="0" step="0.01">
           </div>
           <div class="form-group">
-            <label for="updateStatus">Status</label>
+            <label for="updateStatus">Bill Status</label>
             <select id="updateStatus" name="status" required>
               <option value="Paid">Paid</option>
-              <option value="Unpaid">Unpaid</option>
+              <option value="Pending">Pending</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label for="updatePaymentMethod">Payment Method</label>
+            <select id="updatePaymentMethod" name="paymentMethod" required>
+              <option value="Cash">Cash</option>
+              <option value="Bank in">Bank in</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="Online Transfer">Online Transfer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="updateGuestId">Guest ID</label>
+            <input type="text" id="updateGuestId" name="guestId" required>
+          </div>
+          <div class="form-group">
+            <label for="updateStaffId">Staff ID</label>
+            <input type="text" id="updateStaffId" name="staffId" required>
           </div>
           <div class="form-actions">
             <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
@@ -302,11 +306,6 @@
           let comparison = 0;
           
           switch(sortBy) {
-            case 'alphabetical':
-              const nameA = a.getAttribute('data-name').toLowerCase();
-              const nameB = b.getAttribute('data-name').toLowerCase();
-              comparison = nameA.localeCompare(nameB);
-              break;
             case 'date':
               const dateA = new Date(a.getAttribute('data-date'));
               const dateB = new Date(b.getAttribute('data-date'));
@@ -347,17 +346,17 @@
         allRows.forEach(row => {
           let matches = false;
           
-          if (searchType === 'id') {
-            const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-            matches = id.includes(searchTerm);
+          if (searchType === 'billNo') {
+            const billNo = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+            matches = billNo.includes(searchTerm);
           } else if (searchType === 'guestId') {
-            const guestId = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            const guestId = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
             matches = guestId.includes(searchTerm);
-          } else if (searchType === 'propertyId') {
-            const propertyId = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-            matches = propertyId.includes(searchTerm);
+          } else if (searchType === 'staffId') {
+            const staffId = row.querySelector('td:nth-child(7)').textContent.toLowerCase();
+            matches = staffId.includes(searchTerm);
           } else if (searchType === 'status') {
-            const status = row.querySelector('td:nth-child(7)').textContent.toLowerCase();
+            const status = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
             matches = status.includes(searchTerm);
           }
           
@@ -376,13 +375,13 @@
       allRows = Array.from(tableBody.querySelectorAll('tr'));
 
       // Update and Delete functions
-      function updateBill(billId) {
+      function updateBill(billNo) {
         const rows = tableBody.querySelectorAll('tr');
         let targetRow = null;
         
         rows.forEach(row => {
           const idCell = row.querySelector('td:first-child');
-          if (idCell && idCell.textContent.trim() === billId) {
+          if (idCell && idCell.textContent.trim() === billNo) {
             targetRow = row;
           }
         });
@@ -394,24 +393,24 @@
         
         const cells = targetRow.querySelectorAll('td');
         const currentData = {
-          id: cells[0].textContent.trim(),
-          guestId: cells[1].textContent.trim(),
-          propertyId: cells[2].textContent.trim(),
-          checkIn: cells[3].textContent.trim(),
-          checkOut: cells[4].textContent.trim(),
-          amount: cells[5].textContent.trim().replace('RM ', '').replace(',', '').trim(),
-          status: cells[6].textContent.trim()
+          billNo: cells[0].textContent.trim(),
+          billDate: cells[1].textContent.trim(),
+          amount: cells[2].textContent.trim().replace('RM ', '').replace(',', '').trim(),
+          status: cells[3].textContent.trim(),
+          paymentMethod: cells[4].textContent.trim(),
+          guestId: cells[5].textContent.trim(),
+          staffId: cells[6].textContent.trim()
         };
         
-        document.getElementById('updateBillId').value = currentData.id;
-        document.getElementById('updateGuestId').value = currentData.guestId;
-        document.getElementById('updatePropertyId').value = currentData.propertyId;
-        document.getElementById('updateCheckIn').value = currentData.checkIn;
-        document.getElementById('updateCheckOut').value = currentData.checkOut;
+        document.getElementById('updateBillNo').value = currentData.billNo;
+        document.getElementById('updateBillDate').value = currentData.billDate;
         document.getElementById('updateAmount').value = currentData.amount;
         document.getElementById('updateStatus').value = currentData.status;
+        document.getElementById('updatePaymentMethod').value = currentData.paymentMethod;
+        document.getElementById('updateGuestId').value = currentData.guestId;
+        document.getElementById('updateStaffId').value = currentData.staffId;
         
-        document.getElementById('updateModal').setAttribute('data-target-row', billId);
+        document.getElementById('updateModal').setAttribute('data-target-row', billNo);
         document.getElementById('updateModal').style.display = 'block';
       }
 
@@ -423,30 +422,29 @@
       document.getElementById('updateBillForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const billId = document.getElementById('updateBillId').value;
+        const billNo = document.getElementById('updateBillNo').value;
         const updatedData = {
-          guestId: document.getElementById('updateGuestId').value.trim(),
-          propertyId: document.getElementById('updatePropertyId').value.trim(),
-          checkIn: document.getElementById('updateCheckIn').value,
-          checkOut: document.getElementById('updateCheckOut').value,
+          billDate: document.getElementById('updateBillDate').value,
           amount: parseFloat(document.getElementById('updateAmount').value),
-          status: document.getElementById('updateStatus').value
+          status: document.getElementById('updateStatus').value,
+          paymentMethod: document.getElementById('updatePaymentMethod').value,
+          guestId: document.getElementById('updateGuestId').value.trim(),
+          staffId: document.getElementById('updateStaffId').value.trim()
         };
         
         const rows = tableBody.querySelectorAll('tr');
         rows.forEach(row => {
           const idCell = row.querySelector('td:first-child');
-          if (idCell && idCell.textContent.trim() === billId) {
+          if (idCell && idCell.textContent.trim() === billNo) {
             const cells = row.querySelectorAll('td');
-            cells[1].textContent = updatedData.guestId;
-            cells[2].textContent = updatedData.propertyId;
-            cells[3].textContent = updatedData.checkIn;
-            cells[4].textContent = updatedData.checkOut;
-            cells[5].textContent = 'RM ' + updatedData.amount.toLocaleString();
-            cells[6].textContent = updatedData.status;
+            cells[1].textContent = updatedData.billDate;
+            cells[2].textContent = 'RM ' + updatedData.amount.toLocaleString();
+            cells[3].textContent = updatedData.status;
+            cells[4].textContent = updatedData.paymentMethod;
+            cells[5].textContent = updatedData.guestId;
+            cells[6].textContent = updatedData.staffId;
             
-            row.setAttribute('data-name', updatedData.guestId);
-            row.setAttribute('data-date', updatedData.checkIn);
+            row.setAttribute('data-date', updatedData.billDate);
             row.setAttribute('data-amount', updatedData.amount);
             row.setAttribute('data-status', updatedData.status);
             
@@ -467,12 +465,12 @@
 
       document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
 
-      function deleteBill(billId) {
-        if (confirm('Are you sure you want to delete bill ' + billId + '?')) {
+      function deleteBill(billNo) {
+        if (confirm('Are you sure you want to delete bill ' + billNo + '?')) {
           const rows = tableBody.querySelectorAll('tr');
           rows.forEach(row => {
             const idCell = row.querySelector('td:first-child');
-            if (idCell && idCell.textContent.trim() === billId) {
+            if (idCell && idCell.textContent.trim() === billNo) {
               row.remove();
               allRows = Array.from(tableBody.querySelectorAll('tr'));
               alert('Bill deleted successfully!');
