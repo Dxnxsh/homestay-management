@@ -663,6 +663,37 @@ body {
   padding: 20px;
   border-radius: 8px;
 }
+
+.table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.table-header-row p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #4b4b4b;
+}
+
+.btn-manage {
+  background: #4285F4;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.3s ease;
+  display: inline-block;
+}
+
+.btn-manage:hover {
+  background: #3367D6;
+}
+
 .new-guests-table-container p{
   margin: 0 0 16px 0;
   font-size: 16px;

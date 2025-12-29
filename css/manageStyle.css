@@ -495,7 +495,6 @@ body {
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border-radius: 8px;
 }
 
 .content2 .sub-content2-card:hover {
