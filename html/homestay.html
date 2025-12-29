@@ -2,8 +2,8 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8">
-    <title>Properties</title>
-    <link rel="stylesheet" href="../css/propertiesStyle.css">
+    <title>Homestay</title>
+    <link rel="stylesheet" href="../css/homestayStyle.css">
     <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
      <meta name="viewport" content="width=device-width, initial-scale=1.0">
    </head>
@@ -35,7 +35,7 @@
           <li><a class="link_name" href="manage.html">Manage</a></li>
           <li><a href="guests.html">Guests</a></li>
           <li><a href="staff.html">Staff</a></li>
-          <li><a href="properties.html">Properties</a></li>
+          <li><a href="homestay.html">Homestay</a></li>
         </ul>
       </li>
       <li>
@@ -100,7 +100,7 @@
       <span class="text">Serena Sanctuary</span>
     </div>
     <div class="page-heading">
-      <h1>Properties</h1>
+      <h1>Homestay</h1>
     </div>
     <!-- Content -->
     <div class="content">
@@ -133,7 +133,7 @@
               </select>
             </div>
             <div class="search-input">
-              <input id="search" type="text" placeholder="Search Properties" />
+              <input id="search" type="text" placeholder="Search Homestay" />
             </div>
             <div class="search-button">
               <button class="btn-search" type="button" aria-label="Search">
@@ -146,8 +146,8 @@
         <table class="guests-table">
           <thead>
             <tr>
-              <th>Property ID</th>
-              <th>Property Name</th>
+              <th>Homestay ID</th>
+              <th>Homestay Name</th>
               <th>Address</th>
               <th>Office Phone No.</th>
               <th>Rent Price (per night)</th>
@@ -220,16 +220,16 @@
   <div id="updateModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Update Property Details</h2>
+        <h2>Update Homestay Details</h2>
         <span class="close-modal">&times;</span>
       </div>
       <form id="updatePropertyForm" class="modal-form">
         <div class="form-group">
-          <label for="updatePropertyId">Property ID</label>
+          <label for="updatePropertyId">Homestay ID</label>
           <input type="text" id="updatePropertyId" name="propertyId" readonly>
         </div>
         <div class="form-group">
-          <label for="updatePropertyName">Property Name</label>
+          <label for="updatePropertyName">Homestay Name</label>
           <input type="text" id="updatePropertyName" name="propertyName" required>
         </div>
         <div class="form-group">
@@ -375,7 +375,7 @@
     });
     
     if (!targetRow) {
-      alert('Property not found!');
+      alert('Homestay not found!');
       return;
     }
     
@@ -433,7 +433,7 @@
         
         allRows = Array.from(tableBody.querySelectorAll('tr'));
         closeUpdateModal();
-        alert('Property details updated successfully!');
+        alert('Homestay details updated successfully!');
         return;
       }
     });
@@ -449,14 +449,14 @@
   document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
 
   function deleteProperty(propertyId) {
-    if (confirm('Are you sure you want to delete property ' + propertyId + '?')) {
+    if (confirm('Are you sure you want to delete homestay ' + propertyId + '?')) {
       const rows = tableBody.querySelectorAll('tr');
       rows.forEach(row => {
         const idCell = row.querySelector('td:first-child');
         if (idCell && idCell.textContent.trim() === propertyId) {
           row.remove();
           allRows = Array.from(tableBody.querySelectorAll('tr'));
-          alert('Property deleted successfully!');
+          alert('Homestay deleted successfully!');
           return;
         }
       });
@@ -465,3 +465,4 @@
   </script>
 </body>
 </html>
+
