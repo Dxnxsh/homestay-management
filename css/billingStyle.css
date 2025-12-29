@@ -639,6 +639,51 @@ body {
   white-space: nowrap;
 }
 
+.status-select {
+  padding: 4px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  background: #fff;
+  color: #4b4b4b;
+  min-width: 100px;
+  transition: all 0.2s ease;
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: #C5814B;
+  box-shadow: 0 0 0 2px rgba(197, 129, 75, 0.1);
+}
+
+.status-select option[value="Paid"] {
+  background: #e8f5e9;
+  color: #00bf63;
+  font-weight: 600;
+}
+
+.status-select option[value="Pending"] {
+  background: #fff3e0;
+  color: #ff9800;
+  font-weight: 600;
+}
+
+/* Background color based on selected value */
+.status-select[data-status="Paid"],
+.status-select:has(option[value="Paid"]:checked) {
+  background: #e8f5e9;
+  color: #00bf63;
+}
+
+.status-select[data-status="Pending"],
+.status-select:has(option[value="Pending"]:checked) {
+  background: #fff3e0;
+  color: #ff9800;
+}
+
 .btn-details,
 .btn-update,
 .btn-delete {

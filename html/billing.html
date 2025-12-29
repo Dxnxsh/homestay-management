@@ -161,7 +161,12 @@
               <td>B001</td>
               <td>2025-01-15</td>
               <td>RM 1,500</td>
-              <td>Paid</td>
+              <td>
+                <select class="status-select" onchange="quickChangeStatus('B001', this.value)">
+                  <option value="Paid" selected>Paid</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </td>
               <td>Bank in</td>
               <td>G001</td>
               <td>S001</td>
@@ -177,7 +182,12 @@
               <td>B002</td>
               <td>2025-01-20</td>
               <td>RM 1,350</td>
-              <td>Pending</td>
+              <td>
+                <select class="status-select" data-status="Pending" style="background: #fff3e0; color: #ff9800;" onchange="quickChangeStatus('B002', this.value)">
+                  <option value="Paid">Paid</option>
+                  <option value="Pending" selected>Pending</option>
+                </select>
+              </td>
               <td>Cash</td>
               <td>G002</td>
               <td>S002</td>
@@ -193,7 +203,12 @@
               <td>B003</td>
               <td>2025-01-25</td>
               <td>RM 1,200</td>
-              <td>Paid</td>
+              <td>
+                <select class="status-select" data-status="Paid" style="background: #e8f5e9; color: #00bf63;" onchange="quickChangeStatus('B003', this.value)">
+                  <option value="Paid" selected>Paid</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </td>
               <td>Bank in</td>
               <td>G003</td>
               <td>S001</td>
@@ -209,7 +224,12 @@
               <td>B004</td>
               <td>2025-02-01</td>
               <td>RM 1,650</td>
-              <td>Pending</td>
+              <td>
+                <select class="status-select" data-status="Pending" style="background: #fff3e0; color: #ff9800;" onchange="quickChangeStatus('B004', this.value)">
+                  <option value="Paid">Paid</option>
+                  <option value="Pending" selected>Pending</option>
+                </select>
+              </td>
               <td>Cash</td>
               <td>G004</td>
               <td>S002</td>
@@ -334,7 +354,7 @@
           </div>
           <div class="form-group">
             <label for="updateStatus">Bill Status</label>
-            <select id="updateStatus" name="status" required>
+            <select id="updateStatus" name="status" required onchange="updateStatusInModal(this.value)">
               <option value="Paid">Paid</option>
               <option value="Pending">Pending</option>
             </select>
@@ -488,11 +508,14 @@
         }
         
         const cells = targetRow.querySelectorAll('td');
+        const statusSelect = cells[3].querySelector('.status-select');
+        const currentStatus = statusSelect ? statusSelect.value : cells[3].textContent.trim();
+        
         const currentData = {
           billNo: cells[0].textContent.trim(),
           billDate: cells[1].textContent.trim(),
           amount: cells[2].textContent.trim().replace('RM ', '').replace(',', '').trim(),
-          status: cells[3].textContent.trim(),
+          status: currentStatus,
           paymentMethod: cells[4].textContent.trim(),
           guestId: cells[5].textContent.trim(),
           staffId: cells[6].textContent.trim(),
@@ -580,7 +603,8 @@
         document.getElementById('detailsTaxAmount').value = 'RM ' + taxAmount.toLocaleString();
         document.getElementById('detailsLateCharges').value = 'RM ' + lateCharges.toLocaleString();
         document.getElementById('detailsTotalAmount').value = cells[2].textContent.trim();
-        document.getElementById('detailsBillStatus').value = cells[3].textContent.trim();
+        const statusSelect = cells[3].querySelector('.status-select');
+        document.getElementById('detailsBillStatus').value = statusSelect ? statusSelect.value : cells[3].textContent.trim();
         document.getElementById('detailsPaymentDate').value = paymentDate || 'Not paid yet';
         document.getElementById('detailsPaymentMethod').value = cells[4].textContent.trim();
         document.getElementById('detailsGuestId').value = cells[5].textContent.trim();
@@ -618,7 +642,22 @@
             const cells = row.querySelectorAll('td');
             cells[1].textContent = updatedData.billDate;
             cells[2].textContent = 'RM ' + updatedData.amount.toLocaleString();
-            cells[3].textContent = updatedData.status;
+            
+            // Update the status dropdown
+            const statusSelect = cells[3].querySelector('.status-select');
+            if (statusSelect) {
+              statusSelect.value = updatedData.status;
+              statusSelect.setAttribute('data-status', updatedData.status);
+              // Update background color based on status
+              if (updatedData.status === 'Paid') {
+                statusSelect.style.background = '#e8f5e9';
+                statusSelect.style.color = '#00bf63';
+              } else {
+                statusSelect.style.background = '#fff3e0';
+                statusSelect.style.color = '#ff9800';
+              }
+            }
+            
             cells[4].textContent = updatedData.paymentMethod;
             cells[5].textContent = updatedData.guestId;
             cells[6].textContent = updatedData.staffId;
@@ -664,6 +703,44 @@
             }
           });
         }
+      }
+
+      function quickChangeStatus(billNo, newStatus) {
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+          const idCell = row.querySelector('td:first-child');
+          if (idCell && idCell.textContent.trim() === billNo) {
+            // Update the data-status attribute
+            row.setAttribute('data-status', newStatus);
+            
+            // Update the select dropdown background color
+            const statusSelect = row.querySelector('.status-select');
+            if (statusSelect) {
+              statusSelect.setAttribute('data-status', newStatus);
+              if (newStatus === 'Paid') {
+                statusSelect.style.background = '#e8f5e9';
+                statusSelect.style.color = '#00bf63';
+              } else {
+                statusSelect.style.background = '#fff3e0';
+                statusSelect.style.color = '#ff9800';
+              }
+            }
+            
+            // If changing to Paid and no payment date exists, set today's date
+            if (newStatus === 'Paid' && !row.getAttribute('data-payment-date')) {
+              const today = new Date().toISOString().split('T')[0];
+              row.setAttribute('data-payment-date', today);
+            }
+            
+            // If changing to Pending, clear payment date
+            if (newStatus === 'Pending') {
+              row.setAttribute('data-payment-date', '');
+            }
+            
+            alert('Bill status updated to ' + newStatus + '!');
+            return;
+          }
+        });
       }
     </script>
   </body>
