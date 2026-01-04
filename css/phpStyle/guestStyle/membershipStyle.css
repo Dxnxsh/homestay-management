@@ -1,0 +1,663 @@
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    overflow-x: hidden;
+    background: #f5e6d3;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Navigation */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.navbar.scrolled {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+}
+
+.logo-icon {
+    height: 45px;
+    width: auto;
+    max-width: 180px;
+    object-fit: contain;
+}
+
+.logo-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: #C5814B;
+    margin-top: 3px;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+    align-items: center;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    font-size: 16px;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: #C5814B;
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: #C5814B;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+    width: 100%;
+}
+
+.btn-logout {
+    background: #C5814B;
+    color: #fff !important;
+    padding: 10px 24px;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+    border: 2px solid transparent;
+}
+
+.btn-logout::after {
+    display: none;
+}
+
+.btn-logout:hover {
+    background: #b3703a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(197, 129, 75, 0.3);
+    color: #fff !important;
+}
+
+.hamburger {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    gap: 5px;
+}
+
+.hamburger span {
+    width: 25px;
+    height: 3px;
+    background: #C5814B;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.hamburger.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* Page Header */
+.page-header {
+    padding: 120px 20px 50px;
+    background: linear-gradient(135deg, #C5814B 0%, #b3703a 100%);
+    color: #fff;
+    text-align: center;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.page-subtitle {
+    font-size: 1rem;
+    opacity: 0.95;
+}
+
+/* Content Section */
+.content-section {
+    padding: 60px 20px;
+    background: #f5e6d3;
+}
+
+.membership-status {
+    margin-bottom: 50px;
+}
+
+.status-card {
+    background: linear-gradient(135deg, #C5814B 0%, #b3703a 100%);
+    padding: 40px;
+    border-radius: 15px;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 10px 40px rgba(197, 129, 75, 0.3);
+    max-width: 550px;
+    margin: 0 auto;
+}
+
+.status-icon {
+    margin-bottom: 20px;
+}
+
+.status-icon i {
+    font-size: 64px;
+}
+
+.status-card h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.status-card p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+}
+
+.membership-discount {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    margin: 10px 0 !important;
+    opacity: 1 !important;
+}
+
+.membership-status-text {
+    margin-top: 10px;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.membership-progress {
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.membership-progress p {
+    margin: 5px 0;
+    opacity: 1;
+}
+
+.membership-progress strong {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+/* Membership Tier Colors */
+.status-card.bronze {
+    background: linear-gradient(135deg, #CD7F32 0%, #A66D2A 100%);
+}
+
+.status-card.silver {
+    background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%);
+}
+
+.status-card.gold {
+    background: linear-gradient(135deg, #FFD700 0%, #DAA520 100%);
+}
+
+.status-card.no-membership {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+}
+
+.membership-tiers {
+    margin-top: 50px;
+    margin-bottom: 50px;
+}
+
+.tiers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.tier-card {
+    background: #fff;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.tier-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(135deg, #C5814B 0%, #b3703a 100%);
+}
+
+.tier-card.bronze::before {
+    background: linear-gradient(135deg, #CD7F32 0%, #A66D2A 100%);
+}
+
+.tier-card.silver::before {
+    background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%);
+}
+
+.tier-card.gold::before {
+    background: linear-gradient(135deg, #FFD700 0%, #DAA520 100%);
+}
+
+.tier-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(197, 129, 75, 0.15);
+    border-color: #C5814B;
+}
+
+.tier-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.tier-icon {
+    margin-bottom: 15px;
+}
+
+.tier-icon i {
+    font-size: 48px;
+    color: #C5814B;
+}
+
+.tier-card.bronze .tier-icon i {
+    color: #CD7F32;
+}
+
+.tier-card.silver .tier-icon i {
+    color: #C0C0C0;
+}
+
+.tier-card.gold .tier-icon i {
+    color: #FFD700;
+}
+
+.tier-header h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 10px;
+}
+
+.tier-discount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #C5814B;
+    margin-top: 10px;
+}
+
+.tier-card.bronze .tier-discount {
+    color: #CD7F32;
+}
+
+.tier-card.silver .tier-discount {
+    color: #C0C0C0;
+}
+
+.tier-card.gold .tier-discount {
+    color: #FFD700;
+}
+
+.tier-benefits {
+    margin-top: 20px;
+}
+
+.tier-benefits ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tier-benefits li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    color: #555;
+    font-size: 14px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.tier-benefits li:last-child {
+    border-bottom: none;
+}
+
+.tier-benefits li i {
+    color: #C5814B;
+    font-size: 18px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.tier-card.bronze .tier-benefits li i {
+    color: #CD7F32;
+}
+
+.tier-card.silver .tier-benefits li i {
+    color: #C0C0C0;
+}
+
+.tier-card.gold .tier-benefits li i {
+    color: #FFD700;
+}
+
+.tier-requirement {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 8px;
+    font-weight: 600;
+    padding: 5px 12px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.tier-card.bronze .tier-requirement {
+    background: rgba(205, 127, 50, 0.1);
+    color: #CD7F32;
+}
+
+.tier-card.silver .tier-requirement {
+    background: rgba(192, 192, 192, 0.2);
+    color: #A0A0A0;
+}
+
+.tier-card.gold .tier-requirement {
+    background: rgba(255, 215, 0, 0.2);
+    color: #DAA520;
+}
+
+.tier-progression {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #f0f0f0;
+    text-align: center;
+}
+
+.progression-text {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}
+
+.progression-text strong {
+    color: #C5814B;
+    font-weight: 700;
+}
+
+.tier-card.bronze .progression-text strong {
+    color: #CD7F32;
+}
+
+.tier-card.silver .progression-text strong {
+    color: #C0C0C0;
+}
+
+.tier-card.gold .progression-text strong {
+    color: #FFD700;
+}
+
+.membership-benefits {
+    margin-top: 50px;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 25px;
+}
+
+.benefit-item {
+    background: #fff;
+    padding: 30px 25px;
+    border-radius: 15px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    border: 2px solid transparent;
+}
+
+.benefit-item:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(197, 129, 75, 0.15);
+    border-color: #C5814B;
+}
+
+.benefit-icon {
+    margin-bottom: 20px;
+}
+
+.benefit-icon i {
+    font-size: 40px;
+    color: #C5814B;
+}
+
+.benefit-item h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 8px;
+}
+
+.benefit-item p {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Footer */
+.footer {
+    background: #222;
+    color: #fff;
+    padding: 60px 20px 20px;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.footer-logo .logo-icon {
+    height: 40px;
+}
+
+.footer-logo .logo-name {
+    color: #fff;
+    font-size: 20px;
+}
+
+.footer-description {
+    color: #aaa;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.footer-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+.footer-links {
+    list-style: none;
+}
+
+.footer-links li {
+    margin-bottom: 10px;
+}
+
+.footer-links a {
+    color: #aaa;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    font-size: 14px;
+}
+
+.footer-links a:hover {
+    color: #C5814B;
+}
+
+.footer-contact {
+    list-style: none;
+}
+
+.footer-contact li {
+    color: #aaa;
+    margin-bottom: 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-contact i {
+    color: #C5814B;
+    font-size: 18px;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 30px;
+    border-top: 1px solid #333;
+}
+
+.footer-bottom p {
+    color: #aaa;
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hamburger {
+        display: flex;
+    }
+
+    .nav-menu {
+        position: fixed;
+        left: -100%;
+        top: 70px;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.98);
+        width: 100%;
+        text-align: center;
+        transition: 0.3s;
+        box-shadow: 0 10px 27px rgba(0, 0, 0, 0.05);
+        padding: 20px 0;
+        gap: 0;
+    }
+
+    .nav-menu.active {
+        left: 0;
+    }
+
+    .nav-menu li {
+        margin: 10px 0;
+    }
+
+
+    .page-title {
+        font-size: 2.2rem;
+    }
+
+    .status-card {
+        padding: 40px 30px;
+    }
+
+    .status-card h2 {
+        font-size: 2rem;
+    }
+
+    .benefits-grid {
+        grid-template-columns: 1fr;
+    }
+}

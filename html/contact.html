@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Serena Sanctuary</title>
+    <link rel="icon" type="image/png" href="../images/logoNbg.png">
+    <link rel="stylesheet" href="../css/htmlStyle/contactStyle.css">
+    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-logo">
+                <img src="../images/logoNbg.png" alt="Serena Sanctuary logo" class="logo-icon">
+                <span class="logo-name">Serena Sanctuary</span>
+            </a>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="../index.html" class="nav-link">Home</a></li>
+                <li><a href="homestay.html" class="nav-link">Homestay</a></li>
+                <li><a href="about.html" class="nav-link">About</a></li>
+                <li><a href="contact.html" class="nav-link active">Contact</a></li>
+                <li><a href="../php/manager/dashboard.html" class="nav-link btn-signup">Sign Up</a></li>
+                <li><a href="../php/login.php" class="nav-link btn-login">Login</a></li>
+            </ul>
+            <div class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Contact Us</h1>
+        <p>Get in touch with us. We're here to help and answer any questions you may have.</p>
+    </div>
+
+    <!-- Contact Section -->
+    <section class="content-section">
+        <div class="container">
+            <div class="contact-wrapper">
+                <div class="contact-info animate-on-scroll fade-in-left">
+                    <h2 class="contact-title">Get in Touch</h2>
+                    <p class="contact-description">
+                        We'd love to hear from you. Whether you have a question about our homestays, need assistance with a booking, or just want to say hello, feel free to reach out to us.
+                    </p>
+                    
+                    <div class="contact-details">
+                        <div class="contact-item animate-on-scroll fade-in-up animate-delay-1">
+                            <div class="contact-icon">
+                                <i class='bx bx-map'></i>
+                            </div>
+                            <div class="contact-text">
+                                <h3>Address</h3>
+                                <p>123 Sanctuary Street<br>Kuala Lumpur, Malaysia<br>50000</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item animate-on-scroll fade-in-up animate-delay-2">
+                            <div class="contact-icon">
+                                <i class='bx bx-phone'></i>
+                            </div>
+                            <div class="contact-text">
+                                <h3>Phone</h3>
+                                <p>+60 17-204 2390</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item animate-on-scroll fade-in-up animate-delay-3">
+                            <div class="contact-icon">
+                                <i class='bx bx-envelope'></i>
+                            </div>
+                            <div class="contact-text">
+                                <h3>Email</h3>
+                                <p>info@serenasanctuary.com<br>support@serenasanctuary.com</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item animate-on-scroll fade-in-up animate-delay-4">
+                            <div class="contact-icon">
+                                <i class='bxr  bx-timer'></i> 
+                            </div>
+                            <div class="contact-text">
+                                <h3>Business Hours</h3>
+                                <p>Monday - Friday: 9:00 AM - 6:00 PM<br>Saturday - Sunday: 10:00 AM - 4:00 PM</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="contact-form-container animate-on-scroll fade-in-right">
+                    <h2 class="contact-title">Send us a Message</h2>
+                    <form class="contact-form" id="contactForm">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required placeholder="Enter your email">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" name="phone" placeholder="Enter your phone number">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <input type="text" id="subject" name="subject" required placeholder="What is this regarding?">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message" rows="6" required placeholder="Tell us how we can help you..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-large">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <img src="../images/logoNbg.png" alt="Serena Sanctuary logo" class="logo-icon">
+                        <span class="logo-name">Serena Sanctuary</span>
+                    </div>
+                    <p class="footer-description">Your trusted partner for exceptional homestay experiences and management solutions.</p>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="../index.html">Home</a></li>
+                        <li><a href="homestay.html">Homestay</a></li>
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="../php/login.php">Login</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-title">Contact</h4>
+                    <ul class="footer-contact">
+                        <li><i class='bx bx-envelope'></i> info@serenasanctuary.com</li>
+                        <li><i class='bx bx-phone'></i> +60 17-204 2390</li>
+                        <li><i class='bx bx-map'></i> Malaysia</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Serena Sanctuary. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Menu Toggle
+        const hamburger = document.getElementById('hamburger');
+        const navMenu = document.getElementById('navMenu');
+
+        hamburger.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        });
+
+        // Close menu when clicking on a link
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                navMenu.classList.remove('active');
+                hamburger.classList.remove('active');
+            });
+        });
+
+        // Form submission
+        const contactForm = document.getElementById('contactForm');
+        contactForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Thank you for your message! We will get back to you soon.');
+            contactForm.reset();
+        });
+
+        // Navbar background on scroll
+        const navbar = document.querySelector('.navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Scroll-triggered animations using Intersection Observer
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        // Observe all elements with animation classes
+        const animateElements = document.querySelectorAll('.animate-on-scroll');
+        animateElements.forEach(element => {
+            observer.observe(element);
+        });
+    </script>
+
+    <!-- WhatsApp Chat Widget -->
+    <script src="https://sofowfweidqzxgaojsdq.supabase.co/storage/v1/object/public/widget-scripts/widget.js" data-widget-id="wa_d4nbxppub" async></script>
+</body>
+</html>
+
