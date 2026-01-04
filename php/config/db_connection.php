@@ -6,10 +6,10 @@
  */
 
 // Database connection parameters
-define('DB_USERNAME', 'serena_sactuary');
-define('DB_PASSWORD', 'serena123');
-define('DB_HOST', 'localhost');  // Database host (use IP or hostname if remote)
-define('DB_PORT', '1522');       // Oracle database port (default: 1521)
+define('DB_USERNAME', 'homestay');
+define('DB_PASSWORD', 'password');
+define('DB_HOST', '85.211.253.234');  // Database host (use IP or hostname if remote)
+define('DB_PORT', '1623');       // Oracle database port (default: 1521)
 define('DB_SERVICE_NAME', 'FREEPDB1');
 define('DB_CHARSET', 'AL32UTF8');
 
@@ -44,4 +44,5 @@ function closeDBConnection($conn) {
     }
 }
 ?>
+
 
