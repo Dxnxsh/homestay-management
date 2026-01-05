@@ -707,7 +707,7 @@ if (!$conn) {
       <div class="container">
         <div class="booking-header">
           <h2>Your Bookings</h2>
-          <a href="homestay.php" class="btn btn-primary">New Booking</a>
+          <a style="display:none" href="homestay.php" class="btn btn-primary">New Booking</a>
         </div>
         <div class="bookings-list">
           <?php if (empty($bookings)): ?>
