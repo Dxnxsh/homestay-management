@@ -9,8 +9,41 @@ $conn = getDBConnection();
 $has_membership = false;
 $discount_rate = 0;
 $booking_count = 0;
+$guest_type = 'Regular';
+$show_buy_button = false;
+$success_message = '';
+$error_message = '';
+$show_success_modal = false;
+
+// Check for success/error messages
+if (isset($_GET['purchased']) && $_GET['purchased'] == '1') {
+    if (isset($_SESSION['membership_purchased'])) {
+        $success_message = 'Payment successful! Membership purchased successfully! Welcome to Bronze tier.';
+        unset($_SESSION['membership_purchased']);
+        $show_success_modal = true;
+    }
+}
+
+if (isset($_GET['error']) && $_GET['error'] == '1') {
+    if (isset($_SESSION['membership_error'])) {
+        $error_message = $_SESSION['membership_error'];
+        unset($_SESSION['membership_error']);
+    }
+}
 
 if ($conn) {
+    // Get guest_type from GUEST table
+    $guest_type_sql = "SELECT guest_type FROM GUEST WHERE guestID = :guestID";
+    $guest_type_stmt = oci_parse($conn, $guest_type_sql);
+    oci_bind_by_name($guest_type_stmt, ':guestID', $guestID);
+    if (oci_execute($guest_type_stmt)) {
+        $row = oci_fetch_array($guest_type_stmt, OCI_ASSOC);
+        if ($row) {
+            $guest_type = strtoupper(trim($row['GUEST_TYPE'] ?? 'Regular'));
+        }
+    }
+    oci_free_statement($guest_type_stmt);
+    
     // Get membership info
     $membership_sql = "SELECT disc_rate 
                        FROM MEMBERSHIP 
@@ -37,6 +70,9 @@ if ($conn) {
         $booking_count = $row['COUNT'] ?? 0;
     }
     oci_free_statement($booking_stmt);
+    
+    // Show buy button only if guest_type is "REGULAR" (case-insensitive check)
+    $show_buy_button = (strtoupper($guest_type) === 'REGULAR' && !$has_membership);
     
     closeDBConnection($conn);
 }
@@ -101,6 +137,20 @@ if ($has_membership) {
 
     <section class="content-section">
       <div class="container">
+        <?php if ($success_message): ?>
+          <div class="alert alert-success-membership">
+            <i class='bx bx-check-circle'></i>
+            <span><?php echo htmlspecialchars($success_message); ?></span>
+          </div>
+        <?php endif; ?>
+        
+        <?php if ($error_message): ?>
+          <div class="alert alert-error-membership">
+            <i class='bx bx-error-circle'></i>
+            <span><?php echo htmlspecialchars($error_message); ?></span>
+          </div>
+        <?php endif; ?>
+        
         <div class="membership-status">
           <div class="status-card" id="membershipCard">
             <div class="status-icon">
@@ -121,6 +171,17 @@ if ($has_membership) {
             </div>
             <h2>Not a Member</h2>
             <p class="membership-status-text">Join our membership program to unlock exclusive benefits</p>
+            <div id="buyMembershipSection" style="display: none;">
+              <form method="POST" action="buy_membership.php" style="margin-top: 20px;">
+                <button type="submit" class="btn-buy-membership">
+                  <i class='bx bx-crown'></i>
+                  Buy Membership
+                </button>
+              </form>
+              <p style="font-size: 0.85rem; margin-top: 10px; opacity: 0.8;">
+                Start at Bronze tier (10% discount) and upgrade automatically with each booking!
+              </p>
+            </div>
           </div>
         </div>
         <div class="membership-tiers">
@@ -302,12 +363,13 @@ if ($has_membership) {
     });
 
     // Membership Type Detection based on booking count
-    function updateMembershipDisplay(hasMembership, bookingCount) {
+    function updateMembershipDisplay(hasMembership, bookingCount, showBuyButton) {
       const membershipCard = document.getElementById('membershipCard');
       const noMembershipCard = document.getElementById('noMembershipCard');
       const membershipType = document.getElementById('membershipType');
       const membershipDiscount = document.getElementById('membershipDiscount');
       const membershipProgress = document.getElementById('membershipProgress');
+      const buyMembershipSection = document.getElementById('buyMembershipSection');
 
       // Remove existing tier classes
       membershipCard.classList.remove('bronze', 'silver', 'gold');
@@ -316,10 +378,17 @@ if ($has_membership) {
         // No membership
         membershipCard.style.display = 'none';
         noMembershipCard.style.display = 'block';
+        // Show buy button only if guest_type is Regular
+        if (buyMembershipSection) {
+          buyMembershipSection.style.display = showBuyButton ? 'block' : 'none';
+        }
       } else {
         // Has membership - determine tier based on booking count
         membershipCard.style.display = 'block';
         noMembershipCard.style.display = 'none';
+        if (buyMembershipSection) {
+          buyMembershipSection.style.display = 'none';
+        }
 
         bookingCount = bookingCount || 0;
 
@@ -354,7 +423,51 @@ if ($has_membership) {
     }
 
     // Set membership status from database
-    updateMembershipDisplay(<?php echo $has_membership ? 'true' : 'false'; ?>, <?php echo $booking_count; ?>);
+    updateMembershipDisplay(<?php echo $has_membership ? 'true' : 'false'; ?>, <?php echo $booking_count; ?>, <?php echo $show_buy_button ? 'true' : 'false'; ?>);
+  </script>
+
+  <!-- Success Modal Popup -->
+  <div id="successModal" class="success-modal-overlay <?php echo $show_success_modal ? 'show' : ''; ?>">
+    <div class="success-modal">
+      <div class="success-modal-content">
+        <div class="success-modal-icon">
+          <i class='bx bx-check'></i>
+        </div>
+        <h2 class="success-modal-title">Payment Successful!</h2>
+        <p class="success-modal-message">
+          Your membership has been purchased successfully! Welcome to Bronze tier. You can now enjoy exclusive benefits and discounts.
+        </p>
+        <button onclick="closeSuccessModal()" class="success-modal-button">
+          <i class='bx bx-check-circle'></i>
+          Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Success modal handling
+    <?php if ($show_success_modal): ?>
+    function closeSuccessModal() {
+      document.getElementById('successModal').classList.remove('show');
+      // Refresh page to show updated membership status
+      setTimeout(function() {
+        window.location.reload();
+      }, 300);
+    }
+    
+    // Auto-close after 4 seconds
+    setTimeout(function() {
+      closeSuccessModal();
+    }, 4000);
+    
+    // Close modal on overlay click
+    document.getElementById('successModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeSuccessModal();
+      }
+    });
+    <?php endif; ?>
   </script>
 
   <!-- WhatsApp Chat Widget -->
