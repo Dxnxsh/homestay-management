@@ -3,7 +3,16 @@ session_start();
 require_once 'config/db_connection.php';
 
 $error_message = '';
-$success_message = '';
+$show_success_modal = false;
+
+// Check if signup was successful
+if (isset($_GET['success']) && $_GET['success'] == '1') {
+    $show_success_modal = true;
+    // Clear the success flag from session
+    if (isset($_SESSION['signup_success'])) {
+        unset($_SESSION['signup_success']);
+    }
+}
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -51,9 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     if (oci_execute($insert_stmt)) {
                         oci_commit($conn);
-                        $success_message = 'Registration successful! You can now login with your email and Guest ID.';
-                        // Clear form data
-                        $guestID = $guest_name = $guest_email = '';
+                        $_SESSION['signup_success'] = true;
+                        // Redirect to prevent form resubmission
+                        header('Location: signup.php?success=1');
+                        exit();
                     } else {
                         $error = oci_error($insert_stmt);
                         $error_message = 'Registration failed: ' . $error['message'];
@@ -100,13 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="alert alert-error">
                     <i class='bx bx-error-circle'></i>
                     <span><?php echo htmlspecialchars($error_message); ?></span>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($success_message): ?>
-                <div class="alert alert-success">
-                    <i class='bx bx-check-circle'></i>
-                    <span><?php echo htmlspecialchars($success_message); ?></span>
                 </div>
             <?php endif; ?>
 
@@ -173,6 +176,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+
+    <!-- Success Modal Popup -->
+    <div id="successModal" class="success-modal-overlay <?php echo $show_success_modal ? 'show' : ''; ?>">
+        <div class="success-modal">
+            <div class="success-modal-content">
+                <div class="success-modal-icon">
+                    <i class='bx bx-check'></i>
+                </div>
+                <h2 class="success-modal-title">Registration Successful!</h2>
+                <p class="success-modal-message">
+                    Your account has been created successfully. You can now login with your email and Guest ID.
+                </p>
+                <button onclick="redirectToLogin()" class="success-modal-button">
+                    <i class='bx bx-log-in'></i>
+                    Go to Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-redirect after 4 seconds if modal is shown
+        <?php if ($show_success_modal): ?>
+        let redirectTimer;
+        
+        function redirectToLogin() {
+            clearTimeout(redirectTimer);
+            window.location.href = 'login.php';
+        }
+        
+        // Auto-redirect after 4 seconds
+        redirectTimer = setTimeout(function() {
+            redirectToLogin();
+        }, 4000);
+        
+        // Close modal on overlay click (optional - can be removed if you want to force button click)
+        document.getElementById('successModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                redirectToLogin();
+            }
+        });
+        <?php endif; ?>
+    </script>
 </body>
 </html>
 
