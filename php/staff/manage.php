@@ -481,9 +481,6 @@ requireRegularStaffLogin();
       },
     });
   }
-  }
-  }
-  }
 
   // Animated Revenue Cards
   function animateValue(element, start, end, duration) {

@@ -540,9 +540,6 @@ requireRegularStaffLogin();
   // Close modal with X button
   document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
 
-      });
-    }
-  }
   </script>
 </body>
 </html>

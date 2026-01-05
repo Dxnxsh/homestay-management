@@ -134,6 +134,7 @@ if ($conn) {
         <li><a href="home.php" class="nav-link active">Home</a></li>
         <li><a href="booking.php" class="nav-link">Booking</a></li>
         <li><a href="homestay.php" class="nav-link">Homestay</a></li>
+        <li><a href="booking.php#depositPayment" class="nav-link">Deposit</a></li>
         <li><a href="membership.php" class="nav-link">Membership</a></li>
         <li><a href="profile.php" class="nav-link">Profile</a></li>
         <li><a href="../logout.php" class="nav-link btn-logout">Logout</a></li>
@@ -168,6 +169,13 @@ if ($conn) {
             </div>
             <h3>Browse Homestays</h3>
             <p>Explore our properties</p>
+          </a>
+          <a href="booking.php#depositPayment" class="action-card">
+            <div class="action-icon">
+              <i class='bxr  bx-credit-card-front'></i>
+            </div>
+            <h3>Pay Deposit</h3>
+            <p>Secure your booking</p>
           </a>
           <a href="membership.php" class="action-card">
             <div class="action-icon">

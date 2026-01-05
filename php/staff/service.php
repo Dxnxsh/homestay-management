@@ -477,9 +477,6 @@ requireRegularStaffLogin();
     }
   }
 
-      });
-    }
-  }
 
   function addService() {
     // Clear the form

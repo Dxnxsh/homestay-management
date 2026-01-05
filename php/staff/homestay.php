@@ -465,9 +465,6 @@ requireRegularStaffLogin();
 
   document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
 
-      });
-    }
-  }
   </script>
 </body>
 </html>

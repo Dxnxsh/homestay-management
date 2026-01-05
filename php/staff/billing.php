@@ -706,9 +706,6 @@ requireRegularStaffLogin();
         }
       }
 
-          });
-        }
-      }
 
       function quickChangeStatus(billNo, newStatus) {
         const rows = tableBody.querySelectorAll('tr');

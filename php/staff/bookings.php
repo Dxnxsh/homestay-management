@@ -672,9 +672,7 @@ requireRegularStaffLogin();
     }
   }
 
-      });
-    }
-  }
+
 
   function addBooking() {
     // Clear the form

@@ -6,12 +6,11 @@
  */
 
 // Database connection parameters
-define('DB_USERNAME', 'serena_sactuary');
-define('DB_PASSWORD', 'serena123');
-define('DB_HOST', 'localhost');  // Database host (use IP or hostname if remote)
-define('DB_PORT', '1522');       // Oracle database port (default: 1521)
+define('DB_USERNAME', 'homestay');
+define('DB_PASSWORD', 'password');
+define('DB_HOST', '85.211.253.234');  // Database host (use IP or hostname if remote)
+define('DB_PORT', '1623');       // Oracle database port (default: 1521)
 define('DB_SERVICE_NAME', 'FREEPDB1');
-define('DB_CHARSET', 'AL32UTF8');
 
 /**
  * Get Oracle database connection
@@ -23,7 +22,7 @@ function getDBConnection() {
     $connection_string = '//' . DB_HOST . ':' . DB_PORT . '/' . DB_SERVICE_NAME;
     
     // Attempt to connect to Oracle database using Easy Connect format
-    $conn = oci_connect(DB_USERNAME, DB_PASSWORD, $connection_string, DB_CHARSET);
+    $conn = oci_connect(DB_USERNAME, DB_PASSWORD, $connection_string);
     
     if (!$conn) {
         $error = oci_error();
