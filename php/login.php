@@ -35,42 +35,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($conn) {
             $user_found = false;
             
-            // First, check if email exists in GUEST table
-            // For guests, password is their guestID (numeric)
-            if (is_numeric($password)) {
-                $guest_sql = "SELECT guestID, guest_name, guest_email 
-                             FROM GUEST 
-                             WHERE guest_email = :email AND guestID = :password";
-                $guest_stmt = oci_parse($conn, $guest_sql);
-                oci_bind_by_name($guest_stmt, ':email', $email);
-                oci_bind_by_name($guest_stmt, ':password', $password);
-            
-                if (oci_execute($guest_stmt)) {
-                    $guest_row = oci_fetch_array($guest_stmt, OCI_ASSOC);
+            // First, check if email exists in GUEST table with matching password
+            $guest_sql = "SELECT guestID, guest_name, guest_email 
+                         FROM GUEST 
+                         WHERE guest_email = :email AND guest_password = :password";
+            $guest_stmt = oci_parse($conn, $guest_sql);
+            oci_bind_by_name($guest_stmt, ':email', $email);
+            oci_bind_by_name($guest_stmt, ':password', $password);
+
+            if (oci_execute($guest_stmt)) {
+                $guest_row = oci_fetch_array($guest_stmt, OCI_ASSOC);
+                
+                if ($guest_row) {
+                    // Guest login successful
+                    $_SESSION['guestID'] = $guest_row['GUESTID'];
+                    $_SESSION['guest_name'] = $guest_row['GUEST_NAME'];
+                    $_SESSION['guest_email'] = $guest_row['GUEST_EMAIL'];
                     
-                    if ($guest_row) {
-                        // Guest login successful
-                        $_SESSION['guestID'] = $guest_row['GUESTID'];
-                        $_SESSION['guest_name'] = $guest_row['GUEST_NAME'];
-                        $_SESSION['guest_email'] = $guest_row['GUEST_EMAIL'];
-                        
-                        // Check if profile is complete
-                        require_once 'config/session_check.php';
-                        if (!isGuestProfileComplete()) {
-                            $_SESSION['profile_incomplete'] = true;
-                        } else {
-                            unset($_SESSION['profile_incomplete']);
-                        }
-                        
-                        oci_free_statement($guest_stmt);
-                        closeDBConnection($conn);
-                        
-                        header('Location: guest/home.php');
-                        exit();
+                    // Check if profile is complete
+                    require_once 'config/session_check.php';
+                    if (!isGuestProfileComplete()) {
+                        $_SESSION['profile_incomplete'] = true;
+                    } else {
+                        unset($_SESSION['profile_incomplete']);
                     }
+                    
+                    oci_free_statement($guest_stmt);
+                    closeDBConnection($conn);
+                    
+                    header('Location: guest/home.php');
+                    exit();
                 }
-                oci_free_statement($guest_stmt);
             }
+            oci_free_statement($guest_stmt);
             
             // If not a guest, check if email exists in STAFF table
             $staff_sql = "SELECT staffID, staff_name, staff_email, staff_type, staff_password
@@ -178,14 +175,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         Password <span class="required">*</span>
                     </label>
                     <input 
-                        type="text" 
+                        type="password" 
                         id="password" 
                         name="password" 
                         class="form-input" 
                         placeholder="Enter your password"
                         required
                     >
-                    <small class="form-hint">For Guests: Enter your Guest ID. For Staff/Manager: Enter your password.</small>
+                    <small class="form-hint">Use your account password to login.</small>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">

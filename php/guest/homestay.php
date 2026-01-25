@@ -23,7 +23,6 @@
         <li><a href="home.php" class="nav-link">Home</a></li>
         <li><a href="booking.php" class="nav-link">Booking</a></li>
         <li><a href="homestay.php" class="nav-link active">Homestay</a></li>
-        <li><a href="membership.php" class="nav-link">Membership</a></li>
         <li><a href="profile.php" class="nav-link">Profile</a></li>
         <li><a href="../logout.php" class="nav-link btn-logout">Logout</a></li>
       </ul>

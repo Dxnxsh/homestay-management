@@ -7,6 +7,12 @@ requireGuestLogin();
 $guestID = getCurrentGuestID();
 $amount = 30.00; // RM30 membership price
 $error_message = '';
+$allowedReturnPages = ['membership.php', 'booking.php'];
+$returnTo = 'membership.php';
+if (!empty($_GET['return']) && in_array($_GET['return'], $allowedReturnPages, true)) {
+    $returnTo = $_GET['return'];
+}
+$_SESSION['membership_return_to'] = $returnTo;
 
 // Check if guest already has membership
 $conn = getDBConnection();
@@ -27,7 +33,9 @@ if ($conn) {
 
 // If already has membership, redirect back
 if ($has_membership) {
-    header('Location: membership.php');
+    $_SESSION['membership_flash'] = 'You already have an active membership.';
+    $_SESSION['membership_flash_type'] = 'success';
+    header('Location: ' . $returnTo);
     exit();
 }
 

@@ -19,14 +19,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $guestID = trim(isset($_POST['guestID']) ? $_POST['guestID'] : '');
     $guest_name = trim(isset($_POST['guest_name']) ? $_POST['guest_name'] : '');
     $guest_email = trim(isset($_POST['guest_email']) ? $_POST['guest_email'] : '');
+    $guest_password = trim(isset($_POST['guest_password']) ? $_POST['guest_password'] : '');
     
     // Validation
-    if (empty($guestID) || empty($guest_name) || empty($guest_email)) {
+    if (empty($guestID) || empty($guest_name) || empty($guest_email) || empty($guest_password)) {
         $error_message = 'All fields are required.';
     } elseif (!filter_var($guest_email, FILTER_VALIDATE_EMAIL)) {
         $error_message = 'Please enter a valid email address.';
     } elseif (!is_numeric($guestID) || $guestID <= 0) {
         $error_message = 'Guest ID must be a positive number.';
+    } elseif (strlen($guest_password) < 6) {
+        $error_message = 'Password must be at least 6 characters.';
     } else {
         // Convert to uppercase (except email)
         $guest_name = strtoupper($guest_name);
@@ -49,14 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     // Insert new guest with default guest_type = 'Regular'
                     $guest_type = 'REGULAR';
-                    $insert_sql = "INSERT INTO GUEST (guestID, guest_name, guest_email, guest_type) 
-                                   VALUES (:guestID, :guest_name, :guest_email, :guest_type)";
+                    $insert_sql = "INSERT INTO GUEST (guestID, guest_name, guest_email, guest_type, guest_password) 
+                                   VALUES (:guestID, :guest_name, :guest_email, :guest_type, :guest_password)";
                     $insert_stmt = oci_parse($conn, $insert_sql);
                     
                     oci_bind_by_name($insert_stmt, ':guestID', $guestID);
                     oci_bind_by_name($insert_stmt, ':guest_name', $guest_name);
                     oci_bind_by_name($insert_stmt, ':guest_email', $guest_email);
                     oci_bind_by_name($insert_stmt, ':guest_type', $guest_type);
+                    oci_bind_by_name($insert_stmt, ':guest_password', $guest_password);
                     
                     if (oci_execute($insert_stmt)) {
                         oci_commit($conn);
@@ -129,7 +133,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         required
                         min="1"
                     >
-                    <small class="form-hint">Your Guest ID will be used as your password for login</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="guest_password" class="form-label">
+                        <i class='bx bx-lock-alt'></i>
+                        Password <span class="required">*</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        id="guest_password" 
+                        name="guest_password" 
+                        class="form-input" 
+                        placeholder="Enter a strong password"
+                        required
+                        minlength="6"
+                    >
+                    <small class="form-hint">Use at least 6 characters. This will be your login password.</small>
                 </div>
 
                 <div class="form-group">
@@ -186,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <h2 class="success-modal-title">Registration Successful!</h2>
                 <p class="success-modal-message">
-                    Your account has been created successfully. You can now login with your email and Guest ID.
+                    Your account has been created successfully. You can now login with your email and password.
                 </p>
                 <button onclick="redirectToLogin()" class="success-modal-button">
                     <i class='bx bx-log-in'></i>
