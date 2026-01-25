@@ -113,36 +113,11 @@ function isManager() {
 }
 
 /**
- * Require manager login - redirects to login if not authenticated as manager
- */
-function requireManagerLogin() {
-    if (!isManager()) {
-        header('Location: ../login.php');
-        exit();
-    }
-}
-
-/**
  * Require staff login (manager or regular staff) - redirects to login if not authenticated
  */
 function requireStaffLogin() {
     if (!isStaffLoggedIn()) {
         header('Location: ../login.php');
-        exit();
-    }
-}
-
-/**
- * Require regular staff login (not manager) - redirects if manager or not logged in
- */
-function requireRegularStaffLogin() {
-    if (!isStaffLoggedIn()) {
-        header('Location: ../login.php');
-        exit();
-    }
-    // If manager tries to access staff pages, redirect to manager dashboard
-    if (isManager()) {
-        header('Location: ../manager/dashboard.php');
         exit();
     }
 }

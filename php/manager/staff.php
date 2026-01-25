@@ -1,7 +1,12 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
-requireManagerLogin();
+requireStaffLogin();
+// Only managers can access staff management
+if (!isManager()) {
+    header('Location: dashboard.php');
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -40,7 +45,9 @@ requireManagerLogin();
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
+          <?php if (isManager()): ?>
           <li><a href="staff.php">Staff</a></li>
+          <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
       </li>

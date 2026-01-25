@@ -7,12 +7,8 @@ if (isset($_SESSION['guestID']) && isset($_SESSION['guest_email'])) {
     header('Location: guest/home.php');
     exit();
 } elseif (isset($_SESSION['staffID']) && isset($_SESSION['staff_email'])) {
-    // Redirect based on staff type
-    if (isset($_SESSION['staff_type']) && $_SESSION['staff_type'] === 'Manager') {
-        header('Location: manager/dashboard.php');
-    } else {
-        header('Location: staff/dashboard.php');
-    }
+    // Redirect all staff to manager folder (works for both manager and regular staff)
+    header('Location: manager/dashboard.php');
     exit();
 }
 
@@ -91,12 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         oci_free_statement($staff_stmt);
                         closeDBConnection($conn);
                         
-                        // Redirect based on staff type
-                        if ($staff_row['STAFF_TYPE'] === 'Manager') {
-                            header('Location: manager/dashboard.php');
-                        } else {
-                            header('Location: staff/dashboard.php');
-                        }
+                        // Redirect all staff to manager folder
+                        header('Location: manager/dashboard.php');
                         exit();
                     } else {
                         $error_message = 'Invalid email or password. Please try again.';
