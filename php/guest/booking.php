@@ -432,7 +432,6 @@ if (!$conn) {
         <li><a href="home.php" class="nav-link">Home</a></li>
         <li><a href="booking.php" class="nav-link active">Booking</a></li>
         <li><a href="homestay.php" class="nav-link">Homestay</a></li>
-        <li><a href="#depositPayment" class="nav-link">Deposit</a></li>
         <li><a href="profile.php" class="nav-link">Profile</a></li>
         <li><a href="../logout.php" class="nav-link btn-logout">Logout</a></li>
       </ul>
