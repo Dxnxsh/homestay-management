@@ -170,13 +170,6 @@ if ($conn) {
             <h3>Browse Homestays</h3>
             <p>Explore our properties</p>
           </a>
-          <a href="booking.php#depositPayment" class="action-card">
-            <div class="action-icon">
-              <i class='bxr  bx-credit-card-front'></i>
-            </div>
-            <h3>Pay Deposit</h3>
-            <p>Secure your booking</p>
-          </a>
           <a href="membership.php" class="action-card">
             <div class="action-icon">
               <i class='bxr  bx-crown'></i>

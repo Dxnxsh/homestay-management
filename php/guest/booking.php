@@ -673,6 +673,7 @@ if (!$conn) {
             <?php endif; ?>
           </div>
 
+          <?php if (empty($paymentSuccessMessage)): ?>
           <div class="deposit-summary-card" id="inlinePaymentSummary" data-discount-rate="<?php echo $discountRate; ?>">
             <h3>Payment Summary</h3>
             <p class="summary-description">See how your membership discount reduces the deposit today.</p>
@@ -698,6 +699,7 @@ if (!$conn) {
             </div>
             <p class="summary-note">Deposits are non-refundable if bookings are cancelled within 7 days of arrival.</p>
           </div>
+          <?php endif; ?>
         </div>
       </div>
     </section>
