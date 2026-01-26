@@ -1,7 +1,107 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
+require_once '../config/db_connection.php';
 requireStaffLogin();
+
+// Get database connection
+$conn = getDBConnection();
+if (!$conn) {
+    die("Database connection failed. Please try again later.");
+}
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    
+    if ($_POST['action'] === 'update') {
+        $homestayID = $_POST['homestayId'];
+        $name = $_POST['name'];
+        $address = $_POST['address'];
+        $phone = $_POST['phone'];
+        $rentPrice = $_POST['rentPrice'];
+        $staffID = $_POST['staffId'];
+        
+        $sql = "UPDATE HOMESTAY SET 
+                homestay_name = :name, 
+                homestay_address = :address, 
+                office_phoneNo = :phone, 
+                rent_price = :rentPrice, 
+                staffID = :staffID 
+                WHERE homestayID = :id";
+        
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':name', $name);
+        oci_bind_by_name($stmt, ':address', $address);
+        oci_bind_by_name($stmt, ':phone', $phone);
+        oci_bind_by_name($stmt, ':rentPrice', $rentPrice);
+        oci_bind_by_name($stmt, ':staffID', $staffID);
+        oci_bind_by_name($stmt, ':id', $homestayID);
+        
+        if (oci_execute($stmt)) {
+            echo json_encode(['success' => true, 'message' => 'Homestay updated successfully']);
+        } else {
+            $error = oci_error($stmt);
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+        }
+        oci_free_statement($stmt);
+        exit;
+    }
+    
+    if ($_POST['action'] === 'delete') {
+        $homestayID = $_POST['homestayId'];
+        
+        // Check if homestay has bookings
+        $checkSql = "SELECT COUNT(*) as count FROM BOOKING WHERE homestayID = :id";
+        $checkStmt = oci_parse($conn, $checkSql);
+        oci_bind_by_name($checkStmt, ':id', $homestayID);
+        oci_execute($checkStmt);
+        $row = oci_fetch_array($checkStmt, OCI_ASSOC);
+        
+        if ($row['COUNT'] > 0) {
+            echo json_encode(['success' => false, 'message' => 'Cannot delete homestay with existing bookings']);
+            oci_free_statement($checkStmt);
+            exit;
+        }
+        oci_free_statement($checkStmt);
+        
+        // Delete homestay
+        $sql = "DELETE FROM HOMESTAY WHERE homestayID = :id";
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':id', $homestayID);
+        
+        if (oci_execute($stmt)) {
+            echo json_encode(['success' => true, 'message' => 'Homestay deleted successfully']);
+        } else {
+            $error = oci_error($stmt);
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+        }
+        oci_free_statement($stmt);
+        exit;
+    }
+}
+
+// Fetch all homestays
+$sql = "SELECT homestayID, homestay_name, homestay_address, office_phoneNo, rent_price, staffID FROM HOMESTAY ORDER BY homestayID";
+$stmt = oci_parse($conn, $sql);
+oci_execute($stmt);
+
+$homestays = [];
+while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+    $homestays[] = $row;
+}
+oci_free_statement($stmt);
+
+// Fetch all staff for dropdown
+$staffSql = "SELECT staffID, staff_name FROM STAFF ORDER BY staffID";
+$staffStmt = oci_parse($conn, $staffSql);
+oci_execute($staffStmt);
+
+$staff = [];
+while ($row = oci_fetch_array($staffStmt, OCI_ASSOC)) {
+    $staff[] = $row;
+}
+oci_free_statement($staffStmt);
 ?>
 
 <!DOCTYPE html>
@@ -178,54 +278,21 @@ requireStaffLogin();
             </tr>
           </thead>
           <tbody id="propertiesTableBody">
-            <tr data-name="The Grand Haven" data-rent-price="500">
-              <td>P001</td>
-              <td>The Grand Haven</td>
-              <td>Hulu Langat, Selangor</td>
-              <td>+603-8734-1234</td>
-              <td>RM 500</td>
-              <td>S001</td>
+            <?php foreach ($homestays as $homestay): ?>
+            <tr data-name="<?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?>" 
+                data-rent-price="<?php echo htmlspecialchars($homestay['RENT_PRICE']); ?>">
+              <td><?php echo htmlspecialchars($homestay['HOMESTAYID']); ?></td>
+              <td><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></td>
+              <td><?php echo htmlspecialchars($homestay['HOMESTAY_ADDRESS']); ?></td>
+              <td><?php echo htmlspecialchars($homestay['OFFICE_PHONENO']); ?></td>
+              <td>RM <?php echo number_format($homestay['RENT_PRICE'], 0); ?></td>
+              <td><?php echo htmlspecialchars($homestay['STAFFID']); ?></td>
               <td>
-                <button class="btn-update" onclick="updateProperty('P001')">Update</button>
-                <button class="btn-delete" onclick="deleteProperty('P001')">Delete</button>
+                <button class="btn-update" onclick="updateProperty('<?php echo $homestay['HOMESTAYID']; ?>')">Update</button>
+                <button class="btn-delete" onclick="deleteProperty('<?php echo $homestay['HOMESTAYID']; ?>')">Delete</button>
               </td>
             </tr>
-            <tr data-name="Twin Haven" data-rent-price="450">
-              <td>P002</td>
-              <td>Twin Haven</td>
-              <td>Hulu Langat, Selangor</td>
-              <td>+603-8734-5678</td>
-              <td>RM 450</td>
-              <td>S002</td>
-              <td>
-                <button class="btn-update" onclick="updateProperty('P002')">Update</button>
-                <button class="btn-delete" onclick="deleteProperty('P002')">Delete</button>
-              </td>
-            </tr>
-            <tr data-name="The Riverside Retreat" data-rent-price="400">
-              <td>P003</td>
-              <td>The Riverside Retreat</td>
-              <td>Gopeng, Perak</td>
-              <td>+605-312-9012</td>
-              <td>RM 400</td>
-              <td>S001</td>
-              <td>
-                <button class="btn-update" onclick="updateProperty('P003')">Update</button>
-                <button class="btn-delete" onclick="deleteProperty('P003')">Delete</button>
-              </td>
-            </tr>
-            <tr data-name="Hilltop Haven" data-rent-price="550">
-              <td>P004</td>
-              <td>Hilltop Haven</td>
-              <td>Gopeng, Perak</td>
-              <td>+605-312-3456</td>
-              <td>RM 550</td>
-              <td>S002</td>
-              <td>
-                <button class="btn-update" onclick="updateProperty('P004')">Update</button>
-                <button class="btn-delete" onclick="deleteProperty('P004')">Delete</button>
-              </td>
-            </tr>
+            <?php endforeach; ?>
           </tbody>
         </table>
       </div>
@@ -269,11 +336,11 @@ requireStaffLogin();
         <div class="form-group">
           <label for="updateStaffId">Staff ID</label>
           <select id="updateStaffId" name="staffId" required>
-            <option value="S001">S001 - Ahmad Zulkifli bin Hassan</option>
-            <option value="S002">S002 - Nurul Aina binti Mohd Ali</option>
-            <option value="S003">S003 - Lim Chee Keong</option>
-            <option value="S004">S004 - Siti Fatimah binti Abdullah</option>
-            <option value="S005">S005 - Muhammad Farhan bin Ismail</option>
+            <?php foreach ($staff as $s): ?>
+            <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>">
+              <?php echo htmlspecialchars($s['STAFFID']); ?> - <?php echo htmlspecialchars($s['STAFF_NAME']); ?>
+            </option>
+            <?php endforeach; ?>
           </select>
         </div>
         <div class="form-actions">
@@ -430,34 +497,30 @@ requireStaffLogin();
   document.getElementById('updatePropertyForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const propertyId = document.getElementById('updatePropertyId').value;
-    const updatedData = {
-      name: document.getElementById('updatePropertyName').value.trim(),
-      address: document.getElementById('updateAddress').value.trim(),
-      officePhone: document.getElementById('updateOfficePhone').value.trim(),
-      rentPrice: parseFloat(document.getElementById('updateRentPrice').value),
-      staffId: document.getElementById('updateStaffId').value
-    };
+    const formData = new FormData();
+    formData.append('action', 'update');
+    formData.append('homestayId', document.getElementById('updatePropertyId').value);
+    formData.append('name', document.getElementById('updatePropertyName').value.trim());
+    formData.append('address', document.getElementById('updateAddress').value.trim());
+    formData.append('phone', document.getElementById('updateOfficePhone').value.trim());
+    formData.append('rentPrice', document.getElementById('updateRentPrice').value);
+    formData.append('staffId', document.getElementById('updateStaffId').value);
     
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === propertyId) {
-        const cells = row.querySelectorAll('td');
-        cells[1].textContent = updatedData.name;
-        cells[2].textContent = updatedData.address;
-        cells[3].textContent = updatedData.officePhone;
-        cells[4].textContent = 'RM ' + updatedData.rentPrice.toFixed(0);
-        cells[5].textContent = updatedData.staffId;
-        
-        row.setAttribute('data-name', updatedData.name);
-        row.setAttribute('data-rent-price', updatedData.rentPrice);
-        
-        allRows = Array.from(tableBody.querySelectorAll('tr'));
-        closeUpdateModal();
-        alert('Homestay details updated successfully!');
-        return;
+    fetch('homestay.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert(data.message);
       }
+    })
+    .catch(error => {
+      alert('Error updating homestay: ' + error);
     });
   });
 
@@ -471,16 +534,24 @@ requireStaffLogin();
   document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
 
   function deleteProperty(propertyId) {
-    if (confirm('Are you sure you want to delete homestay ' + propertyId + '?')) {
-      const rows = tableBody.querySelectorAll('tr');
-      rows.forEach(row => {
-        const idCell = row.querySelector('td:first-child');
-        if (idCell && idCell.textContent.trim() === propertyId) {
-          row.remove();
-          allRows = Array.from(tableBody.querySelectorAll('tr'));
-          alert('Homestay deleted successfully!');
-          return;
+    if (confirm('Are you sure you want to delete homestay ' + propertyId + '? This action cannot be undone.')) {
+      const formData = new FormData();
+      formData.append('action', 'delete');
+      formData.append('homestayId', propertyId);
+      
+      fetch('homestay.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        if (data.success) {
+          location.reload();
         }
+      })
+      .catch(error => {
+        alert('Error deleting homestay: ' + error);
       });
     }
   }

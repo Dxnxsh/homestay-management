@@ -1,7 +1,186 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
+require_once '../config/db_connection.php';
 requireStaffLogin();
+
+// Get database connection
+$conn = getDBConnection();
+if (!$conn) {
+  die("Database connection failed. Please try again later.");
+}
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+  header('Content-Type: application/json');
+    
+  if ($_POST['action'] === 'add') {
+    $bookingID = $_POST['bookingId'];
+    $checkIn = $_POST['checkIn'];
+    $checkOut = $_POST['checkOut'];
+    $numAdults = $_POST['numAdults'];
+    $numChildren = $_POST['numChildren'];
+    $deposit = $_POST['deposit'];
+    $homestayID = $_POST['homestayId'];
+    $guestID = $_POST['guestId'];
+    $staffID = $_POST['staffId'];
+    $billNo = !empty($_POST['billNo']) ? $_POST['billNo'] : null;
+        
+    $sql = "INSERT INTO BOOKING (bookingID, checkin_date, checkout_date, num_adults, num_children, deposit_amount, homestayID, guestID, staffID, billNo)
+        VALUES (:id, TO_DATE(:checkIn, 'YYYY-MM-DD'), TO_DATE(:checkOut, 'YYYY-MM-DD'), :numAdults, :numChildren, :deposit, :homestayID, :guestID, :staffID, :billNo)";
+        
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':id', $bookingID);
+    oci_bind_by_name($stmt, ':checkIn', $checkIn);
+    oci_bind_by_name($stmt, ':checkOut', $checkOut);
+    oci_bind_by_name($stmt, ':numAdults', $numAdults);
+    oci_bind_by_name($stmt, ':numChildren', $numChildren);
+    oci_bind_by_name($stmt, ':deposit', $deposit);
+    oci_bind_by_name($stmt, ':homestayID', $homestayID);
+    oci_bind_by_name($stmt, ':guestID', $guestID);
+    oci_bind_by_name($stmt, ':staffID', $staffID);
+    if ($billNo !== null) {
+      oci_bind_by_name($stmt, ':billNo', $billNo);
+    } else {
+      oci_bind_by_name($stmt, ':billNo', $billNo);
+    }
+        
+    if (oci_execute($stmt)) {
+      echo json_encode(['success' => true, 'message' => 'Booking added successfully']);
+    } else {
+      $error = oci_error($stmt);
+      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+    }
+    oci_free_statement($stmt);
+    exit;
+  }
+    
+  if ($_POST['action'] === 'update') {
+    $bookingID = $_POST['bookingId'];
+    $checkIn = $_POST['checkIn'];
+    $checkOut = $_POST['checkOut'];
+    $numAdults = $_POST['numAdults'];
+    $numChildren = $_POST['numChildren'];
+    $deposit = $_POST['deposit'];
+    $homestayID = $_POST['homestayId'];
+    $guestID = $_POST['guestId'];
+    $staffID = $_POST['staffId'];
+    $billNo = !empty($_POST['billNo']) ? $_POST['billNo'] : null;
+        
+    $sql = "UPDATE BOOKING SET 
+        checkin_date = TO_DATE(:checkIn, 'YYYY-MM-DD'),
+        checkout_date = TO_DATE(:checkOut, 'YYYY-MM-DD'),
+        num_adults = :numAdults,
+        num_children = :numChildren,
+        deposit_amount = :deposit,
+        homestayID = :homestayID,
+        guestID = :guestID,
+        staffID = :staffID,
+        billNo = :billNo
+        WHERE bookingID = :id";
+        
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':checkIn', $checkIn);
+    oci_bind_by_name($stmt, ':checkOut', $checkOut);
+    oci_bind_by_name($stmt, ':numAdults', $numAdults);
+    oci_bind_by_name($stmt, ':numChildren', $numChildren);
+    oci_bind_by_name($stmt, ':deposit', $deposit);
+    oci_bind_by_name($stmt, ':homestayID', $homestayID);
+    oci_bind_by_name($stmt, ':guestID', $guestID);
+    oci_bind_by_name($stmt, ':staffID', $staffID);
+    oci_bind_by_name($stmt, ':billNo', $billNo);
+    oci_bind_by_name($stmt, ':id', $bookingID);
+        
+    if (oci_execute($stmt)) {
+      echo json_encode(['success' => true, 'message' => 'Booking updated successfully']);
+    } else {
+      $error = oci_error($stmt);
+      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+    }
+    oci_free_statement($stmt);
+    exit;
+  }
+    
+  if ($_POST['action'] === 'delete') {
+    $bookingID = $_POST['bookingId'];
+        
+    // Check if booking is linked to a bill
+    $checkSql = "SELECT billNo FROM BOOKING WHERE bookingID = :id";
+    $checkStmt = oci_parse($conn, $checkSql);
+    oci_bind_by_name($checkStmt, ':id', $bookingID);
+    oci_execute($checkStmt);
+    $row = oci_fetch_array($checkStmt, OCI_ASSOC);
+    if ($row && $row['BILLNO'] !== null) {
+      echo json_encode(['success' => false, 'message' => 'Cannot delete booking linked to a bill']);
+      oci_free_statement($checkStmt);
+      exit;
+    }
+    oci_free_statement($checkStmt);
+        
+    $sql = "DELETE FROM BOOKING WHERE bookingID = :id";
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':id', $bookingID);
+        
+    if (oci_execute($stmt)) {
+      echo json_encode(['success' => true, 'message' => 'Booking deleted successfully']);
+    } else {
+      $error = oci_error($stmt);
+      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+    }
+    oci_free_statement($stmt);
+    exit;
+  }
+}
+
+// Fetch all bookings
+$sql = "SELECT bookingID, TO_CHAR(checkin_date, 'YYYY-MM-DD') AS checkin_date, TO_CHAR(checkout_date, 'YYYY-MM-DD') AS checkout_date,
+    num_adults, num_children, deposit_amount, homestayID, guestID, staffID, billNo
+    FROM BOOKING ORDER BY bookingID DESC";
+$stmt = oci_parse($conn, $sql);
+oci_execute($stmt);
+
+$bookings = [];
+while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+  $bookings[] = $row;
+}
+oci_free_statement($stmt);
+
+// Fetch dropdown data
+$guests = [];
+$guestSql = "SELECT guestID, guest_name FROM GUEST ORDER BY guestID";
+$guestStmt = oci_parse($conn, $guestSql);
+oci_execute($guestStmt);
+while ($row = oci_fetch_array($guestStmt, OCI_ASSOC)) {
+  $guests[] = $row;
+}
+oci_free_statement($guestStmt);
+
+$homestays = [];
+$homestaySql = "SELECT homestayID, homestay_name FROM HOMESTAY ORDER BY homestayID";
+$homestayStmt = oci_parse($conn, $homestaySql);
+oci_execute($homestayStmt);
+while ($row = oci_fetch_array($homestayStmt, OCI_ASSOC)) {
+  $homestays[] = $row;
+}
+oci_free_statement($homestayStmt);
+
+$staff = [];
+$staffSql = "SELECT staffID, staff_name FROM STAFF ORDER BY staffID";
+$staffStmt = oci_parse($conn, $staffSql);
+oci_execute($staffStmt);
+while ($row = oci_fetch_array($staffStmt, OCI_ASSOC)) {
+  $staff[] = $row;
+}
+oci_free_statement($staffStmt);
+
+$bills = [];
+$billSql = "SELECT billNo FROM BILL ORDER BY billNo";
+$billStmt = oci_parse($conn, $billSql);
+oci_execute($billStmt);
+while ($row = oci_fetch_array($billStmt, OCI_ASSOC)) {
+  $bills[] = $row;
+}
+oci_free_statement($billStmt);
 ?>
 
 <!DOCTYPE html>
@@ -178,86 +357,28 @@ requireStaffLogin();
             </tr>
           </thead>
           <tbody id="bookingsTableBody">
-            <tr data-date="2025-01-15" data-deposit="300" data-adults="2" data-children="1" data-staff="S001">
-              <td>BK001</td>
-              <td>2025-01-15</td>
-              <td>2025-01-18</td>
-              <td>RM 300</td>
-              <td>P001</td>
-              <td>G001</td>
-              <td>B001</td>
+            <?php foreach ($bookings as $booking): ?>
+            <tr data-date="<?php echo htmlspecialchars($booking['CHECKIN_DATE']); ?>"
+                data-deposit="<?php echo htmlspecialchars($booking['DEPOSIT_AMOUNT']); ?>"
+                data-adults="<?php echo htmlspecialchars($booking['NUM_ADULTS']); ?>"
+                data-children="<?php echo htmlspecialchars($booking['NUM_CHILDREN']); ?>"
+                data-staff="<?php echo htmlspecialchars($booking['STAFFID'] ?? ''); ?>">
+              <td><?php echo htmlspecialchars($booking['BOOKINGID']); ?></td>
+              <td><?php echo htmlspecialchars($booking['CHECKIN_DATE']); ?></td>
+              <td><?php echo htmlspecialchars($booking['CHECKOUT_DATE']); ?></td>
+              <td>RM <?php echo number_format($booking['DEPOSIT_AMOUNT'], 2); ?></td>
+              <td><?php echo htmlspecialchars($booking['HOMESTAYID']); ?></td>
+              <td><?php echo htmlspecialchars($booking['GUESTID']); ?></td>
+              <td><?php echo htmlspecialchars($booking['BILLNO'] ?? '-'); ?></td>
               <td>
-                <button class="btn-details" onclick="viewBookingDetails('BK001')">Details</button>
+                <button class="btn-details" onclick="viewBookingDetails('<?php echo $booking['BOOKINGID']; ?>')">Details</button>
               </td>
               <td>
-                <button class="btn-update" onclick="updateBooking('BK001')">Update</button>
-                <button class="btn-delete" onclick="deleteBooking('BK001')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-01-20" data-deposit="270" data-adults="2" data-children="0" data-staff="S002">
-              <td>BK002</td>
-              <td>2025-01-20</td>
-              <td>2025-01-23</td>
-              <td>RM 270</td>
-              <td>P002</td>
-              <td>G002</td>
-              <td>B002</td>
-              <td>
-                <button class="btn-details" onclick="viewBookingDetails('BK002')">Details</button>
-              </td>
-              <td>
-                <button class="btn-update" onclick="updateBooking('BK002')">Update</button>
-                <button class="btn-delete" onclick="deleteBooking('BK002')">Delete</button>
+                <button class="btn-update" onclick="updateBooking('<?php echo $booking['BOOKINGID']; ?>')">Update</button>
+                <button class="btn-delete" onclick="deleteBooking('<?php echo $booking['BOOKINGID']; ?>')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-01-25" data-deposit="240" data-adults="1" data-children="2" data-staff="S001">
-              <td>BK003</td>
-              <td>2025-01-25</td>
-              <td>2025-01-28</td>
-              <td>RM 240</td>
-              <td>P003</td>
-              <td>G003</td>
-              <td>B003</td>
-              <td>
-                <button class="btn-details" onclick="viewBookingDetails('BK003')">Details</button>
-              </td>
-              <td>
-                <button class="btn-update" onclick="updateBooking('BK003')">Update</button>
-                <button class="btn-delete" onclick="deleteBooking('BK003')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-02-01" data-deposit="330" data-adults="4" data-children="0" data-staff="S002">
-              <td>BK004</td>
-              <td>2025-02-01</td>
-              <td>2025-02-04</td>
-              <td>RM 330</td>
-              <td>P004</td>
-              <td>G004</td>
-              <td>B004</td>
-              <td>
-                <button class="btn-details" onclick="viewBookingDetails('BK004')">Details</button>
-              </td>
-              <td>
-                <button class="btn-update" onclick="updateBooking('BK004')">Update</button>
-                <button class="btn-delete" onclick="deleteBooking('BK004')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-02-05" data-deposit="300" data-adults="2" data-children="1" data-staff="S001">
-              <td>BK005</td>
-              <td>2025-02-05</td>
-              <td>2025-02-08</td>
-              <td>RM 300</td>
-              <td>P001</td>
-              <td>G005</td>
-              <td>-</td>
-              <td>
-                <button class="btn-details" onclick="viewBookingDetails('BK005')">Details</button>
-              </td>
-              <td>
-                <button class="btn-update" onclick="updateBooking('BK005')">Update</button>
-                <button class="btn-delete" onclick="deleteBooking('BK005')">Delete</button>
-              </td>
-            </tr>
+            <?php endforeach; ?>
           </tbody>
         </table>
       </div>
@@ -303,20 +424,37 @@ requireStaffLogin();
           <input type="number" id="addDeposit" name="deposit" required min="0" step="0.01">
         </div>
         <div class="form-group">
-          <label for="addHomestayId">Homestay ID</label>
-          <input type="text" id="addHomestayId" name="homestayId" required>
+          <label for="addHomestayId">Homestay</label>
+          <select id="addHomestayId" name="homestayId" required>
+            <?php foreach ($homestays as $h): ?>
+            <option value="<?php echo htmlspecialchars($h['HOMESTAYID']); ?>"><?php echo htmlspecialchars($h['HOMESTAYID'] . ' - ' . $h['HOMESTAY_NAME']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-group">
-          <label for="addGuestId">Guest ID</label>
-          <input type="text" id="addGuestId" name="guestId" required>
+          <label for="addGuestId">Guest</label>
+          <select id="addGuestId" name="guestId" required>
+            <?php foreach ($guests as $g): ?>
+            <option value="<?php echo htmlspecialchars($g['GUESTID']); ?>"><?php echo htmlspecialchars($g['GUESTID'] . ' - ' . $g['GUEST_NAME']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-group">
-          <label for="addStaffId">Staff ID</label>
-          <input type="text" id="addStaffId" name="staffId" required>
+          <label for="addStaffId">Staff</label>
+          <select id="addStaffId" name="staffId" required>
+            <?php foreach ($staff as $s): ?>
+            <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>"><?php echo htmlspecialchars($s['STAFFID'] . ' - ' . $s['STAFF_NAME']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-group">
           <label for="addBillNo">Bill No.</label>
-          <input type="text" id="addBillNo" name="billNo">
+          <select id="addBillNo" name="billNo">
+            <option value="">None</option>
+            <?php foreach ($bills as $b): ?>
+            <option value="<?php echo htmlspecialchars($b['BILLNO']); ?>"><?php echo htmlspecialchars($b['BILLNO']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-actions">
           <button type="button" class="btn-cancel" onclick="closeAddModal()">Cancel</button>
@@ -414,20 +552,37 @@ requireStaffLogin();
           <input type="number" id="updateDeposit" name="deposit" required min="0" step="0.01">
         </div>
         <div class="form-group">
-          <label for="updateHomestayId">Homestay ID</label>
-          <input type="text" id="updateHomestayId" name="homestayId" required>
+          <label for="updateHomestayId">Homestay</label>
+          <select id="updateHomestayId" name="homestayId" required>
+            <?php foreach ($homestays as $h): ?>
+            <option value="<?php echo htmlspecialchars($h['HOMESTAYID']); ?>"><?php echo htmlspecialchars($h['HOMESTAYID'] . ' - ' . $h['HOMESTAY_NAME']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-group">
-          <label for="updateGuestId">Guest ID</label>
-          <input type="text" id="updateGuestId" name="guestId" required>
+          <label for="updateGuestId">Guest</label>
+          <select id="updateGuestId" name="guestId" required>
+            <?php foreach ($guests as $g): ?>
+            <option value="<?php echo htmlspecialchars($g['GUESTID']); ?>"><?php echo htmlspecialchars($g['GUESTID'] . ' - ' . $g['GUEST_NAME']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-group">
-          <label for="updateStaffId">Staff ID</label>
-          <input type="text" id="updateStaffId" name="staffId" required>
+          <label for="updateStaffId">Staff</label>
+          <select id="updateStaffId" name="staffId" required>
+            <?php foreach ($staff as $s): ?>
+            <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>"><?php echo htmlspecialchars($s['STAFFID'] . ' - ' . $s['STAFF_NAME']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-group">
           <label for="updateBillNo">Bill No.</label>
-          <input type="text" id="updateBillNo" name="billNo">
+          <select id="updateBillNo" name="billNo">
+            <option value="">None</option>
+            <?php foreach ($bills as $b): ?>
+            <option value="<?php echo htmlspecialchars($b['BILLNO']); ?>"><?php echo htmlspecialchars($b['BILLNO']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-actions">
           <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
@@ -623,42 +778,34 @@ requireStaffLogin();
   document.getElementById('updateBookingForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const bookingId = document.getElementById('updateBookingId').value;
-    const updatedData = {
-      checkIn: document.getElementById('updateCheckIn').value,
-      checkOut: document.getElementById('updateCheckOut').value,
-      numAdults: document.getElementById('updateNumAdults').value,
-      numChildren: document.getElementById('updateNumChildren').value,
-      deposit: parseFloat(document.getElementById('updateDeposit').value),
-      homestayId: document.getElementById('updateHomestayId').value.trim(),
-      guestId: document.getElementById('updateGuestId').value.trim(),
-      staffId: document.getElementById('updateStaffId').value.trim(),
-      billNo: document.getElementById('updateBillNo').value.trim() || '-'
-    };
+    const formData = new FormData();
+    formData.append('action', 'update');
+    formData.append('bookingId', document.getElementById('updateBookingId').value);
+    formData.append('checkIn', document.getElementById('updateCheckIn').value);
+    formData.append('checkOut', document.getElementById('updateCheckOut').value);
+    formData.append('numAdults', document.getElementById('updateNumAdults').value);
+    formData.append('numChildren', document.getElementById('updateNumChildren').value);
+    formData.append('deposit', document.getElementById('updateDeposit').value);
+    formData.append('homestayId', document.getElementById('updateHomestayId').value);
+    formData.append('guestId', document.getElementById('updateGuestId').value);
+    formData.append('staffId', document.getElementById('updateStaffId').value);
+    formData.append('billNo', document.getElementById('updateBillNo').value);
     
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === bookingId) {
-        const cells = row.querySelectorAll('td');
-        cells[1].textContent = updatedData.checkIn;
-        cells[2].textContent = updatedData.checkOut;
-        cells[3].textContent = 'RM ' + updatedData.deposit.toFixed(0);
-        cells[4].textContent = updatedData.homestayId;
-        cells[5].textContent = updatedData.guestId;
-        cells[6].textContent = updatedData.billNo;
-        
-        row.setAttribute('data-date', updatedData.checkIn);
-        row.setAttribute('data-deposit', updatedData.deposit);
-        row.setAttribute('data-adults', updatedData.numAdults);
-        row.setAttribute('data-children', updatedData.numChildren);
-        row.setAttribute('data-staff', updatedData.staffId);
-        
-        allRows = Array.from(tableBody.querySelectorAll('tr'));
-        closeUpdateModal();
-        alert('Booking details updated successfully!');
-        return;
+    fetch('bookings.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert(data.message);
       }
+    })
+    .catch(error => {
+      alert('Error updating booking: ' + error);
     });
   });
 
@@ -678,16 +825,24 @@ requireStaffLogin();
   }
 
   function deleteBooking(bookingId) {
-    if (confirm('Are you sure you want to delete booking ' + bookingId + '?')) {
-      const rows = tableBody.querySelectorAll('tr');
-      rows.forEach(row => {
-        const idCell = row.querySelector('td:first-child');
-        if (idCell && idCell.textContent.trim() === bookingId) {
-          row.remove();
-          allRows = Array.from(tableBody.querySelectorAll('tr'));
-          alert('Booking deleted successfully!');
-          return;
+    if (confirm('Are you sure you want to delete booking ' + bookingId + '? This action cannot be undone.')) {
+      const formData = new FormData();
+      formData.append('action', 'delete');
+      formData.append('bookingId', bookingId);
+      
+      fetch('bookings.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        if (data.success) {
+          location.reload();
         }
+      })
+      .catch(error => {
+        alert('Error deleting booking: ' + error);
       });
     }
   }
@@ -708,68 +863,35 @@ requireStaffLogin();
   document.getElementById('addBookingForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const newBooking = {
-      bookingId: document.getElementById('addBookingId').value.trim(),
-      checkIn: document.getElementById('addCheckIn').value,
-      checkOut: document.getElementById('addCheckOut').value,
-      numAdults: document.getElementById('addNumAdults').value,
-      numChildren: document.getElementById('addNumChildren').value,
-      deposit: parseFloat(document.getElementById('addDeposit').value),
-      homestayId: document.getElementById('addHomestayId').value.trim(),
-      guestId: document.getElementById('addGuestId').value.trim(),
-      staffId: document.getElementById('addStaffId').value.trim(),
-      billNo: document.getElementById('addBillNo').value.trim() || '-'
-    };
+    const formData = new FormData();
+    formData.append('action', 'add');
+    formData.append('bookingId', document.getElementById('addBookingId').value.trim());
+    formData.append('checkIn', document.getElementById('addCheckIn').value);
+    formData.append('checkOut', document.getElementById('addCheckOut').value);
+    formData.append('numAdults', document.getElementById('addNumAdults').value);
+    formData.append('numChildren', document.getElementById('addNumChildren').value);
+    formData.append('deposit', document.getElementById('addDeposit').value);
+    formData.append('homestayId', document.getElementById('addHomestayId').value);
+    formData.append('guestId', document.getElementById('addGuestId').value);
+    formData.append('staffId', document.getElementById('addStaffId').value);
+    formData.append('billNo', document.getElementById('addBillNo').value);
     
-    // Check if booking ID already exists
-    const existingRows = tableBody.querySelectorAll('tr');
-    let idExists = false;
-    existingRows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === newBooking.bookingId) {
-        idExists = true;
+    fetch('bookings.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert(data.message);
       }
+    })
+    .catch(error => {
+      alert('Error adding booking: ' + error);
     });
-    
-    if (idExists) {
-      alert('Booking ID already exists! Please use a different ID.');
-      return;
-    }
-    
-    // Create new table row
-    const newRow = document.createElement('tr');
-    newRow.setAttribute('data-date', newBooking.checkIn);
-    newRow.setAttribute('data-deposit', newBooking.deposit);
-    newRow.setAttribute('data-adults', newBooking.numAdults);
-    newRow.setAttribute('data-children', newBooking.numChildren);
-    newRow.setAttribute('data-staff', newBooking.staffId);
-    
-    newRow.innerHTML = `
-      <td>${newBooking.bookingId}</td>
-      <td>${newBooking.checkIn}</td>
-      <td>${newBooking.checkOut}</td>
-      <td>RM ${newBooking.deposit.toFixed(0)}</td>
-      <td>${newBooking.homestayId}</td>
-      <td>${newBooking.guestId}</td>
-      <td>${newBooking.billNo}</td>
-      <td>
-        <button class="btn-details" onclick="viewBookingDetails('${newBooking.bookingId}')">Details</button>
-      </td>
-      <td>
-        <button class="btn-update" onclick="updateBooking('${newBooking.bookingId}')">Update</button>
-        <button class="btn-delete" onclick="deleteBooking('${newBooking.bookingId}')">Delete</button>
-      </td>
-    `;
-    
-    // Add the new row to the table
-    tableBody.appendChild(newRow);
-    
-    // Update allRows array
-    allRows = Array.from(tableBody.querySelectorAll('tr'));
-    
-    // Close modal and show success message
-    closeAddModal();
-    alert('Booking added successfully!');
   });
   </script>
 </body>

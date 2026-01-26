@@ -1,7 +1,124 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
+require_once '../config/db_connection.php';
 requireStaffLogin();
+
+// Get database connection
+$conn = getDBConnection();
+if (!$conn) {
+    die("Database connection failed. Please try again later.");
+}
+
+// Fetch statistics
+// Total Guests
+$guestCountSql = "SELECT COUNT(*) as total FROM GUEST";
+$guestStmt = oci_parse($conn, $guestCountSql);
+oci_execute($guestStmt);
+$guestRow = oci_fetch_array($guestStmt, OCI_ASSOC);
+$totalGuests = $guestRow['TOTAL'];
+oci_free_statement($guestStmt);
+
+// Total Staff
+$staffCountSql = "SELECT COUNT(*) as total FROM STAFF";
+$staffStmt = oci_parse($conn, $staffCountSql);
+oci_execute($staffStmt);
+$staffRow = oci_fetch_array($staffStmt, OCI_ASSOC);
+$totalStaff = $staffRow['TOTAL'];
+oci_free_statement($staffStmt);
+
+// Total Homestays
+$homestayCountSql = "SELECT COUNT(*) as total FROM HOMESTAY";
+$homestayStmt = oci_parse($conn, $homestayCountSql);
+oci_execute($homestayStmt);
+$homestayRow = oci_fetch_array($homestayStmt, OCI_ASSOC);
+$totalHomestays = $homestayRow['TOTAL'];
+oci_free_statement($homestayStmt);
+
+// New Guests (last 30 days approximation - get recent 30 guests)
+$newGuestsSql = "SELECT COUNT(*) as total FROM (SELECT guestID FROM GUEST ORDER BY guestID DESC) WHERE ROWNUM <= 30";
+$newGuestsStmt = oci_parse($conn, $newGuestsSql);
+oci_execute($newGuestsStmt);
+$newGuestsRow = oci_fetch_array($newGuestsStmt, OCI_ASSOC);
+$newGuests = $newGuestsRow['TOTAL'];
+oci_free_statement($newGuestsStmt);
+
+// Full Time and Part Time Staff counts
+$fullTimeSql = "SELECT COUNT(*) as total FROM FULL_TIME";
+$fullTimeStmt = oci_parse($conn, $fullTimeSql);
+oci_execute($fullTimeStmt);
+$fullTimeRow = oci_fetch_array($fullTimeStmt, OCI_ASSOC);
+$fullTimeStaff = $fullTimeRow['TOTAL'];
+oci_free_statement($fullTimeStmt);
+
+$partTimeSql = "SELECT COUNT(*) as total FROM PART_TIME";
+$partTimeStmt = oci_parse($conn, $partTimeSql);
+oci_execute($partTimeStmt);
+$partTimeRow = oci_fetch_array($partTimeStmt, OCI_ASSOC);
+$partTimeStaff = $partTimeRow['TOTAL'];
+oci_free_statement($partTimeStmt);
+
+// Recent 5 Guests
+$recentGuestsSql = "SELECT * FROM (SELECT guestID, guest_name, guest_phoneNo, guest_gender, guest_email, guest_type FROM GUEST ORDER BY guestID DESC) WHERE ROWNUM <= 5";
+$recentGuestsStmt = oci_parse($conn, $recentGuestsSql);
+oci_execute($recentGuestsStmt);
+$recentGuests = [];
+while ($row = oci_fetch_array($recentGuestsStmt, OCI_ASSOC)) {
+    $recentGuests[] = $row;
+}
+oci_free_statement($recentGuestsStmt);
+
+// Recent 5 Staff
+$recentStaffSql = "SELECT * FROM (SELECT staffID, staff_name, staff_phoneNo, staff_email, staff_type, managerID FROM STAFF ORDER BY staffID DESC) WHERE ROWNUM <= 5";
+$recentStaffStmt = oci_parse($conn, $recentStaffSql);
+oci_execute($recentStaffStmt);
+$recentStaff = [];
+while ($row = oci_fetch_array($recentStaffStmt, OCI_ASSOC)) {
+    $recentStaff[] = $row;
+}
+oci_free_statement($recentStaffStmt);
+
+// All Homestays
+$homestaysSql = "SELECT homestayID, homestay_name, homestay_address, office_phoneNo, rent_price, staffID FROM HOMESTAY";
+$homestaysStmt = oci_parse($conn, $homestaysSql);
+oci_execute($homestaysStmt);
+$homestays = [];
+while ($row = oci_fetch_array($homestaysStmt, OCI_ASSOC)) {
+    $homestays[] = $row;
+}
+oci_free_statement($homestaysStmt);
+
+// Homestay Revenue (total from bills per homestay)
+$homestayRevenue = [];
+foreach ($homestays as $homestay) {
+    $revenueSql = "SELECT NVL(SUM(b.total_amount), 0) as revenue 
+                   FROM BILL b 
+                   JOIN BOOKING bk ON b.guestID = bk.guestID 
+                   WHERE bk.homestayID = :homestayID";
+    $revenueStmt = oci_parse($conn, $revenueSql);
+    $hId = $homestay['HOMESTAYID'];
+    oci_bind_by_name($revenueStmt, ':homestayID', $hId);
+    oci_execute($revenueStmt);
+    $revenueRow = oci_fetch_array($revenueStmt, OCI_ASSOC);
+    $homestayRevenue[$homestay['HOMESTAYID']] = $revenueRow['REVENUE'];
+    oci_free_statement($revenueStmt);
+}
+
+// Homestay total guests this year
+$homestayGuestCount = [];
+foreach ($homestays as $homestay) {
+    $guestCountSql = "SELECT COUNT(*) as total 
+                      FROM BOOKING 
+                      WHERE homestayID = :homestayID 
+                      AND EXTRACT(YEAR FROM checkin_date) = EXTRACT(YEAR FROM SYSDATE)";
+    $guestCountStmt = oci_parse($conn, $guestCountSql);
+    $hId = $homestay['HOMESTAYID'];
+    oci_bind_by_name($guestCountStmt, ':homestayID', $hId);
+    oci_execute($guestCountStmt);
+    $guestCountRow = oci_fetch_array($guestCountStmt, OCI_ASSOC);
+    $homestayGuestCount[$homestay['HOMESTAYID']] = $guestCountRow['TOTAL'];
+    oci_free_statement($guestCountStmt);
+}
 ?>
 
 <!DOCTYPE html>
@@ -134,21 +251,23 @@ requireStaffLogin();
       <div class="content1">
         <a href="guests.php" class="sub-content1">
           <div class="subcard">
-            <div class="subcard-number">67</div>
+            <div class="subcard-number"><?php echo $totalGuests; ?></div>
             <div class="subcard-text">Total Guests</div>
           </div>
           <i class='bxr  bxs-user'></i>
         </a>
+        <?php if (isManager()): ?>
         <a href="staff.php" class="sub-content1">
           <div class="subcard">
-            <div class="subcard-number">14</div>
+            <div class="subcard-number"><?php echo $totalStaff; ?></div>
             <div class="subcard-text">Total Staff</div>
           </div>
           <i class='bxr  bxs-community'></i>
         </a>
+        <?php endif; ?>
         <a href="homestay.php" class="sub-content1">
           <div class="subcard">
-            <div class="subcard-number">4</div>
+            <div class="subcard-number"><?php echo $totalHomestays; ?></div>
             <div class="subcard-text">Total Homestay</div>
           </div>
           <i class='bxr  bxs-home-circle'></i>
@@ -160,17 +279,18 @@ requireStaffLogin();
         <div class="sub-content2-2">
           <a href="guests.php" class="sub-content2-card">
             <div class="subcard">
-              <div class="subcard-number">8</div>
+              <div class="subcard-number"><?php echo $newGuests; ?></div>
               <div class="subcard-text">New Guests</div>
             </div>
             <div class="mini-chart-container">
               <canvas id="miniChart1"></canvas>
             </div>
           </a>
+          <?php if (isManager()): ?>
           <a href="staff.php" class="sub-content2-card">
             <div class="subcard">
-              <div class="subcard-number">5</div>
-              <div class="subcard-text">New Full Time Staff</div>
+              <div class="subcard-number"><?php echo $fullTimeStaff; ?></div>
+              <div class="subcard-text">Full Time Staff</div>
             </div>
             <div class="mini-chart-container">
               <canvas id="miniChart2"></canvas>
@@ -178,13 +298,14 @@ requireStaffLogin();
           </a>
           <a href="staff.php" class="sub-content2-card">
             <div class="subcard">
-              <div class="subcard-number">3</div>
-              <div class="subcard-text">New Part Time Staff</div>
+              <div class="subcard-number"><?php echo $partTimeStaff; ?></div>
+              <div class="subcard-text">Part Time Staff</div>
             </div>
             <div class="mini-chart-container">
               <canvas id="miniChart3"></canvas>
             </div>
           </a>
+          <?php endif; ?>
         </div>
         <div class="sub-content2-1">
           <p>Total Monthly Guests</p>
@@ -201,7 +322,7 @@ requireStaffLogin();
           <div class="revenue-chart-container">
             <canvas id="staffChart" aria-label="Staff distribution chart"></canvas>
             <div class="revenue-center-text">
-              <div class="revenue-amount"><span id="totalStaff">14</span></div>
+              <div class="revenue-amount"><span id="totalStaff"><?php echo $totalStaff; ?></span></div>
               <div class="revenue-label">Total Staff</div>
             </div>
           </div>
@@ -210,83 +331,33 @@ requireStaffLogin();
           <div class="sub-content3-3">
           <p>Homestay Revenue</p>
           <div class="revenue-cards-container">
+            <?php foreach ($homestays as $homestay): ?>
             <div class="revenue-card">
               <div class="revenue-card-content">
                 <div class="revenue-image-container">
                   <img src="../../images/houseIcon.png" alt="House Icon" class="revenue-house-icon">
                   <div class="revenue-overlay">
-                    <div class="revenue-card-amount">RM <span class="revenue-value" data-target="125000">0</span></div>
+                    <div class="revenue-card-amount">RM <span class="revenue-value" data-target="<?php echo number_format($homestayRevenue[$homestay['HOMESTAYID']], 0, '', ''); ?>">0</span></div>
                   </div>
                 </div>
-                <div class="revenue-card-label">The Grand Haven</div>
+                <div class="revenue-card-label"><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></div>
               </div>
             </div>
-            <div class="revenue-card">
-              <div class="revenue-card-content">
-                <div class="revenue-image-container">
-                  <img src="../../images/houseIcon.png" alt="House Icon" class="revenue-house-icon">
-                  <div class="revenue-overlay">
-                    <div class="revenue-card-amount">RM <span class="revenue-value" data-target="98000">0</span></div>
-                  </div>
-                </div>
-                <div class="revenue-card-label">Twin Haven</div>
-              </div>
-            </div>
-            <div class="revenue-card">
-              <div class="revenue-card-content">
-                <div class="revenue-image-container">
-                  <img src="../../images/houseIcon.png" alt="House Icon" class="revenue-house-icon">
-                  <div class="revenue-overlay">
-                    <div class="revenue-card-amount">RM <span class="revenue-value" data-target="142000">0</span></div>
-                  </div>
-                </div>
-                <div class="revenue-card-label">The Riverside Retreat</div>
-              </div>
-            </div>
-            <div class="revenue-card">
-              <div class="revenue-card-content">
-                <div class="revenue-image-container">
-                  <img src="../../images/houseIcon.png" alt="House Icon" class="revenue-house-icon">
-                  <div class="revenue-overlay">
-                    <div class="revenue-card-amount">RM <span class="revenue-value" data-target="118000">0</span></div>
-                  </div>
-                </div>
-                <div class="revenue-card-label">Hilltop Haven</div>
-              </div>
-            </div>
+            <?php endforeach; ?>
           </div>
         </div>
         <div class="sub-content3-4">
           <p>Total Guests (This Year)</p>
           <div class="guests-cards-container">
+            <?php foreach ($homestays as $homestay): ?>
             <div class="guests-card">
               <div class="guests-card-content">
                 <i class='bx bx-group guests-icon'></i>
-                <div class="guests-card-amount"><span class="guests-value" data-target="156">0</span></div>
-                <div class="guests-card-label">The Grand Haven</div>
+                <div class="guests-card-amount"><span class="guests-value" data-target="<?php echo $homestayGuestCount[$homestay['HOMESTAYID']]; ?>">0</span></div>
+                <div class="guests-card-label"><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></div>
               </div>
             </div>
-            <div class="guests-card">
-              <div class="guests-card-content">
-                <i class='bx bx-group guests-icon'></i>
-                <div class="guests-card-amount"><span class="guests-value" data-target="124">0</span></div>
-                <div class="guests-card-label">Twin Haven</div>
-              </div>
-            </div>
-            <div class="guests-card">
-              <div class="guests-card-content">
-                <i class='bx bx-group guests-icon'></i>
-                <div class="guests-card-amount"><span class="guests-value" data-target="178">0</span></div>
-                <div class="guests-card-label">The Riverside Retreat</div>
-              </div>
-            </div>
-            <div class="guests-card">
-              <div class="guests-card-content">
-                <i class='bx bx-group guests-icon'></i>
-                <div class="guests-card-amount"><span class="guests-value" data-target="142">0</span></div>
-                <div class="guests-card-label">Hilltop Haven</div>
-              </div>
-            </div>
+            <?php endforeach; ?>
           </div>
         </div>
         </div>
@@ -311,56 +382,33 @@ requireStaffLogin();
               </tr>
             </thead>
             <tbody>
+              <?php if (empty($recentGuests)): ?>
               <tr>
-                <td>G001</td>
-                <td>Ahmad bin Abdullah</td>
-                <td>+6012-345-6789</td>
-                <td>Male</td>
-                <td>ahmad.abdullah@email.com</td>
-                <td>Regular</td>
+                <td colspan="6" style="text-align: center;">No guests found</td>
               </tr>
+              <?php else: ?>
+              <?php foreach ($recentGuests as $guest): ?>
               <tr>
-                <td>G002</td>
-                <td>Siti Nurhaliza</td>
-                <td>+6013-456-7890</td>
-                <td>Female</td>
-                <td>siti.nurhaliza@email.com</td>
-                <td>VIP</td>
+                <td><?php echo htmlspecialchars($guest['GUESTID']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_NAME']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_PHONENO']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_GENDER']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_EMAIL']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_TYPE']); ?></td>
               </tr>
-              <tr>
-                <td>G003</td>
-                <td>Lim Wei Ming</td>
-                <td>+6014-567-8901</td>
-                <td>Male</td>
-                <td>lim.weiming@email.com</td>
-                <td>Regular</td>
-              </tr>
-              <tr>
-                <td>G004</td>
-                <td>Fatimah binti Hassan</td>
-                <td>+6015-678-9012</td>
-                <td>Female</td>
-                <td>fatimah.hassan@email.com</td>
-                <td>Regular</td>
-              </tr>
-              <tr>
-                <td>G005</td>
-                <td>Tan Mei Ling</td>
-                <td>+6016-789-0123</td>
-                <td>Female</td>
-                <td>tan.meiling@email.com</td>
-                <td>VIP</td>
-              </tr>
+              <?php endforeach; ?>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
       </div>
 
       <!-- Staff Table -->
+      <?php if (isManager()): ?>
       <div class="content4">
         <div class="new-guests-table-container">
           <div class="table-header-row">
-            <p>New Staff</p>
+            <p>Recent Staff</p>
             <a href="staff.php" class="btn-manage">Manage Staff</a>
           </div>
           <table class="new-guests-table">
@@ -375,50 +423,27 @@ requireStaffLogin();
               </tr>
             </thead>
             <tbody>
+              <?php if (empty($recentStaff)): ?>
               <tr>
-                <td>S001</td>
-                <td>Ali bin Ahmad</td>
-                <td>+6011-111-1111</td>
-                <td>ali.ahmad@serena.com</td>
-                <td>Full Time</td>
-                <td>-</td>
+                <td colspan="6" style="text-align: center;">No staff found</td>
               </tr>
+              <?php else: ?>
+              <?php foreach ($recentStaff as $staff): ?>
               <tr>
-                <td>S002</td>
-                <td>Sarah binti Mohd</td>
-                <td>+6011-222-2222</td>
-                <td>sarah.mohd@serena.com</td>
-                <td>Part Time</td>
-                <td>S001</td>
+                <td><?php echo htmlspecialchars($staff['STAFFID']); ?></td>
+                <td><?php echo htmlspecialchars($staff['STAFF_NAME']); ?></td>
+                <td><?php echo htmlspecialchars($staff['STAFF_PHONENO']); ?></td>
+                <td><?php echo htmlspecialchars($staff['STAFF_EMAIL']); ?></td>
+                <td><?php echo htmlspecialchars($staff['STAFF_TYPE']); ?></td>
+                <td><?php echo $staff['MANAGERID'] ? htmlspecialchars($staff['MANAGERID']) : '-'; ?></td>
               </tr>
-              <tr>
-                <td>S003</td>
-                <td>Hassan bin Ismail</td>
-                <td>+6011-333-3333</td>
-                <td>hassan.ismail@serena.com</td>
-                <td>Full Time</td>
-                <td>-</td>
-              </tr>
-              <tr>
-                <td>S004</td>
-                <td>Nurul binti Ali</td>
-                <td>+6011-444-4444</td>
-                <td>nurul.ali@serena.com</td>
-                <td>Part Time</td>
-                <td>S001</td>
-              </tr>
-              <tr>
-                <td>S005</td>
-                <td>Lee Wei Jie</td>
-                <td>+6011-555-5555</td>
-                <td>lee.weijie@serena.com</td>
-                <td>Full Time</td>
-                <td>-</td>
-              </tr>
+              <?php endforeach; ?>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
       </div>
+      <?php endif; ?>
 
       <!-- Homestay Table -->
       <div class="content4">
@@ -439,38 +464,22 @@ requireStaffLogin();
               </tr>
             </thead>
             <tbody>
+              <?php if (empty($homestays)): ?>
               <tr>
-                <td>P001</td>
-                <td>The Grand Haven</td>
-                <td>Hulu Langat, Selangor</td>
-                <td>+603-1234-5678</td>
-                <td>RM 250</td>
-                <td>S001</td>
+                <td colspan="6" style="text-align: center;">No homestays found</td>
               </tr>
+              <?php else: ?>
+              <?php foreach ($homestays as $homestay): ?>
               <tr>
-                <td>P002</td>
-                <td>Twin Haven</td>
-                <td>Hulu Langat, Selangor</td>
-                <td>+603-1234-5679</td>
-                <td>RM 200</td>
-                <td>S003</td>
+                <td><?php echo htmlspecialchars($homestay['HOMESTAYID']); ?></td>
+                <td><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></td>
+                <td><?php echo htmlspecialchars($homestay['HOMESTAY_ADDRESS']); ?></td>
+                <td><?php echo htmlspecialchars($homestay['OFFICE_PHONENO']); ?></td>
+                <td>RM <?php echo number_format($homestay['RENT_PRICE'], 2); ?></td>
+                <td><?php echo htmlspecialchars($homestay['STAFFID']); ?></td>
               </tr>
-              <tr>
-                <td>P003</td>
-                <td>The Riverside Retreat</td>
-                <td>Gopeng, Perak</td>
-                <td>+605-2345-6789</td>
-                <td>RM 300</td>
-                <td>S005</td>
-              </tr>
-              <tr>
-                <td>P004</td>
-                <td>Hilltop Haven</td>
-                <td>Gopeng, Perak</td>
-                <td>+605-2345-6790</td>
-                <td>RM 280</td>
-                <td>S001</td>
-              </tr>
+              <?php endforeach; ?>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
@@ -650,7 +659,7 @@ requireStaffLogin();
   const staffChartCanvas = document.getElementById("staffChart");
   if (staffChartCanvas) {
     const staffTypes = ["Full Time", "Part Time"];
-    const staffValues = [9, 5];
+    const staffValues = [<?php echo $fullTimeStaff; ?>, <?php echo $partTimeStaff; ?>];
     
     new Chart(staffChartCanvas, {
       type: 'doughnut',

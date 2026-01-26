@@ -1,7 +1,103 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
+require_once '../config/db_connection.php';
 requireStaffLogin();
+
+// Get database connection
+$conn = getDBConnection();
+if (!$conn) {
+    die("Database connection failed. Please try again later.");
+}
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    
+    if ($_POST['action'] === 'update') {
+        $guestID = $_POST['guestId'];
+        $name = $_POST['guestName'];
+        $phone = $_POST['phone'];
+        $gender = $_POST['gender'];
+        $email = $_POST['email'];
+        $type = $_POST['type'];
+        
+        $sql = "UPDATE GUEST SET 
+                guest_name = :name, 
+                guest_phoneNo = :phone, 
+                guest_gender = :gender, 
+                guest_email = :email, 
+                guest_type = :type 
+                WHERE guestID = :id";
+        
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':name', $name);
+        oci_bind_by_name($stmt, ':phone', $phone);
+        oci_bind_by_name($stmt, ':gender', $gender);
+        oci_bind_by_name($stmt, ':email', $email);
+        oci_bind_by_name($stmt, ':type', $type);
+        oci_bind_by_name($stmt, ':id', $guestID);
+        
+        if (oci_execute($stmt)) {
+            echo json_encode(['success' => true, 'message' => 'Guest updated successfully']);
+        } else {
+            $error = oci_error($stmt);
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+        }
+        oci_free_statement($stmt);
+        exit;
+    }
+    
+    if ($_POST['action'] === 'delete') {
+        $guestID = $_POST['guestId'];
+        
+        // Check if guest has bookings
+        $checkSql = "SELECT COUNT(*) as count FROM BOOKING WHERE guestID = :id";
+        $checkStmt = oci_parse($conn, $checkSql);
+        oci_bind_by_name($checkStmt, ':id', $guestID);
+        oci_execute($checkStmt);
+        $row = oci_fetch_array($checkStmt, OCI_ASSOC);
+        
+        if ($row['COUNT'] > 0) {
+            echo json_encode(['success' => false, 'message' => 'Cannot delete guest with existing bookings']);
+            oci_free_statement($checkStmt);
+            exit;
+        }
+        oci_free_statement($checkStmt);
+        
+        // Delete membership first if exists
+        $delMemSql = "DELETE FROM MEMBERSHIP WHERE guestID = :id";
+        $delMemStmt = oci_parse($conn, $delMemSql);
+        oci_bind_by_name($delMemStmt, ':id', $guestID);
+        oci_execute($delMemStmt);
+        oci_free_statement($delMemStmt);
+        
+        // Delete guest
+        $sql = "DELETE FROM GUEST WHERE guestID = :id";
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':id', $guestID);
+        
+        if (oci_execute($stmt)) {
+            echo json_encode(['success' => true, 'message' => 'Guest deleted successfully']);
+        } else {
+            $error = oci_error($stmt);
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+        }
+        oci_free_statement($stmt);
+        exit;
+    }
+}
+
+// Fetch all guests
+$sql = "SELECT guestID, guest_name, guest_phoneNo, guest_gender, guest_email, guest_type FROM GUEST ORDER BY guestID";
+$stmt = oci_parse($conn, $sql);
+oci_execute($stmt);
+
+$guests = [];
+while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+    $guests[] = $row;
+}
+oci_free_statement($stmt);
 ?>
 
 <!DOCTYPE html>
@@ -178,102 +274,22 @@ requireStaffLogin();
             </tr>
           </thead>
           <tbody id="guestsTableBody">
-            <tr data-date="2025-01-15" data-name="Muhammad Naim bin Johari" data-gender="Male" data-type="Regular">
-              <td>G001</td>
-              <td>Muhammad Naim bin Johari</td>
-              <td>+6012-345-6789</td>
-              <td>Male</td>
-              <td>naim.johari@email.com</td>
-              <td>Regular</td>
+            <?php foreach ($guests as $guest): ?>
+            <tr data-name="<?php echo htmlspecialchars($guest['GUEST_NAME']); ?>" 
+                data-gender="<?php echo htmlspecialchars($guest['GUEST_GENDER']); ?>" 
+                data-type="<?php echo htmlspecialchars($guest['GUEST_TYPE']); ?>">
+              <td><?php echo htmlspecialchars($guest['GUESTID']); ?></td>
+              <td><?php echo htmlspecialchars($guest['GUEST_NAME']); ?></td>
+              <td><?php echo htmlspecialchars($guest['GUEST_PHONENO']); ?></td>
+              <td><?php echo htmlspecialchars($guest['GUEST_GENDER']); ?></td>
+              <td><?php echo htmlspecialchars($guest['GUEST_EMAIL']); ?></td>
+              <td><?php echo htmlspecialchars($guest['GUEST_TYPE']); ?></td>
               <td>
-                <button class="btn-update" onclick="updateGuest('G001')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('G001')">Delete</button>
+                <button class="btn-update" onclick="updateGuest('<?php echo $guest['GUESTID']; ?>')">Update</button>
+                <button class="btn-delete" onclick="deleteGuest('<?php echo $guest['GUESTID']; ?>')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-01-20" data-name="Muhammad Shafiq Danial bin Rosmam" data-gender="Male" data-type="VIP">
-              <td>G002</td>
-              <td>Muhammad Shafiq Danial bin Rosmam</td>
-              <td>+6013-456-7890</td>
-              <td>Male</td>
-              <td>shafiq.rosmam@email.com</td>
-              <td>VIP</td>
-              <td>
-                <button class="btn-update" onclick="updateGuest('G002')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('G002')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-01-10" data-name="Ahmad Firdaus bin Abdullah" data-gender="Male" data-type="Regular">
-              <td>G003</td>
-              <td>Ahmad Firdaus bin Abdullah</td>
-              <td>+6014-567-8901</td>
-              <td>Male</td>
-              <td>ahmad.firdaus@email.com</td>
-              <td>Regular</td>
-              <td>
-                <button class="btn-update" onclick="updateGuest('G003')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('G003')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-01-25" data-name="Nur Aisyah binti Mohd Zain" data-gender="Female" data-type="Corporate">
-              <td>G004</td>
-              <td>Nur Aisyah binti Mohd Zain</td>
-              <td>+6015-678-9012</td>
-              <td>Female</td>
-              <td>nur.aisyah@email.com</td>
-              <td>Corporate</td>
-              <td>
-                <button class="btn-update" onclick="updateGuest('G004')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('G004')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-01-12" data-name="Lim Wei Ming" data-gender="Male" data-type="Regular">
-              <td>G005</td>
-              <td>Lim Wei Ming</td>
-              <td>+6016-789-0123</td>
-              <td>Male</td>
-              <td>lim.weiming@email.com</td>
-              <td>Regular</td>
-              <td>
-                <button class="btn-update" onclick="updateGuest('G005')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('G005')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-01-18" data-name="Siti Nurhaliza binti Abdul Rahman" data-gender="Female" data-type="VIP">
-              <td>G006</td>
-              <td>Siti Nurhaliza binti Abdul Rahman</td>
-              <td>+6017-890-1234</td>
-              <td>Female</td>
-              <td>siti.nurhaliza@email.com</td>
-              <td>VIP</td>
-              <td>
-                <button class="btn-update" onclick="updateGuest('G006')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('G006')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-01-22" data-name="Tan Mei Ling" data-gender="Female" data-type="Regular">
-              <td>G007</td>
-              <td>Tan Mei Ling</td>
-              <td>+6018-901-2345</td>
-              <td>Female</td>
-              <td>tan.meiling@email.com</td>
-              <td>Regular</td>
-              <td>
-                <button class="btn-update" onclick="updateGuest('G007')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('G007')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-01-28" data-name="Muhammad Haziq bin Ismail" data-gender="Male" data-type="Corporate">
-              <td>G008</td>
-              <td>Muhammad Haziq bin Ismail</td>
-              <td>+6019-012-3456</td>
-              <td>Male</td>
-              <td>haziq.ismail@email.com</td>
-              <td>Corporate</td>
-              <td>
-                <button class="btn-update" onclick="updateGuest('G008')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('G008')">Delete</button>
-              </td>
-            </tr>
+            <?php endforeach; ?>
           </tbody>
         </table>
       </div>
@@ -499,43 +515,30 @@ requireStaffLogin();
   document.getElementById('updateGuestForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const guestId = document.getElementById('updateGuestId').value;
-    const updatedData = {
-      name: document.getElementById('updateGuestName').value.trim(),
-      phone: document.getElementById('updatePhone').value.trim(),
-      gender: document.getElementById('updateGender').value,
-      email: document.getElementById('updateEmail').value.trim(),
-      type: document.getElementById('updateType').value
-    };
+    const formData = new FormData();
+    formData.append('action', 'update');
+    formData.append('guestId', document.getElementById('updateGuestId').value);
+    formData.append('guestName', document.getElementById('updateGuestName').value.trim());
+    formData.append('phone', document.getElementById('updatePhone').value.trim());
+    formData.append('gender', document.getElementById('updateGender').value);
+    formData.append('email', document.getElementById('updateEmail').value.trim());
+    formData.append('type', document.getElementById('updateType').value);
     
-    // Find and update the row
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === guestId) {
-        // Update table cells
-        const cells = row.querySelectorAll('td');
-        cells[1].textContent = updatedData.name;
-        cells[2].textContent = updatedData.phone;
-        cells[3].textContent = updatedData.gender;
-        cells[4].textContent = updatedData.email;
-        cells[5].textContent = updatedData.type;
-        
-        // Update data attributes for sorting/searching
-        row.setAttribute('data-name', updatedData.name);
-        row.setAttribute('data-gender', updatedData.gender);
-        row.setAttribute('data-type', updatedData.type);
-        
-        // Update allRows array for search functionality
-        allRows = Array.from(tableBody.querySelectorAll('tr'));
-        
-        // Close modal
-        closeUpdateModal();
-        
-        // Show success message
-        alert('Guest details updated successfully!');
-        return;
+    fetch('guests.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload(); // Reload page to show updated data
+      } else {
+        alert(data.message);
       }
+    })
+    .catch(error => {
+      alert('Error updating guest: ' + error);
     });
   });
 
@@ -551,19 +554,24 @@ requireStaffLogin();
   document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
 
   function deleteGuest(guestId) {
-    // Add your delete logic here
-    if (confirm('Are you sure you want to delete guest ' + guestId + '?')) {
-      // Find and remove the row
-      const rows = tableBody.querySelectorAll('tr');
-      rows.forEach(row => {
-        const idCell = row.querySelector('td:first-child');
-        if (idCell && idCell.textContent.trim() === guestId) {
-          row.remove();
-          // Update allRows array for search functionality
-          allRows = Array.from(tableBody.querySelectorAll('tr'));
-          alert('Guest deleted successfully!');
-          return;
+    if (confirm('Are you sure you want to delete guest ' + guestId + '? This action cannot be undone.')) {
+      const formData = new FormData();
+      formData.append('action', 'delete');
+      formData.append('guestId', guestId);
+      
+      fetch('guests.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        if (data.success) {
+          location.reload(); // Reload page to show updated data
         }
+      })
+      .catch(error => {
+        alert('Error deleting guest: ' + error);
       });
     }
   }
