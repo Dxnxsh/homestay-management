@@ -41,8 +41,11 @@ if ($conn) {
     }
     
     // Get booking counts
-    $pending_sql = "SELECT COUNT(*) as count FROM BOOKING 
-                    WHERE guestID = :guestID AND checkout_date >= SYSDATE";
+    $pending_sql = "SELECT COUNT(*) as count FROM BOOKING b
+                    LEFT JOIN BILL bl ON b.billNo = bl.billNo
+                    WHERE b.guestID = :guestID
+                      AND b.checkout_date >= SYSDATE
+                      AND (b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID')";
     $pending_stmt = oci_parse($conn, $pending_sql);
     oci_bind_by_name($pending_stmt, ':guestID', $guestID);
     if (oci_execute($pending_stmt)) {
@@ -62,21 +65,28 @@ if ($conn) {
     oci_free_statement($completed_stmt);
     
     // Get pending bookings with homestay details
-    $bookings_sql = "SELECT b.bookingID, b.checkin_date, b.checkout_date, h.homestay_name, h.homestayID
-                     FROM BOOKING b
-                     JOIN HOMESTAY h ON b.homestayID = h.homestayID
-                     WHERE b.guestID = :guestID AND b.checkout_date >= SYSDATE
-                     ORDER BY b.checkin_date ASC";
+    $bookings_sql = "SELECT b.bookingID, b.checkin_date, b.checkout_date, h.homestay_name, h.homestayID, bl.bill_status
+             FROM BOOKING b
+             JOIN HOMESTAY h ON b.homestayID = h.homestayID
+             LEFT JOIN BILL bl ON b.billNo = bl.billNo
+             WHERE b.guestID = :guestID
+               AND b.checkout_date >= SYSDATE
+               AND (b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID')
+             ORDER BY b.checkin_date ASC";
     $bookings_stmt = oci_parse($conn, $bookings_sql);
     oci_bind_by_name($bookings_stmt, ':guestID', $guestID);
     if (oci_execute($bookings_stmt)) {
         while ($row = oci_fetch_array($bookings_stmt, OCI_ASSOC)) {
+        $status = strtolower($row['BILL_STATUS'] ?? 'pending');
+        $status_class = ($status === 'paid' || $status === 'confirmed') ? 'confirmed' : 'pending';
             $pending_bookings[] = [
                 'bookingID' => $row['BOOKINGID'],
                 'homestay_name' => $row['HOMESTAY_NAME'],
                 'homestayID' => $row['HOMESTAYID'],
                 'checkin_date' => $row['CHECKIN_DATE'],
-                'checkout_date' => $row['CHECKOUT_DATE']
+          'checkout_date' => $row['CHECKOUT_DATE'],
+          'status' => $status,
+          'status_class' => $status_class
             ];
         }
     }
@@ -239,7 +249,9 @@ if ($conn) {
             <div class="booking-info">
                 <h3><?php echo htmlspecialchars($booking['homestay_name']); ?></h3>
                 <p class="booking-dates"><i class='bx bx-calendar'></i> Check-in: <?php echo $checkin; ?> | Check-out: <?php echo $checkout; ?></p>
-              <p class="booking-status pending">Pending</p>
+                <p class="booking-status <?php echo htmlspecialchars($booking['status_class']); ?>">
+                  <?php echo ucfirst(htmlspecialchars($booking['status'])); ?>
+                </p>
             </div>
             <div class="booking-actions">
                 <a href="booking.php" class="btn btn-secondary">View Details</a>
