@@ -6,10 +6,20 @@ requireGuestLogin();
 
 $guestID = getCurrentGuestID();
 $error_message = '';
+$allowedReturnPages = ['membership.php', 'booking.php'];
+$returnTo = $_SESSION['membership_return_to'] ?? 'membership.php';
+if (!in_array($returnTo, $allowedReturnPages, true)) {
+    $returnTo = 'membership.php';
+}
+$successRedirect = ($returnTo === 'membership.php') ? 'membership.php?purchased=1' : $returnTo;
+$errorRedirect = ($returnTo === 'membership.php') ? 'membership.php?error=1' : $returnTo;
+unset($_SESSION['membership_return_to']);
 
 // Check if payment was successful
 if (!isset($_SESSION['payment_success']) || !$_SESSION['payment_success']) {
-    header('Location: membership.php');
+    $_SESSION['membership_flash'] = 'Payment session expired. Please try again.';
+    $_SESSION['membership_flash_type'] = 'error';
+    header('Location: ' . $errorRedirect);
     exit();
 }
 
@@ -28,6 +38,8 @@ if ($conn) {
         if ($existing) {
             // Guest already has membership
             $error_message = 'You already have an active membership!';
+            $_SESSION['membership_flash'] = $error_message;
+            $_SESSION['membership_flash_type'] = 'error';
         } else {
             // Generate new membership ID
             $id_sql = "SELECT NVL(MAX(membershipID), 0) + 1 AS NEXT_ID FROM MEMBERSHIP";
@@ -62,13 +74,15 @@ if ($conn) {
                         oci_commit($conn);
                         $_SESSION['membership_purchased'] = true;
                         $_SESSION['payment_completed'] = true;
+                        $_SESSION['membership_flash'] = 'Membership activated! Your discount applies to bookings immediately.';
+                        $_SESSION['membership_flash_type'] = 'success';
                         unset($_SESSION['payment_success']);
                         unset($_SESSION['payment_amount']);
                         unset($_SESSION['payment_bank']);
                         oci_free_statement($update_stmt);
                         oci_free_statement($insert_stmt);
                         closeDBConnection($conn);
-                        header('Location: membership.php?purchased=1');
+                        header('Location: ' . $successRedirect);
                         exit();
                     } else {
                         // Rollback membership insert if guest update fails
@@ -101,7 +115,9 @@ if ($conn) {
 // If we reach here, there was an error
 unset($_SESSION['payment_success']);
 $_SESSION['membership_error'] = $error_message;
-header('Location: membership.php?error=1');
+$_SESSION['membership_flash'] = $error_message;
+$_SESSION['membership_flash_type'] = 'error';
+header('Location: ' . $errorRedirect);
 exit();
 ?>
 

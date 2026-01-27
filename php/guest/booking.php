@@ -15,6 +15,10 @@ $paymentSuccessMessage = '';
 $bookingSummary = null;
 $paymentSummary = null;
 $discountRate = 0;
+$hasMembership = false;
+$membershipFlash = $_SESSION['membership_flash'] ?? '';
+$membershipFlashType = $_SESSION['membership_flash_type'] ?? '';
+unset($_SESSION['membership_flash'], $_SESSION['membership_flash_type']);
 $outstandingBookings = [];
 $selectedHomestayID = isset($_GET['homestay']) ? (int) $_GET['homestay'] : null;
 $selectedPaymentBookingID = null;
@@ -40,8 +44,11 @@ if (!$conn) {
   oci_bind_by_name($membership_stmt, ':guestID', $guestID);
   if (oci_execute($membership_stmt)) {
     $membership_row = oci_fetch_array($membership_stmt, OCI_ASSOC);
-    if ($membership_row && isset($membership_row['DISC_RATE'])) {
-      $discountRate = (float) $membership_row['DISC_RATE'];
+    if ($membership_row) {
+      $hasMembership = true;
+      if (isset($membership_row['DISC_RATE'])) {
+        $discountRate = (float) $membership_row['DISC_RATE'];
+      }
     }
   }
   oci_free_statement($membership_stmt);
@@ -72,6 +79,7 @@ if (!$conn) {
       $selectedPaymentBookingID = isset($_POST['bookingID']) ? (int) $_POST['bookingID'] : null;
       $paymentMethod = trim($_POST['payment_method'] ?? '');
       $paymentMethodInput = $paymentMethod;
+      $addMembership = !$hasMembership && isset($_POST['add_membership']) && $_POST['add_membership'] === '1';
 
       if (!$selectedPaymentBookingID) {
         $paymentErrors[] = 'Please select a booking to pay for.';
@@ -98,8 +106,9 @@ if (!$conn) {
           $booking_row = oci_fetch_array($booking_stmt, OCI_ASSOC);
           if ($booking_row) {
             $depositAmount = isset($booking_row['DEPOSIT_AMOUNT']) ? (float) $booking_row['DEPOSIT_AMOUNT'] : 0.0;
+            $membershipFee = $addMembership ? 30.00 : 0.0;
             $discountAmount = round($depositAmount * ($discountRate / 100), 2);
-            $subtotal = $depositAmount;
+            $subtotal = $depositAmount + $membershipFee;
             $taxAmount = 0.0;
             $lateCharges = 0.0;
             $totalAmount = max(0, $subtotal - $discountAmount + $taxAmount + $lateCharges);
@@ -142,8 +151,42 @@ if (!$conn) {
               }
 
               if ($bill_insert_result && $booking_update_result) {
+                // Create membership if user opted in and doesn't have one
+                $membershipCreated = false;
+                if ($addMembership) {
+                  $id_sql = "SELECT NVL(MAX(membershipID), 0) + 1 AS NEXT_ID FROM MEMBERSHIP";
+                  $id_stmt = oci_parse($conn, $id_sql);
+                  if (oci_execute($id_stmt)) {
+                    $id_row = oci_fetch_array($id_stmt, OCI_ASSOC);
+                    $membershipID = isset($id_row['NEXT_ID']) ? (int) $id_row['NEXT_ID'] : 1;
+                    $disc_rate = 10.00;
+                    $insert_membership_sql = "INSERT INTO MEMBERSHIP (membershipID, guestID, disc_rate) VALUES (:membershipID, :guestID, :disc_rate)";
+                    $insert_membership_stmt = oci_parse($conn, $insert_membership_sql);
+                    oci_bind_by_name($insert_membership_stmt, ':membershipID', $membershipID);
+                    oci_bind_by_name($insert_membership_stmt, ':guestID', $guestID);
+                    oci_bind_by_name($insert_membership_stmt, ':disc_rate', $disc_rate);
+                    if (oci_execute($insert_membership_stmt, OCI_NO_AUTO_COMMIT)) {
+                      $guest_type = 'MEMBERSHIP';
+                      $update_guest_sql = "UPDATE GUEST SET guest_type = :guest_type WHERE guestID = :guestID";
+                      $update_guest_stmt = oci_parse($conn, $update_guest_sql);
+                      oci_bind_by_name($update_guest_stmt, ':guest_type', $guest_type);
+                      oci_bind_by_name($update_guest_stmt, ':guestID', $guestID);
+                      if (oci_execute($update_guest_stmt, OCI_NO_AUTO_COMMIT)) {
+                        $membershipCreated = true;
+                      }
+                      oci_free_statement($update_guest_stmt);
+                    }
+                    oci_free_statement($insert_membership_stmt);
+                  }
+                  oci_free_statement($id_stmt);
+                }
                 oci_commit($conn);
+                $hasMembership = $hasMembership || $membershipCreated;
+                $discountRate = $membershipCreated ? 10.00 : $discountRate;
                 $paymentSuccessMessage = 'Payment received successfully. Thank you!';
+                if ($membershipCreated) {
+                  $paymentSuccessMessage .= ' Membership activated with 10% discount!';
+                }
                 $paymentSummary = [
                   'billNo' => $nextBillNo,
                   'bookingID' => $booking_row['BOOKINGID'],
@@ -151,9 +194,11 @@ if (!$conn) {
                   'checkin' => $booking_row['CHECKIN_DATE'],
                   'checkout' => $booking_row['CHECKOUT_DATE'],
                   'subtotal' => $subtotal,
+                  'membershipFee' => $membershipFee,
                   'discount' => $discountAmount,
                   'total' => $totalAmount,
-                  'method' => $paymentMethod
+                  'method' => $paymentMethod,
+                  'membershipCreated' => $membershipCreated
                 ];
                 $selectedPaymentBookingID = null;
                 $paymentMethodInput = '';
@@ -374,6 +419,230 @@ if (!$conn) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="../../images/logoNbg.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- shadcn Calendar Styles -->
+    <style>
+      /* shadcn Calendar Component Styling */
+      .calendar-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+      }
+
+      .calendar-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: 'Poppins', sans-serif;
+        background: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .calendar-input:hover {
+        border-color: #C5814B;
+        background: #fafafa;
+      }
+
+      .calendar-input:focus {
+        outline: none;
+        border-color: #C5814B;
+        box-shadow: 0 0 0 3px rgba(197, 129, 75, 0.1);
+      }
+
+      .calendar-popup {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        padding: 16px;
+        margin-top: 8px;
+        z-index: 1000;
+        min-width: 320px;
+        display: none;
+      }
+
+      .calendar-popup.active {
+        display: block;
+      }
+
+      .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .calendar-nav-button {
+        background: none;
+        border: none;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border-radius: 6px;
+        color: #333;
+        font-size: 16px;
+        transition: all 0.2s ease;
+      }
+
+      .calendar-nav-button:hover {
+        background: #f0f0f0;
+        color: #C5814B;
+      }
+
+      .calendar-month-year {
+        font-weight: 600;
+        font-size: 14px;
+        color: #333;
+        text-align: center;
+        flex: 1;
+      }
+
+      .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+
+      .calendar-weekday {
+        text-align: center;
+        font-weight: 500;
+        font-size: 12px;
+        color: #888;
+        padding: 8px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .calendar-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+      }
+
+      .calendar-day {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #333;
+        background: transparent;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+        font-weight: 500;
+      }
+
+      .calendar-day:not(.other-month):hover {
+        background: #f0f0f0;
+        border-color: #e0e0e0;
+      }
+
+      .calendar-day.other-month {
+        color: #ccc;
+        cursor: default;
+      }
+
+      .calendar-day.disabled {
+        background: #e8e8e8;
+        color: #999;
+        cursor: not-allowed;
+        border-color: #d0d0d0;
+        pointer-events: none;
+      }
+
+      .calendar-day.booked {
+        background: #ff4444 !important;
+        color: #fff !important;
+        cursor: not-allowed !important;
+        border-color: #ff2222 !important;
+        pointer-events: none;
+      }
+
+      .calendar-day.in-range {
+        background: #f5e6d3;
+        border-color: #C5814B;
+        color: #333;
+      }
+
+      .calendar-day.selected {
+        background: #C5814B;
+        color: #fff;
+        border-color: #C5814B;
+        font-weight: 600;
+      }
+
+      .calendar-day.selected:hover {
+        background: #b3703a;
+        border-color: #b3703a;
+      }
+
+      .calendar-day.range-start,
+      .calendar-day.range-end {
+        background: #C5814B;
+        color: #fff;
+        border-color: #C5814B;
+        font-weight: 600;
+      }
+
+      .calendar-day.today {
+        font-weight: 600;
+        border: 2px solid #C5814B;
+      }
+
+      .calendar-footer {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid #e0e0e0;
+        text-align: center;
+        font-size: 12px;
+        color: #888;
+      }
+
+      /* Disabled form elements styling */
+      input:disabled,
+      select:disabled,
+      textarea:disabled {
+        background-color: #f5f5f5 !important;
+        color: #ccc !important;
+        cursor: not-allowed !important;
+        opacity: 0.6;
+      }
+
+      input:disabled::placeholder,
+      select:disabled::placeholder {
+        color: #ccc !important;
+      }
+
+      .form-group:has(input:disabled),
+      .form-group:has(select:disabled) {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      button:disabled,
+      button[disabled] {
+        background-color: #ccc !important;
+        color: #666 !important;
+        cursor: not-allowed !important;
+        opacity: 0.6;
+      }
+
+      button:disabled:hover,
+      button[disabled]:hover {
+        background-color: #ccc !important;
+      }
+    </style>
   </head>
 <body>
   <!-- Navigation -->
@@ -387,8 +656,6 @@ if (!$conn) {
         <li><a href="home.php" class="nav-link">Home</a></li>
         <li><a href="booking.php" class="nav-link active">Booking</a></li>
         <li><a href="homestay.php" class="nav-link">Homestay</a></li>
-        <li><a href="#depositPayment" class="nav-link">Deposit</a></li>
-        <li><a href="membership.php" class="nav-link">Membership</a></li>
         <li><a href="profile.php" class="nav-link">Profile</a></li>
         <li><a href="../logout.php" class="nav-link btn-logout">Logout</a></li>
       </ul>
@@ -411,6 +678,11 @@ if (!$conn) {
 
     <section class="booking-flow-section">
       <div class="container">
+        <?php if ($membershipFlash): ?>
+          <div class="alert <?php echo ($membershipFlashType === 'success') ? 'alert-success' : 'alert-error'; ?>">
+            <p><?php echo htmlspecialchars($membershipFlash); ?></p>
+          </div>
+        <?php endif; ?>
         <div class="booking-flow-grid">
           <?php if (!$showDepositSection): ?>
           <div class="booking-form-card">
@@ -491,28 +763,45 @@ if (!$conn) {
                     </div>
                   </div>
 
-                  <div class="form-group">
-                    <label for="checkin_date">Check-in</label>
-                    <input type="date" name="checkin_date" id="checkin_date" required min="<?php echo date('Y-m-d'); ?>" value="<?php echo htmlspecialchars($checkinInput); ?>">
-                  </div>
-
-                  <div class="form-group">
-                    <label for="checkout_date">Check-out</label>
-                    <input type="date" name="checkout_date" id="checkout_date" required min="<?php echo date('Y-m-d'); ?>" value="<?php echo htmlspecialchars($checkoutInput); ?>">
+                  <div class="form-group full-width">
+                    <label for="dateRangeInput">Select Dates (Check-in - Check-out)</label>
+                    <div class="calendar-wrapper">
+                      <input type="text" id="dateRangeInput" class="calendar-input" placeholder="Click to select dates" readonly disabled>
+                      <div id="calendarPopup" class="calendar-popup">
+                        <div class="calendar-header">
+                          <button type="button" class="calendar-nav-button" id="prevMonth">←</button>
+                          <div class="calendar-month-year" id="monthYear"></div>
+                          <button type="button" class="calendar-nav-button" id="nextMonth">→</button>
+                        </div>
+                        <div class="calendar-weekdays">
+                          <div class="calendar-weekday">Sun</div>
+                          <div class="calendar-weekday">Mon</div>
+                          <div class="calendar-weekday">Tue</div>
+                          <div class="calendar-weekday">Wed</div>
+                          <div class="calendar-weekday">Thu</div>
+                          <div class="calendar-weekday">Fri</div>
+                          <div class="calendar-weekday">Sat</div>
+                        </div>
+                        <div class="calendar-days" id="calendarDays"></div>
+                      </div>
+                    </div>
+                    <!-- Hidden inputs for form submission -->
+                    <input type="hidden" name="checkin_date" id="checkin_date" value="<?php echo htmlspecialchars($checkinInput); ?>">
+                    <input type="hidden" name="checkout_date" id="checkout_date" value="<?php echo htmlspecialchars($checkoutInput); ?>">
                   </div>
 
                   <div class="form-group">
                     <label for="num_adults">Adults</label>
-                    <input type="number" name="num_adults" id="num_adults" min="1" value="<?php echo htmlspecialchars($numAdultsInput); ?>" required>
+                    <input type="number" name="num_adults" id="num_adults" min="1" value="<?php echo htmlspecialchars($numAdultsInput); ?>" required disabled>
                   </div>
 
                   <div class="form-group">
                     <label for="num_children">Children</label>
-                    <input type="number" name="num_children" id="num_children" min="0" value="<?php echo htmlspecialchars($numChildrenInput); ?>">
+                    <input type="number" name="num_children" id="num_children" min="0" value="<?php echo htmlspecialchars($numChildrenInput); ?>" disabled>
                   </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-submit">Submit Booking Request</button>
+                <button type="submit" class="btn btn-primary btn-submit" disabled>Submit Booking Request</button>
                 <p class="form-footnote">A 30% deposit is required to secure your booking. Remaining balance can be settled upon confirmation.</p>
               </form>
             <?php endif; ?>
@@ -619,6 +908,12 @@ if (!$conn) {
                   <span>Method</span>
                   <strong><?php echo htmlspecialchars($paymentSummary['method']); ?></strong>
                 </div>
+                <?php if (!empty($paymentSummary['membershipFee']) && $paymentSummary['membershipFee'] > 0): ?>
+                <div class="summary-row">
+                  <span>Membership Fee</span>
+                  <strong>RM <?php echo number_format($paymentSummary['membershipFee'], 2); ?></strong>
+                </div>
+                <?php endif; ?>
                 <div class="summary-row highlight">
                   <span>Total Paid</span>
                   <strong>RM <?php echo number_format($paymentSummary['total'], 2); ?></strong>
@@ -667,15 +962,49 @@ if (!$conn) {
                   </div>
                 </div>
 
+                <?php if (!$hasMembership): ?>
+                <div class="form-group" style="margin-top: 16px;">
+                  <label class="membership-checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; border: 1px solid #e0e6ed; border-radius: 8px; background: #f8fafc;">
+                    <div style="position: relative; width: 20px; height: 20px; flex-shrink: 0;">
+                      <input type="checkbox" name="add_membership" value="1" id="add_membership" style="position: absolute; opacity: 0; width: 20px; height: 20px; cursor: pointer;">
+                      <div class="custom-checkbox" style="position: absolute; top: 0; left: 0; width: 20px; height: 20px; border: 2px solid #2563eb; border-radius: 4px; background: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                        <i class='bx bx-check' style="font-size: 16px; color: white; display: none;"></i>
+                      </div>
+                    </div>
+                    <div style="flex: 1;">
+                      <strong style="display: block; margin-bottom: 2px;">Add Membership for RM30</strong>
+                      <small style="color: #6b7280;">Get 10% off this and all future bookings instantly</small>
+                    </div>
+                  </label>
+                </div>
+                <style>
+                  #add_membership:checked + .custom-checkbox {
+                    background: #2563eb !important;
+                    border-color: #2563eb !important;
+                  }
+                  #add_membership:checked + .custom-checkbox i {
+                    display: block !important;
+                  }
+                  .membership-checkbox-label:hover .custom-checkbox {
+                    border-color: #1d4ed8;
+                  }
+                </style>
+                <?php endif; ?>
+
                 <button type="submit" class="btn btn-primary">Pay Deposit</button>
                 <p class="form-footnote">We create an official bill instantly and notify the team to confirm your stay.</p>
               </form>
             <?php endif; ?>
           </div>
 
+          <?php if (empty($paymentSuccessMessage)): ?>
           <div class="deposit-summary-card" id="inlinePaymentSummary" data-discount-rate="<?php echo $discountRate; ?>">
             <h3>Payment Summary</h3>
-            <p class="summary-description">See how your membership discount reduces the deposit today.</p>
+            <p class="summary-description">
+              <?php echo $hasMembership
+                ? 'See how your membership discount reduces the deposit today.'
+                : 'Membership discounts apply instantly once you add membership.'; ?>
+            </p>
             <div class="summary-item">
               <span class="label">Homestay</span>
               <span class="value" id="paymentSummaryHomestay">--</span>
@@ -688,6 +1017,12 @@ if (!$conn) {
               <span class="label">Deposit</span>
               <span class="value" id="paymentSummaryDeposit">RM 0.00</span>
             </div>
+            <?php if (!$hasMembership): ?>
+            <div class="summary-item" style="display: none;">
+              <span class="label">Membership</span>
+              <span class="value" id="paymentSummaryMembership">RM 0.00</span>
+            </div>
+            <?php endif; ?>
             <div class="summary-item">
               <span class="label">Discount (<?php echo number_format($discountRate, 0); ?>%)</span>
               <span class="value" id="paymentSummaryDiscount">RM 0.00</span>
@@ -698,6 +1033,7 @@ if (!$conn) {
             </div>
             <p class="summary-note">Deposits are non-refundable if bookings are cancelled within 7 days of arrival.</p>
           </div>
+          <?php endif; ?>
         </div>
       </div>
     </section>
@@ -711,7 +1047,7 @@ if (!$conn) {
         </div>
         <div class="bookings-list">
           <?php if (empty($bookings)): ?>
-            <p style="text-align: center; color: #666; padding: 40px;">No bookings found. <a href="homestay.php" style="color: #C5814B;">Book now</a> to get started!</p>
+            <p style="text-align: center; color: #666; padding: 40px;">No bookings found. Book now to get started!</p>
           <?php else: ?>
             <?php foreach ($bookings as $booking): 
               $checkin = date('d M Y', strtotime($booking['checkin_date']));
@@ -743,7 +1079,7 @@ if (!$conn) {
               </div>
               <div class="booking-actions">
                 <?php if ($isDepositSettled): ?>
-                  <button class="btn btn-secondary">View Details</button>
+                  <a class="btn btn-secondary" href="booking_details.php?bookingID=<?php echo htmlspecialchars($booking['bookingID']); ?>">View Details</a>
                   <p class="action-footnote">Need changes? Contact support.</p>
                 <?php else: ?>
                   <button type="button" class="btn btn-pay pay-trigger" data-booking-id="<?php echo htmlspecialchars($booking['bookingID']); ?>">Pay Deposit</button>
@@ -801,6 +1137,7 @@ if (!$conn) {
     const checkoutInputEl = document.getElementById('checkout_date');
     const adultsInputEl = document.getElementById('num_adults');
     const childrenInputEl = document.getElementById('num_children');
+    const submitBtn = bookingForm?.querySelector('button[type="submit"]');
     const summaryElements = {
       homestay: document.getElementById('summaryHomestay'),
       dates: document.getElementById('summaryDates'),
@@ -809,6 +1146,258 @@ if (!$conn) {
       total: document.getElementById('summaryTotal'),
       deposit: document.getElementById('summaryDeposit')
     };
+
+    // shadcn-style Calendar Implementation
+    let bookedDates = [];
+    let currentMonth = new Date();
+    let selectedStart = null;
+    let selectedEnd = null;
+
+    const dateRangeInput = document.getElementById('dateRangeInput');
+    const calendarPopup = document.getElementById('calendarPopup');
+    const monthYearEl = document.getElementById('monthYear');
+    const calendarDaysEl = document.getElementById('calendarDays');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+
+    const formatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const formatDateDisplay = (date) => {
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    const updateDateRangeDisplay = () => {
+      if (selectedStart && selectedEnd) {
+        dateRangeInput.value = `${formatDateDisplay(selectedStart)} to ${formatDateDisplay(selectedEnd)}`;
+        checkinInputEl.value = formatDate(selectedStart);
+        checkoutInputEl.value = formatDate(selectedEnd);
+      } else if (selectedStart) {
+        dateRangeInput.value = formatDateDisplay(selectedStart);
+      }
+      updateSummary();
+    };
+
+    const isDateBooked = (date) => {
+      const dateStr = formatDate(date);
+      const isBooked = bookedDates.includes(dateStr);
+      return isBooked;
+    };
+
+    const isDateInRange = (date) => {
+      if (!selectedStart || !selectedEnd) return false;
+      return date > selectedStart && date < selectedEnd;
+    };
+
+    const isDateSelected = (date) => {
+      if (selectedStart && formatDate(date) === formatDate(selectedStart)) return 'range-start';
+      if (selectedEnd && formatDate(date) === formatDate(selectedEnd)) return 'range-end';
+      return null;
+    };
+
+    const renderCalendar = () => {
+      monthYearEl.textContent = currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const prevLastDay = new Date(year, month, 0);
+      
+      const firstDayOfWeek = firstDay.getDay();
+      const daysInMonth = lastDay.getDate();
+      const daysInPrevMonth = prevLastDay.getDate();
+      
+      calendarDaysEl.innerHTML = '';
+      
+      // Previous month days
+      for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+        const day = daysInPrevMonth - i;
+        const dayEl = createDayElement(day, true);
+        calendarDaysEl.appendChild(dayEl);
+      }
+      
+      // Current month days
+      for (let i = 1; i <= daysInMonth; i++) {
+        const date = new Date(year, month, i);
+        const dayEl = createDayElement(i, false, date);
+        calendarDaysEl.appendChild(dayEl);
+      }
+      
+      // Next month days
+      const remainingDays = 42 - (firstDayOfWeek + daysInMonth);
+      for (let i = 1; i <= remainingDays; i++) {
+        const dayEl = createDayElement(i, true);
+        calendarDaysEl.appendChild(dayEl);
+      }
+    };
+
+    const createDayElement = (day, isOtherMonth, date = null) => {
+      const dayEl = document.createElement('div');
+      dayEl.className = 'calendar-day';
+      dayEl.textContent = day;
+      
+      if (isOtherMonth) {
+        dayEl.classList.add('other-month');
+        return dayEl;
+      }
+      
+      const fullDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Check if date is booked by other guests - show in red
+      if (isDateBooked(fullDate)) {
+        dayEl.classList.add('booked');
+        return dayEl;
+      }
+      
+      // Check if date is in past - show in gray
+      if (fullDate < today) {
+        dayEl.classList.add('disabled');
+        return dayEl;
+      }
+      
+      // Check if date is in range
+      if (isDateInRange(fullDate)) {
+        dayEl.classList.add('in-range');
+      }
+      
+      // Check if date is selected
+      const selectedClass = isDateSelected(fullDate);
+      if (selectedClass) {
+        dayEl.classList.add('selected', selectedClass);
+      }
+      
+      // Mark today
+      if (fullDate.getTime() === today.getTime()) {
+        dayEl.classList.add('today');
+      }
+      
+      dayEl.addEventListener('click', () => {
+        if (!selectedStart || fullDate <= selectedStart) {
+          // Start or reset the range and keep the calendar open for checkout selection
+          selectedStart = fullDate;
+          selectedEnd = null;
+          calendarPopup.classList.add('active');
+        } else {
+          selectedEnd = fullDate;
+          calendarPopup.classList.remove('active');
+        }
+        renderCalendar();
+        updateDateRangeDisplay();
+      });
+      
+      return dayEl;
+    };
+
+    // Fetch booked dates when homestay is selected
+    const fetchBookedDates = async (homestayID) => {
+      if (!homestayID) {
+        bookedDates = [];
+        renderCalendar();
+        return;
+      }
+
+      try {
+        const response = await fetch(`api_get_booked_dates.php?homestayID=${encodeURIComponent(homestayID)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          bookedDates = data.bookedDates;
+          renderCalendar();
+        } else {
+          console.error('Error fetching booked dates:', data.error);
+          bookedDates = [];
+          renderCalendar();
+        }
+      } catch (error) {
+        console.error('Failed to fetch booked dates:', error);
+        bookedDates = [];
+        renderCalendar();
+      }
+    };
+
+    // Calendar UI event listeners
+    dateRangeInput.addEventListener('click', () => {
+      // Always open the calendar when clicking the input
+      calendarPopup.classList.add('active');
+    });
+
+    prevMonthBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      currentMonth.setMonth(currentMonth.getMonth() - 1);
+      renderCalendar();
+    });
+
+    nextMonthBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      currentMonth.setMonth(currentMonth.getMonth() + 1);
+      renderCalendar();
+    });
+
+    // Close calendar when clicking outside
+    document.addEventListener('click', (e) => {
+      const clickedInside = e.target.closest('.calendar-wrapper');
+      const clickedInput = e.target === dateRangeInput;
+
+      if (clickedInside || clickedInput) {
+        return;
+      }
+
+      // Keep the calendar open if check-in is chosen but checkout is not yet set
+      if (selectedStart && !selectedEnd) {
+        calendarPopup.classList.add('active');
+        return;
+      }
+
+      calendarPopup.classList.remove('active');
+    });
+
+    // Initialize calendar on load
+    renderCalendar();
+    if (checkinInputEl.value && checkoutInputEl.value) {
+      selectedStart = new Date(checkinInputEl.value);
+      selectedEnd = new Date(checkoutInputEl.value);
+      renderCalendar();
+      updateDateRangeDisplay();
+    }
+
+    // Fetch booked dates if homestay is already selected on page load
+    const selectedHomestayValue = homestaySelect?.value;
+    if (selectedHomestayValue) {
+      fetchBookedDates(selectedHomestayValue);
+      // Enable form elements if homestay is already selected
+      dateRangeInput.disabled = false;
+      adultsInputEl.disabled = false;
+      childrenInputEl.disabled = false;
+      submitBtn.disabled = false;
+    }
+
+    // Listen for homestay selection change
+    homestaySelect?.addEventListener('change', (e) => {
+      selectedStart = null;
+      selectedEnd = null;
+      dateRangeInput.value = '';
+      checkinInputEl.value = '';
+      checkoutInputEl.value = '';
+      
+      // Enable or disable form elements based on homestay selection
+      const hasSelection = e.target.value !== '';
+      dateRangeInput.disabled = !hasSelection;
+      adultsInputEl.disabled = !hasSelection;
+      childrenInputEl.disabled = !hasSelection;
+      submitBtn.disabled = !hasSelection;
+      
+      if (hasSelection) {
+        fetchBookedDates(e.target.value);
+      }
+      updateSummary();
+    });
 
     const formatCurrency = (value) => {
       const amount = Number.isFinite(value) ? value : 0;
@@ -850,18 +1439,14 @@ if (!$conn) {
       if (summaryElements.deposit) summaryElements.deposit.textContent = formatCurrency(deposit);
     };
 
-    ['change', 'input'].forEach(eventName => {
-      bookingForm?.addEventListener(eventName, updateSummary);
-    });
-    homestaySelect?.addEventListener('change', updateSummary);
-    checkinInputEl?.addEventListener('change', updateSummary);
-    checkoutInputEl?.addEventListener('change', updateSummary);
+    // Event listeners for summary updates
     adultsInputEl?.addEventListener('input', updateSummary);
     childrenInputEl?.addEventListener('input', updateSummary);
     updateSummary();
 
     const paymentBookingSelect = document.getElementById('paymentBookingID');
     const paymentMethodSelect = document.getElementById('payment_method');
+    const addMembershipCheckbox = document.getElementById('add_membership');
     const paymentSummaryCard = document.getElementById('inlinePaymentSummary');
     const inlineDiscountRate = paymentSummaryCard ? parseFloat(paymentSummaryCard.dataset.discountRate || '0') : 0;
     const paymentSummaryFields = {
@@ -869,7 +1454,8 @@ if (!$conn) {
       dates: document.getElementById('paymentSummaryDates'),
       deposit: document.getElementById('paymentSummaryDeposit'),
       discount: document.getElementById('paymentSummaryDiscount'),
-      total: document.getElementById('paymentSummaryTotal')
+      total: document.getElementById('paymentSummaryTotal'),
+      membership: document.getElementById('paymentSummaryMembership')
     };
 
     const formatRange = (startRaw, endRaw) => {
@@ -896,19 +1482,31 @@ if (!$conn) {
         paymentSummaryFields.deposit && (paymentSummaryFields.deposit.textContent = 'RM 0.00');
         paymentSummaryFields.discount && (paymentSummaryFields.discount.textContent = 'RM 0.00');
         paymentSummaryFields.total && (paymentSummaryFields.total.textContent = 'RM 0.00');
+        if (paymentSummaryFields.membership) {
+          paymentSummaryFields.membership.textContent = 'RM 0.00';
+        }
         return;
       }
       const deposit = parseFloat(selectedOption.dataset.deposit || '0');
+      const membershipFee = addMembershipCheckbox && addMembershipCheckbox.checked ? 30.00 : 0.00;
       const discountValue = deposit * (inlineDiscountRate / 100);
-      const total = Math.max(0, deposit - discountValue);
+      const total = Math.max(0, deposit + membershipFee - discountValue);
       paymentSummaryFields.homestay && (paymentSummaryFields.homestay.textContent = selectedOption.dataset.homestay || '--');
       paymentSummaryFields.dates && (paymentSummaryFields.dates.textContent = formatRange(selectedOption.dataset.checkin, selectedOption.dataset.checkout));
       paymentSummaryFields.deposit && (paymentSummaryFields.deposit.textContent = formatCurrency(deposit));
       paymentSummaryFields.discount && (paymentSummaryFields.discount.textContent = formatCurrency(discountValue));
       paymentSummaryFields.total && (paymentSummaryFields.total.textContent = formatCurrency(total));
+      if (paymentSummaryFields.membership) {
+        paymentSummaryFields.membership.textContent = formatCurrency(membershipFee);
+        const membershipRow = paymentSummaryFields.membership.closest('.summary-item');
+        if (membershipRow) {
+          membershipRow.style.display = membershipFee > 0 ? '' : 'none';
+        }
+      }
     };
 
     paymentBookingSelect?.addEventListener('change', updatePaymentSummary);
+    addMembershipCheckbox?.addEventListener('change', updatePaymentSummary);
     updatePaymentSummary();
 
     const scrollToPaymentSection = () => {

@@ -52,6 +52,7 @@ CREATE TABLE HOMESTAY (
 CREATE TABLE GUEST (
     guestID        INT PRIMARY KEY,
     guest_name     VARCHAR(100),
+    guest_password VARCHAR(100),
     guest_phoneNo  VARCHAR(20),
     guest_gender   VARCHAR(10),
     guest_email    VARCHAR(100),

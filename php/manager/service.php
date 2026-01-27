@@ -1,7 +1,122 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
-requireManagerLogin();
+require_once '../config/db_connection.php';
+requireStaffLogin();
+
+$conn = getDBConnection();
+if (!$conn) {
+  die('Database connection failed. Please try again later.');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+  header('Content-Type: application/json');
+
+  if ($_POST['action'] === 'add') {
+    $serviceID = $_POST['serviceId'];
+    $serviceType = $_POST['serviceType'];
+    $serviceCost = $_POST['serviceCost'];
+    $serviceRemark = $_POST['serviceRemark'];
+    $serviceStatus = $_POST['serviceStatus'];
+    $staffID = !empty($_POST['staffId']) ? $_POST['staffId'] : null;
+
+    $sql = "INSERT INTO SERVICE (serviceID, service_type, service_cost, service_remark, service_status, staffID)
+            VALUES (:id, :type, :cost, :remark, :status, :staffID)";
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':id', $serviceID);
+    oci_bind_by_name($stmt, ':type', $serviceType);
+    oci_bind_by_name($stmt, ':cost', $serviceCost);
+    oci_bind_by_name($stmt, ':remark', $serviceRemark);
+    oci_bind_by_name($stmt, ':status', $serviceStatus);
+    oci_bind_by_name($stmt, ':staffID', $staffID);
+
+    if (oci_execute($stmt)) {
+      echo json_encode(['success' => true, 'message' => 'Service added successfully']);
+    } else {
+      $error = oci_error($stmt);
+      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+    }
+    oci_free_statement($stmt);
+    exit;
+  }
+
+  if ($_POST['action'] === 'update') {
+    $serviceID = $_POST['serviceId'];
+    $serviceType = $_POST['serviceType'];
+    $serviceCost = $_POST['serviceCost'];
+    $serviceRemark = $_POST['serviceRemark'];
+    $serviceStatus = $_POST['serviceStatus'];
+    $staffID = !empty($_POST['staffId']) ? $_POST['staffId'] : null;
+
+    $sql = "UPDATE SERVICE SET service_type = :type, service_cost = :cost, service_remark = :remark,
+            service_status = :status, staffID = :staffID WHERE serviceID = :id";
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':type', $serviceType);
+    oci_bind_by_name($stmt, ':cost', $serviceCost);
+    oci_bind_by_name($stmt, ':remark', $serviceRemark);
+    oci_bind_by_name($stmt, ':status', $serviceStatus);
+    oci_bind_by_name($stmt, ':staffID', $staffID);
+    oci_bind_by_name($stmt, ':id', $serviceID);
+
+    if (oci_execute($stmt)) {
+      echo json_encode(['success' => true, 'message' => 'Service updated successfully']);
+    } else {
+      $error = oci_error($stmt);
+      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+    }
+    oci_free_statement($stmt);
+    exit;
+  }
+
+  if ($_POST['action'] === 'delete') {
+    $serviceID = $_POST['serviceId'];
+
+    $checkSql = "SELECT COUNT(*) AS cnt FROM HOMESTAY_SERVICE WHERE serviceID = :id";
+    $checkStmt = oci_parse($conn, $checkSql);
+    oci_bind_by_name($checkStmt, ':id', $serviceID);
+    oci_execute($checkStmt);
+    $checkRow = oci_fetch_array($checkStmt, OCI_ASSOC);
+    oci_free_statement($checkStmt);
+
+    if ($checkRow && $checkRow['CNT'] > 0) {
+      echo json_encode(['success' => false, 'message' => 'Cannot delete service linked to homestays']);
+      exit;
+    }
+
+    $sql = "DELETE FROM SERVICE WHERE serviceID = :id";
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':id', $serviceID);
+
+    if (oci_execute($stmt)) {
+      echo json_encode(['success' => true, 'message' => 'Service deleted successfully']);
+    } else {
+      $error = oci_error($stmt);
+      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+    }
+    oci_free_statement($stmt);
+    exit;
+  }
+}
+
+$services = [];
+$serviceSql = "SELECT serviceID, service_type, service_cost, service_remark, service_status, staffID FROM SERVICE ORDER BY serviceID DESC";
+$serviceStmt = oci_parse($conn, $serviceSql);
+oci_execute($serviceStmt);
+while ($row = oci_fetch_array($serviceStmt, OCI_ASSOC)) {
+  $services[] = $row;
+}
+oci_free_statement($serviceStmt);
+
+$staffList = [];
+$staffSql = "SELECT staffID, staff_name FROM STAFF ORDER BY staffID";
+$staffStmt = oci_parse($conn, $staffSql);
+oci_execute($staffStmt);
+while ($row = oci_fetch_array($staffStmt, OCI_ASSOC)) {
+  $staffList[] = $row;
+}
+oci_free_statement($staffStmt);
+
+oci_close($conn);
 ?>
 
 <!DOCTYPE html>
@@ -40,7 +155,9 @@ requireManagerLogin();
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
+          <?php if (isManager()): ?>
           <li><a href="staff.php">Staff</a></li>
+          <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
       </li>
@@ -96,16 +213,14 @@ requireManagerLogin();
         </ul>
       </li>
             <li>
-        <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
-            <i class='bx bx-log-out' style="font-size: 24px; margin-right: 10px;"></i>
-            <span class="link_name">Logout</span>
-          </a>
-        </div>
-      </li>
-        </ul>
-      </li>
-    </ul>
+              <div class="profile-details">
+                <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+                  <i class='bx bx-log-out' style="font-size: 24px; margin-right: 10px;"></i>
+                  <span class="link_name">Logout</span>
+                </a>
+              </div>
+            </li>
+          </ul>
   </div>
   <section class="home-section">
     <div class="home-content">
@@ -115,7 +230,7 @@ requireManagerLogin();
         <i class='bxr  bx-user-circle'></i>
         <div class="header-profile-info">
           <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Manager'); ?></div>
-          <div class="header-profile-job">Manager</div>
+          <div class="header-profile-job"><?php echo isManager() ? 'Manager' : 'Staff'; ?></div>
         </div>
       </div>
     </div>
@@ -175,66 +290,24 @@ requireManagerLogin();
             </tr>
           </thead>
           <tbody id="servicesTableBody">
-            <tr data-type="Housekeeping" data-cost="50">
-              <td>SRV001</td>
-              <td>Housekeeping</td>
-              <td>RM 50</td>
-              <td>Daily room cleaning and maintenance</td>
-              <td>Active</td>
-              <td>S001</td>
-              <td>
-                <button class="btn-update" onclick="updateService('SRV001')">Update</button>
-                <button class="btn-delete" onclick="deleteService('SRV001')">Delete</button>
-              </td>
-            </tr>
-            <tr data-type="Laundry Service" data-cost="30">
-              <td>SRV002</td>
-              <td>Laundry Service</td>
-              <td>RM 30</td>
-              <td>Washing and ironing services</td>
-              <td>Active</td>
-              <td>S002</td>
-              <td>
-                <button class="btn-update" onclick="updateService('SRV002')">Update</button>
-                <button class="btn-delete" onclick="deleteService('SRV002')">Delete</button>
-              </td>
-            </tr>
-            <tr data-type="Airport Transfer" data-cost="80">
-              <td>SRV003</td>
-              <td>Airport Transfer</td>
-              <td>RM 80</td>
-              <td>Pickup and drop-off service</td>
-              <td>Active</td>
-              <td>S003</td>
-              <td>
-                <button class="btn-update" onclick="updateService('SRV003')">Update</button>
-                <button class="btn-delete" onclick="deleteService('SRV003')">Delete</button>
-              </td>
-            </tr>
-            <tr data-type="Breakfast Service" data-cost="25">
-              <td>SRV004</td>
-              <td>Breakfast Service</td>
-              <td>RM 25</td>
-              <td>Daily breakfast meal</td>
-              <td>Active</td>
-              <td>S001</td>
-              <td>
-                <button class="btn-update" onclick="updateService('SRV004')">Update</button>
-                <button class="btn-delete" onclick="deleteService('SRV004')">Delete</button>
-              </td>
-            </tr>
-            <tr data-type="WiFi Access" data-cost="10">
-              <td>SRV005</td>
-              <td>WiFi Access</td>
-              <td>RM 10</td>
-              <td>High-speed internet connection</td>
-              <td>Active</td>
-              <td>S004</td>
-              <td>
-                <button class="btn-update" onclick="updateService('SRV005')">Update</button>
-                <button class="btn-delete" onclick="deleteService('SRV005')">Delete</button>
-              </td>
-            </tr>
+            <?php if (empty($services)): ?>
+              <tr><td colspan="7" style="text-align:center; padding:14px;">No services found.</td></tr>
+            <?php else: ?>
+              <?php foreach ($services as $service): ?>
+                <tr data-type="<?php echo htmlspecialchars($service['SERVICE_TYPE']); ?>" data-cost="<?php echo htmlspecialchars($service['SERVICE_COST']); ?>">
+                  <td><?php echo htmlspecialchars($service['SERVICEID']); ?></td>
+                  <td><?php echo htmlspecialchars($service['SERVICE_TYPE']); ?></td>
+                  <td>RM <?php echo number_format((float)$service['SERVICE_COST'], 2, '.', ''); ?></td>
+                  <td><?php echo htmlspecialchars($service['SERVICE_REMARK']); ?></td>
+                  <td><?php echo htmlspecialchars($service['SERVICE_STATUS']); ?></td>
+                  <td><?php echo htmlspecialchars($service['STAFFID'] ?? 'N/A'); ?></td>
+                  <td>
+                    <button class="btn-update" onclick="updateService('<?php echo htmlspecialchars($service['SERVICEID']); ?>')">Update</button>
+                    <button class="btn-delete" onclick="deleteService('<?php echo htmlspecialchars($service['SERVICEID']); ?>')">Delete</button>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php endif; ?>
           </tbody>
         </table>
       </div>
@@ -280,7 +353,12 @@ requireManagerLogin();
         </div>
         <div class="form-group">
           <label for="addStaffId">Staff ID</label>
-          <input type="text" id="addStaffId" name="staffId" required>
+          <select id="addStaffId" name="staffId" required>
+            <option value="">Select Staff</option>
+            <?php foreach ($staffList as $staff): ?>
+              <option value="<?php echo htmlspecialchars($staff['STAFFID']); ?>"><?php echo htmlspecialchars($staff['STAFFID'] . ' - ' . $staff['STAFF_NAME']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-actions">
           <button type="button" class="btn-cancel" onclick="closeAddModal()">Cancel</button>
@@ -323,7 +401,12 @@ requireManagerLogin();
         </div>
         <div class="form-group">
           <label for="updateStaffId">Staff ID</label>
-          <input type="text" id="updateStaffId" name="staffId" required>
+          <select id="updateStaffId" name="staffId" required>
+            <option value="">Select Staff</option>
+            <?php foreach ($staffList as $staff): ?>
+              <option value="<?php echo htmlspecialchars($staff['STAFFID']); ?>"><?php echo htmlspecialchars($staff['STAFFID'] . ' - ' . $staff['STAFF_NAME']); ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-actions">
           <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
@@ -448,7 +531,7 @@ requireManagerLogin();
     const currentData = {
       serviceId: cells[0].textContent.trim(),
       serviceType: cells[1].textContent.trim(),
-      serviceCost: cells[2].textContent.trim().replace('RM ', '').trim(),
+      serviceCost: cells[2].textContent.trim().replace('RM', '').trim(),
       serviceRemark: cells[3].textContent.trim(),
       serviceStatus: cells[4].textContent.trim(),
       staffId: cells[5].textContent.trim()
@@ -482,17 +565,23 @@ requireManagerLogin();
   }
 
   function deleteService(serviceId) {
-    if (confirm('Are you sure you want to delete service ' + serviceId + '?')) {
-      const rows = tableBody.querySelectorAll('tr');
-      rows.forEach(row => {
-        const idCell = row.querySelector('td:first-child');
-        if (idCell && idCell.textContent.trim() === serviceId) {
-          row.remove();
-          allRows = Array.from(tableBody.querySelectorAll('tr'));
-          alert('Service deleted successfully!');
-          return;
+    if (confirm('Are you sure you want to delete service ' + serviceId + '? This cannot be undone.')) {
+      const formData = new FormData();
+      formData.append('action', 'delete');
+      formData.append('serviceId', serviceId);
+
+      fetch('service.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        if (data.success) {
+          location.reload();
         }
-      });
+      })
+      .catch(error => alert('Error deleting service: ' + error));
     }
   }
 
@@ -511,93 +600,59 @@ requireManagerLogin();
   // Handle add service form submission
   document.getElementById('addServiceForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    const newService = {
-      serviceId: document.getElementById('addServiceId').value.trim(),
-      serviceType: document.getElementById('addServiceType').value.trim(),
-      serviceCost: parseFloat(document.getElementById('addServiceCost').value),
-      serviceRemark: document.getElementById('addServiceRemark').value.trim(),
-      serviceStatus: document.getElementById('addServiceStatus').value,
-      staffId: document.getElementById('addStaffId').value.trim()
-    };
-    
-    // Check if service ID already exists
-    const existingRows = tableBody.querySelectorAll('tr');
-    let idExists = false;
-    existingRows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === newService.serviceId) {
-        idExists = true;
+
+    const formData = new FormData();
+    formData.append('action', 'add');
+    formData.append('serviceId', document.getElementById('addServiceId').value.trim());
+    formData.append('serviceType', document.getElementById('addServiceType').value.trim());
+    formData.append('serviceCost', document.getElementById('addServiceCost').value);
+    formData.append('serviceRemark', document.getElementById('addServiceRemark').value.trim());
+    formData.append('serviceStatus', document.getElementById('addServiceStatus').value);
+    formData.append('staffId', document.getElementById('addStaffId').value);
+
+    fetch('service.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert(data.message);
       }
-    });
-    
-    if (idExists) {
-      alert('Service ID already exists! Please use a different ID.');
-      return;
-    }
-    
-    // Create new table row
-    const newRow = document.createElement('tr');
-    newRow.setAttribute('data-type', newService.serviceType);
-    newRow.setAttribute('data-cost', newService.serviceCost);
-    
-    newRow.innerHTML = `
-      <td>${newService.serviceId}</td>
-      <td>${newService.serviceType}</td>
-      <td>RM ${newService.serviceCost.toFixed(0)}</td>
-      <td>${newService.serviceRemark}</td>
-      <td>${newService.serviceStatus}</td>
-      <td>${newService.staffId}</td>
-      <td>
-        <button class="btn-update" onclick="updateService('${newService.serviceId}')">Update</button>
-        <button class="btn-delete" onclick="deleteService('${newService.serviceId}')">Delete</button>
-      </td>
-    `;
-    
-    // Add the new row to the table
-    tableBody.appendChild(newRow);
-    
-    // Update allRows array
-    allRows = Array.from(tableBody.querySelectorAll('tr'));
-    
-    // Close modal and show success message
-    closeAddModal();
-    alert('Service added successfully!');
+    })
+    .catch(error => alert('Error adding service: ' + error));
   });
 
   // Handle update service form submission
   document.getElementById('updateServiceForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    const serviceId = document.getElementById('updateServiceId').value;
-    const updatedData = {
-      serviceType: document.getElementById('updateServiceType').value.trim(),
-      serviceCost: parseFloat(document.getElementById('updateServiceCost').value),
-      serviceRemark: document.getElementById('updateServiceRemark').value.trim(),
-      serviceStatus: document.getElementById('updateServiceStatus').value,
-      staffId: document.getElementById('updateStaffId').value.trim()
-    };
-    
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === serviceId) {
-        const cells = row.querySelectorAll('td');
-        cells[1].textContent = updatedData.serviceType;
-        cells[2].textContent = 'RM ' + updatedData.serviceCost.toFixed(0);
-        cells[3].textContent = updatedData.serviceRemark;
-        cells[4].textContent = updatedData.serviceStatus;
-        cells[5].textContent = updatedData.staffId;
-        
-        row.setAttribute('data-type', updatedData.serviceType);
-        row.setAttribute('data-cost', updatedData.serviceCost);
-        
-        allRows = Array.from(tableBody.querySelectorAll('tr'));
-        closeUpdateModal();
-        alert('Service details updated successfully!');
-        return;
+
+    const formData = new FormData();
+    formData.append('action', 'update');
+    formData.append('serviceId', document.getElementById('updateServiceId').value);
+    formData.append('serviceType', document.getElementById('updateServiceType').value.trim());
+    formData.append('serviceCost', document.getElementById('updateServiceCost').value);
+    formData.append('serviceRemark', document.getElementById('updateServiceRemark').value.trim());
+    formData.append('serviceStatus', document.getElementById('updateServiceStatus').value);
+    formData.append('staffId', document.getElementById('updateStaffId').value);
+
+    fetch('service.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert(data.message);
       }
-    });
+    })
+    .catch(error => alert('Error updating service: ' + error));
   });
   </script>
 </body>

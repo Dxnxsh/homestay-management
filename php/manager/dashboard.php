@@ -1,7 +1,164 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
-requireManagerLogin();
+require_once '../config/db_connection.php';
+requireStaffLogin();
+
+// Initialize variables
+$totalGuests = 0;
+$newGuests = 0;
+$totalStaff = 0;
+$pendingBookings = 0;
+$totalHomestays = 0;
+$recentGuests = [];
+$homestayOccupancy = [];
+$monthlyRevenue = 0;
+$lastMonthRevenue = 0;
+
+// Connect to database
+$conn = getDBConnection();
+
+if ($conn) {
+    // Get total guests
+    $sql = "SELECT COUNT(*) as total FROM GUEST";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        $row = oci_fetch_array($stmt, OCI_ASSOC);
+        $totalGuests = $row['TOTAL'] ?? 0;
+    }
+    oci_free_statement($stmt);
+
+    // Get new guests (last 30 guest IDs as proxy for recent registrations)
+    $sql = "SELECT COUNT(*) as total FROM (
+                SELECT guestID FROM GUEST ORDER BY guestID DESC
+            ) WHERE ROWNUM <= 30";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        $row = oci_fetch_array($stmt, OCI_ASSOC);
+        $newGuests = $row['TOTAL'] ?? 0;
+    }
+    oci_free_statement($stmt);
+
+    // Get total staff
+    $sql = "SELECT COUNT(*) as total FROM STAFF";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        $row = oci_fetch_array($stmt, OCI_ASSOC);
+        $totalStaff = $row['TOTAL'] ?? 0;
+    }
+    oci_free_statement($stmt);
+
+    // Get pending bookings (bills not paid)
+    $sql = "SELECT COUNT(*) as total 
+            FROM BOOKING b
+            LEFT JOIN BILL bl ON b.billNo = bl.billNo
+            WHERE b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID'";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        $row = oci_fetch_array($stmt, OCI_ASSOC);
+        $pendingBookings = $row['TOTAL'] ?? 0;
+    }
+    oci_free_statement($stmt);
+
+    // Get total homestays
+    $sql = "SELECT COUNT(*) as total FROM HOMESTAY";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        $row = oci_fetch_array($stmt, OCI_ASSOC);
+        $totalHomestays = $row['TOTAL'] ?? 0;
+    }
+    oci_free_statement($stmt);
+
+    // Get recent 5 guests (newest first)
+    $sql = "SELECT * FROM (
+                SELECT guestID, guest_name, guest_phoneNo, guest_gender, guest_email, guest_type
+                FROM GUEST
+                ORDER BY guestID DESC
+            ) WHERE ROWNUM <= 5";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+            $recentGuests[] = [
+                'id' => $row['GUESTID'],
+                'name' => $row['GUEST_NAME'],
+                'phone' => $row['GUEST_PHONENO'] ?? 'N/A',
+                'gender' => $row['GUEST_GENDER'] ?? 'N/A',
+                'email' => $row['GUEST_EMAIL'],
+                'type' => $row['GUEST_TYPE'] ?? 'Regular'
+            ];
+        }
+    }
+    oci_free_statement($stmt);
+
+    // Get homestay occupancy for current month
+    $sql = "SELECT h.homestayID, h.homestay_name, 
+                   COUNT(DISTINCT b.bookingID) as current_bookings
+            FROM HOMESTAY h
+            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
+                AND EXTRACT(MONTH FROM b.checkin_date) = EXTRACT(MONTH FROM SYSDATE)
+                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE)
+            GROUP BY h.homestayID, h.homestay_name
+            ORDER BY h.homestayID";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+            $homestayOccupancy[] = [
+                'id' => $row['HOMESTAYID'],
+                'name' => $row['HOMESTAY_NAME'],
+                'current' => $row['CURRENT_BOOKINGS'] ?? 0
+            ];
+        }
+    }
+    oci_free_statement($stmt);
+
+    // Get last month occupancy for comparison
+    $sql = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings
+            FROM HOMESTAY h
+            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
+                AND EXTRACT(MONTH FROM b.checkin_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
+                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
+            GROUP BY h.homestayID
+            ORDER BY h.homestayID";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        $i = 0;
+        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+            if (isset($homestayOccupancy[$i])) {
+                $homestayOccupancy[$i]['last'] = $row['LAST_BOOKINGS'] ?? 0;
+            }
+            $i++;
+        }
+    }
+    oci_free_statement($stmt);
+
+    // Get current month revenue
+    $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
+            FROM BILL
+            WHERE EXTRACT(MONTH FROM bill_date) = EXTRACT(MONTH FROM SYSDATE)
+            AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM SYSDATE)
+            AND UPPER(bill_status) = 'PAID'";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        $row = oci_fetch_array($stmt, OCI_ASSOC);
+        $monthlyRevenue = $row['REVENUE'] ?? 0;
+    }
+    oci_free_statement($stmt);
+
+    // Get last month revenue
+    $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
+            FROM BILL
+            WHERE EXTRACT(MONTH FROM bill_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
+            AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
+            AND UPPER(bill_status) = 'PAID'";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        $row = oci_fetch_array($stmt, OCI_ASSOC);
+        $lastMonthRevenue = $row['REVENUE'] ?? 0;
+    }
+    oci_free_statement($stmt);
+
+    closeDBConnection($conn);
+}
 ?>
 
 <!DOCTYPE html>
@@ -41,7 +198,9 @@ requireManagerLogin();
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
+          <?php if (isManager()): ?>
           <li><a href="staff.php">Staff</a></li>
+          <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
       </li>
@@ -114,8 +273,8 @@ requireManagerLogin();
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
         <div class="header-profile-info">
-          <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Manager'); ?></div>
-          <div class="header-profile-job">Manager</div>
+          <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Staff'); ?></div>
+          <div class="header-profile-job"><?php echo htmlspecialchars($_SESSION['staff_type'] ?? 'Staff'); ?></div>
         </div>
       </div>
     </div>
@@ -132,7 +291,7 @@ requireManagerLogin();
         <a href="guests.php" class="sub-content1">
           <div class="subcard">
             <div class="subcard-number">
-              67
+              <?php echo $totalGuests; ?>
             </div>
             <div class="subcard-text">
               Current Guests
@@ -143,7 +302,7 @@ requireManagerLogin();
         <a href="guests.php" class="sub-content1">
           <div class="subcard">
             <div class="subcard-number">
-              8
+              <?php echo $newGuests; ?>
             </div>
             <div class="subcard-text">
               New Guests
@@ -154,7 +313,7 @@ requireManagerLogin();
         <a href="staff.php" class="sub-content1"> 
           <div class="subcard">
             <div class="subcard-number">
-              14
+              <?php echo $totalStaff; ?>
             </div>
             <div class="subcard-text">
               Total Staff
@@ -165,7 +324,7 @@ requireManagerLogin();
         <a href="bookings.php" class="sub-content1">
           <div class="subcard">
             <div class="subcard-number">
-              69
+              <?php echo $pendingBookings; ?>
             </div>
             <div class="subcard-text">
               Pending Bookings
@@ -176,7 +335,7 @@ requireManagerLogin();
         <a href="homestay.php" class="sub-content1">
           <div class="subcard">
             <div class="subcard-number">
-              5
+              <?php echo $totalHomestays; ?>
             </div>
             <div class="subcard-text">
               Total Homestay
@@ -246,46 +405,22 @@ requireManagerLogin();
               </tr>
             </thead>
             <tbody>
+              <?php if (empty($recentGuests)): ?>
               <tr>
-                <td>G001</td>
-                <td>Ahmad bin Abdullah</td>
-                <td>+6012-345-6789</td>
-                <td>Male</td>
-                <td>ahmad.abdullah@email.com</td>
-                <td>Regular</td>
+                <td colspan="6" style="text-align: center; padding: 20px;">No guests found</td>
               </tr>
+              <?php else: ?>
+                <?php foreach ($recentGuests as $guest): ?>
               <tr>
-                <td>G002</td>
-                <td>Siti Nurhaliza</td>
-                <td>+6013-456-7890</td>
-                <td>Female</td>
-                <td>siti.nurhaliza@email.com</td>
-                <td>VIP</td>
+                <td>G<?php echo str_pad($guest['id'], 3, '0', STR_PAD_LEFT); ?></td>
+                <td><?php echo htmlspecialchars($guest['name']); ?></td>
+                <td><?php echo htmlspecialchars($guest['phone']); ?></td>
+                <td><?php echo htmlspecialchars($guest['gender']); ?></td>
+                <td><?php echo htmlspecialchars($guest['email']); ?></td>
+                <td><?php echo htmlspecialchars($guest['type']); ?></td>
               </tr>
-              <tr>
-                <td>G003</td>
-                <td>Lim Wei Ming</td>
-                <td>+6014-567-8901</td>
-                <td>Male</td>
-                <td>lim.weiming@email.com</td>
-                <td>Regular</td>
-              </tr>
-              <tr>
-                <td>G004</td>
-                <td>Fatimah binti Hassan</td>
-                <td>+6015-678-9012</td>
-                <td>Female</td>
-                <td>fatimah.hassan@email.com</td>
-                <td>Regular</td>
-              </tr>
-              <tr>
-                <td>G005</td>
-                <td>Tan Mei Ling</td>
-                <td>+6016-789-0123</td>
-                <td>Female</td>
-                <td>tan.meiling@email.com</td>
-                <td>VIP</td>
-              </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
@@ -301,6 +436,11 @@ requireManagerLogin();
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
+  // PHP data to JavaScript
+  const homestayOccupancy = <?php echo json_encode($homestayOccupancy); ?>;
+  const currentMonthRevenue = <?php echo $monthlyRevenue; ?>;
+  const lastMonthRevenue = <?php echo $lastMonthRevenue; ?>;
+
   let arrow = document.querySelectorAll(".arrow");
   for (var i = 0; i < arrow.length; i++) {
     arrow[i].addEventListener("click", (e)=>{
@@ -326,8 +466,9 @@ requireManagerLogin();
 
   const chartCanvas = document.getElementById("houseComparisonChart");
   if (chartCanvas) {
-    const houseLabels = ["House 1", "House 2", "House 3", "House 4", "House 5"];
-    const currentMonthValues = [18, 22, 15, 27, 19];
+    const houseLabels = homestayOccupancy.map(h => h.name);
+    const currentMonthValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
+    const lastMonthValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
     const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];
 
     new Chart(chartCanvas, {
@@ -343,7 +484,7 @@ requireManagerLogin();
           },
           {
             label: "Last Month",
-            data: [24, 28, 20, 30, 24],
+            data: lastMonthValues,
             backgroundColor: "#d9d9d9",
             barThickness: 24,
           },
@@ -380,14 +521,14 @@ requireManagerLogin();
     const pieCanvas = document.getElementById("housePieChart");
     const pieLegend = document.getElementById("housePieLegend");
 
-    if (pieCanvas) {
+    if (pieCanvas && currentMonthValues.some(v => v > 0)) {
       new Chart(pieCanvas, {
         type: "pie",
         data: {
           labels: houseLabels,
           datasets: [{
             data: currentMonthValues,
-            backgroundColor: pieColors,
+            backgroundColor: pieColors.slice(0, houseLabels.length),
             borderColor: "#ffffff",
             borderWidth: 2,
           }],
@@ -410,7 +551,7 @@ requireManagerLogin();
           <span class="legend-dot" style="background-color:${pieColors[index]}"></span>
           <div class="legend-info">
             <strong>${label}</strong>
-            <span>${currentMonthValues[index]} guests</span>
+            <span>${currentMonthValues[index]} bookings</span>
           </div>
         </li>
       `).join("");
@@ -423,10 +564,6 @@ requireManagerLogin();
   const totalRevenueSpan = document.getElementById("totalRevenue");
   
   if (monthlyRevenueOuterCanvas && monthlyRevenueInnerCanvas) {
-    // Sample data - replace with actual data
-    const currentMonthRevenue = 125000;
-    const lastMonthRevenue = 110000;
-    
     // Update the center text with current month revenue
     if (totalRevenueSpan) {
       totalRevenueSpan.textContent = currentMonthRevenue.toLocaleString();
@@ -441,7 +578,7 @@ requireManagerLogin();
       data: {
         datasets: [{
           label: 'Current Month',
-          data: [currentMonthRevenue, maxValue - currentMonthRevenue],
+          data: [currentMonthRevenue, Math.max(0, maxValue - currentMonthRevenue)],
           backgroundColor: ['#00bf63', 'rgba(0, 191, 99, 0.15)'],
           borderWidth: 0,
         }]
@@ -478,7 +615,7 @@ requireManagerLogin();
       data: {
         datasets: [{
           label: 'Last Month',
-          data: [lastMonthRevenue, maxValue - lastMonthRevenue],
+          data: [lastMonthRevenue, Math.max(0, maxValue - lastMonthRevenue)],
           backgroundColor: ['#38b6ff', 'rgba(217, 217, 217, 0.15)'],
           borderWidth: 0,
         }]

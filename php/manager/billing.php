@@ -1,7 +1,128 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
-requireManagerLogin();
+require_once '../config/db_connection.php';
+requireStaffLogin();
+
+// Get database connection
+$conn = getDBConnection();
+if (!$conn) {
+    die("Database connection failed. Please try again later.");
+}
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    
+    if ($_POST['action'] === 'update') {
+        $billNo = $_POST['billNo'];
+        $billDate = $_POST['billDate'];
+        $subtotal = $_POST['subtotal'];
+        $discAmount = $_POST['discAmount'];
+        $taxAmount = $_POST['taxAmount'];
+        $totalAmount = $_POST['totalAmount'];
+        $lateCharges = $_POST['lateCharges'];
+        $status = $_POST['status'];
+        $paymentDate = !empty($_POST['paymentDate']) ? $_POST['paymentDate'] : null;
+        $paymentMethod = $_POST['paymentMethod'];
+        $guestID = $_POST['guestId'];
+        $staffID = $_POST['staffId'];
+        
+        $sql = "UPDATE BILL SET 
+                bill_date = TO_DATE(:billDate, 'YYYY-MM-DD'),
+                bill_subtotal = :subtotal,
+                disc_amount = :discAmount,
+                tax_amount = :taxAmount,
+                total_amount = :totalAmount,
+                late_charges = :lateCharges,
+                bill_status = :status,
+                payment_date = " . ($paymentDate ? "TO_DATE(:paymentDate, 'YYYY-MM-DD')" : "NULL") . ",
+                payment_method = :paymentMethod,
+                guestID = :guestID,
+                staffID = :staffID
+                WHERE billNo = :billNo";
+        
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':billDate', $billDate);
+        oci_bind_by_name($stmt, ':subtotal', $subtotal);
+        oci_bind_by_name($stmt, ':discAmount', $discAmount);
+        oci_bind_by_name($stmt, ':taxAmount', $taxAmount);
+        oci_bind_by_name($stmt, ':totalAmount', $totalAmount);
+        oci_bind_by_name($stmt, ':lateCharges', $lateCharges);
+        oci_bind_by_name($stmt, ':status', $status);
+        if ($paymentDate) {
+            oci_bind_by_name($stmt, ':paymentDate', $paymentDate);
+        }
+        oci_bind_by_name($stmt, ':paymentMethod', $paymentMethod);
+        oci_bind_by_name($stmt, ':guestID', $guestID);
+        oci_bind_by_name($stmt, ':staffID', $staffID);
+        oci_bind_by_name($stmt, ':billNo', $billNo);
+        
+        if (oci_execute($stmt)) {
+            echo json_encode(['success' => true, 'message' => 'Bill updated successfully']);
+        } else {
+            $error = oci_error($stmt);
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+        }
+        oci_free_statement($stmt);
+        exit;
+    }
+    
+    if ($_POST['action'] === 'delete') {
+        $billNo = $_POST['billNo'];
+        
+        $sql = "DELETE FROM BILL WHERE billNo = :billNo";
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':billNo', $billNo);
+        
+        if (oci_execute($stmt)) {
+            echo json_encode(['success' => true, 'message' => 'Bill deleted successfully']);
+        } else {
+            $error = oci_error($stmt);
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+        }
+        oci_free_statement($stmt);
+        exit;
+    }
+    
+    if ($_POST['action'] === 'updateStatus') {
+        $billNo = $_POST['billNo'];
+        $status = $_POST['status'];
+        $paymentDate = ($status === 'Paid') ? date('Y-m-d') : null;
+        
+        $sql = "UPDATE BILL SET 
+                bill_status = :status,
+                payment_date = " . ($paymentDate ? "TO_DATE(:paymentDate, 'YYYY-MM-DD')" : "NULL") . "
+                WHERE billNo = :billNo";
+        
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':status', $status);
+        if ($paymentDate) {
+            oci_bind_by_name($stmt, ':paymentDate', $paymentDate);
+        }
+        oci_bind_by_name($stmt, ':billNo', $billNo);
+        
+        if (oci_execute($stmt)) {
+            echo json_encode(['success' => true, 'message' => 'Bill status updated successfully']);
+        } else {
+            $error = oci_error($stmt);
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+        }
+        oci_free_statement($stmt);
+        exit;
+    }
+}
+
+// Fetch all bills
+$sql = "SELECT billNo, TO_CHAR(bill_date, 'YYYY-MM-DD') as bill_date, bill_subtotal, disc_amount, tax_amount, total_amount, late_charges, bill_status, TO_CHAR(payment_date, 'YYYY-MM-DD') as payment_date, payment_method, guestID, staffID FROM BILL ORDER BY billNo DESC";
+$stmt = oci_parse($conn, $sql);
+oci_execute($stmt);
+
+$bills = [];
+while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+    $bills[] = $row;
+}
+oci_free_statement($stmt);
 ?>
 
 <!DOCTYPE html>
@@ -40,7 +161,9 @@ requireManagerLogin();
           <ul class="sub-menu">
             <li><a class="link_name" href="manage.php">Manage</a></li>
             <li><a href="guests.php">Guests</a></li>
+            <?php if (isManager()): ?>
             <li><a href="staff.php">Staff</a></li>
+            <?php endif; ?>
             <li><a href="homestay.php">Homestay</a></li>
           </ul>
         </li>
@@ -177,90 +300,39 @@ requireManagerLogin();
             </tr>
           </thead>
           <tbody id="billingTableBody">
-            <tr data-date="2025-01-15" data-amount="1500" data-status="Paid" data-subtotal="1400" data-disc="50" data-tax="100" data-late="50" data-payment-date="2025-01-15">
-              <td>B001</td>
-              <td>2025-01-15</td>
-              <td>RM 1,500</td>
+            <?php foreach ($bills as $bill): ?>
+            <tr data-date="<?php echo htmlspecialchars($bill['BILL_DATE']); ?>" 
+                data-amount="<?php echo htmlspecialchars($bill['TOTAL_AMOUNT']); ?>" 
+                data-status="<?php echo htmlspecialchars($bill['BILL_STATUS']); ?>"
+                data-subtotal="<?php echo htmlspecialchars($bill['BILL_SUBTOTAL']); ?>"
+                data-disc="<?php echo htmlspecialchars($bill['DISC_AMOUNT']); ?>"
+                data-tax="<?php echo htmlspecialchars($bill['TAX_AMOUNT']); ?>"
+                data-late="<?php echo htmlspecialchars($bill['LATE_CHARGES']); ?>"
+                data-payment-date="<?php echo htmlspecialchars($bill['PAYMENT_DATE'] ?? ''); ?>">
+              <td><?php echo htmlspecialchars($bill['BILLNO']); ?></td>
+              <td><?php echo htmlspecialchars($bill['BILL_DATE']); ?></td>
+              <td>RM <?php echo number_format($bill['TOTAL_AMOUNT'], 2); ?></td>
               <td>
-                <select class="status-select" onchange="quickChangeStatus('B001', this.value)">
-                  <option value="Paid" selected>Paid</option>
-                  <option value="Pending">Pending</option>
+                <select class="status-select" 
+                        data-status="<?php echo htmlspecialchars($bill['BILL_STATUS']); ?>"
+                        style="background: <?php echo $bill['BILL_STATUS'] === 'Paid' ? '#e8f5e9' : '#fff3e0'; ?>; color: <?php echo $bill['BILL_STATUS'] === 'Paid' ? '#00bf63' : '#ff9800'; ?>;"
+                        onchange="quickChangeStatus('<?php echo $bill['BILLNO']; ?>', this.value)">
+                  <option value="Paid" <?php echo $bill['BILL_STATUS'] === 'Paid' ? 'selected' : ''; ?>>Paid</option>
+                  <option value="Pending" <?php echo $bill['BILL_STATUS'] === 'Pending' ? 'selected' : ''; ?>>Pending</option>
                 </select>
               </td>
-              <td>Bank in</td>
-              <td>G001</td>
-              <td>S001</td>
+              <td><?php echo htmlspecialchars($bill['PAYMENT_METHOD'] ?? 'N/A'); ?></td>
+              <td><?php echo htmlspecialchars($bill['GUESTID'] ?? 'N/A'); ?></td>
+              <td><?php echo htmlspecialchars($bill['STAFFID'] ?? 'N/A'); ?></td>
               <td>
-                <button class="btn-details" onclick="viewBillDetails('B001')">Details</button>
+                <button class="btn-details" onclick="viewBillDetails('<?php echo $bill['BILLNO']; ?>')">Details</button>
               </td>
               <td>
-                <button class="btn-update" onclick="updateBill('B001')">Update</button>
-                <button class="btn-delete" onclick="deleteBill('B001')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-01-20" data-amount="1350" data-status="Pending" data-subtotal="1300" data-disc="30" data-tax="80" data-late="0" data-payment-date="">
-              <td>B002</td>
-              <td>2025-01-20</td>
-              <td>RM 1,350</td>
-              <td>
-                <select class="status-select" data-status="Pending" style="background: #fff3e0; color: #ff9800;" onchange="quickChangeStatus('B002', this.value)">
-                  <option value="Paid">Paid</option>
-                  <option value="Pending" selected>Pending</option>
-                </select>
-              </td>
-              <td>Cash</td>
-              <td>G002</td>
-              <td>S002</td>
-              <td>
-                <button class="btn-details" onclick="viewBillDetails('B002')">Details</button>
-              </td>
-              <td>
-                <button class="btn-update" onclick="updateBill('B002')">Update</button>
-                <button class="btn-delete" onclick="deleteBill('B002')">Delete</button>
+                <button class="btn-update" onclick="updateBill('<?php echo $bill['BILLNO']; ?>')">Update</button>
+                <button class="btn-delete" onclick="deleteBill('<?php echo $bill['BILLNO']; ?>')">Delete</button>
               </td>
             </tr>
-            <tr data-date="2025-01-25" data-amount="1200" data-status="Paid" data-subtotal="1150" data-disc="20" data-tax="70" data-late="0" data-payment-date="2025-01-25">
-              <td>B003</td>
-              <td>2025-01-25</td>
-              <td>RM 1,200</td>
-              <td>
-                <select class="status-select" data-status="Paid" style="background: #e8f5e9; color: #00bf63;" onchange="quickChangeStatus('B003', this.value)">
-                  <option value="Paid" selected>Paid</option>
-                  <option value="Pending">Pending</option>
-                </select>
-              </td>
-              <td>Bank in</td>
-              <td>G003</td>
-              <td>S001</td>
-              <td>
-                <button class="btn-details" onclick="viewBillDetails('B003')">Details</button>
-              </td>
-              <td>
-                <button class="btn-update" onclick="updateBill('B003')">Update</button>
-                <button class="btn-delete" onclick="deleteBill('B003')">Delete</button>
-              </td>
-            </tr>
-            <tr data-date="2025-02-01" data-amount="1650" data-status="Pending" data-subtotal="1600" data-disc="40" data-tax="90" data-late="0" data-payment-date="">
-              <td>B004</td>
-              <td>2025-02-01</td>
-              <td>RM 1,650</td>
-              <td>
-                <select class="status-select" data-status="Pending" style="background: #fff3e0; color: #ff9800;" onchange="quickChangeStatus('B004', this.value)">
-                  <option value="Paid">Paid</option>
-                  <option value="Pending" selected>Pending</option>
-                </select>
-              </td>
-              <td>Cash</td>
-              <td>G004</td>
-              <td>S002</td>
-              <td>
-                <button class="btn-details" onclick="viewBillDetails('B004')">Details</button>
-              </td>
-              <td>
-                <button class="btn-update" onclick="updateBill('B004')">Update</button>
-                <button class="btn-delete" onclick="deleteBill('B004')">Delete</button>
-              </td>
-            </tr>
+            <?php endforeach; ?>
           </tbody>
           </table>
         </div>
@@ -640,62 +712,36 @@ requireManagerLogin();
       document.getElementById('updateBillForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const billNo = document.getElementById('updateBillNo').value;
-        const updatedData = {
-          billDate: document.getElementById('updateBillDate').value,
-          subtotal: parseFloat(document.getElementById('updateSubtotal').value),
-          discAmount: parseFloat(document.getElementById('updateDiscAmount').value),
-          taxAmount: parseFloat(document.getElementById('updateTaxAmount').value),
-          lateCharges: parseFloat(document.getElementById('updateLateCharges').value),
-          amount: parseFloat(document.getElementById('updateAmount').value),
-          status: document.getElementById('updateStatus').value,
-          paymentDate: document.getElementById('updatePaymentDate').value,
-          paymentMethod: document.getElementById('updatePaymentMethod').value,
-          guestId: document.getElementById('updateGuestId').value.trim(),
-          staffId: document.getElementById('updateStaffId').value.trim()
-        };
+        const formData = new FormData();
+        formData.append('action', 'update');
+        formData.append('billNo', document.getElementById('updateBillNo').value);
+        formData.append('billDate', document.getElementById('updateBillDate').value);
+        formData.append('subtotal', document.getElementById('updateSubtotal').value);
+        formData.append('discAmount', document.getElementById('updateDiscAmount').value);
+        formData.append('taxAmount', document.getElementById('updateTaxAmount').value);
+        formData.append('lateCharges', document.getElementById('updateLateCharges').value);
+        formData.append('totalAmount', document.getElementById('updateAmount').value);
+        formData.append('status', document.getElementById('updateStatus').value);
+        formData.append('paymentDate', document.getElementById('updatePaymentDate').value);
+        formData.append('paymentMethod', document.getElementById('updatePaymentMethod').value);
+        formData.append('guestId', document.getElementById('updateGuestId').value.trim());
+        formData.append('staffId', document.getElementById('updateStaffId').value.trim());
         
-        const rows = tableBody.querySelectorAll('tr');
-        rows.forEach(row => {
-          const idCell = row.querySelector('td:first-child');
-          if (idCell && idCell.textContent.trim() === billNo) {
-            const cells = row.querySelectorAll('td');
-            cells[1].textContent = updatedData.billDate;
-            cells[2].textContent = 'RM ' + updatedData.amount.toLocaleString();
-            
-            // Update the status dropdown
-            const statusSelect = cells[3].querySelector('.status-select');
-            if (statusSelect) {
-              statusSelect.value = updatedData.status;
-              statusSelect.setAttribute('data-status', updatedData.status);
-              // Update background color based on status
-              if (updatedData.status === 'Paid') {
-                statusSelect.style.background = '#e8f5e9';
-                statusSelect.style.color = '#00bf63';
-              } else {
-                statusSelect.style.background = '#fff3e0';
-                statusSelect.style.color = '#ff9800';
-              }
-            }
-            
-            cells[4].textContent = updatedData.paymentMethod;
-            cells[5].textContent = updatedData.guestId;
-            cells[6].textContent = updatedData.staffId;
-            
-            row.setAttribute('data-date', updatedData.billDate);
-            row.setAttribute('data-amount', updatedData.amount);
-            row.setAttribute('data-status', updatedData.status);
-            row.setAttribute('data-subtotal', updatedData.subtotal);
-            row.setAttribute('data-disc', updatedData.discAmount);
-            row.setAttribute('data-tax', updatedData.taxAmount);
-            row.setAttribute('data-late', updatedData.lateCharges);
-            row.setAttribute('data-payment-date', updatedData.paymentDate || '');
-            
-            allRows = Array.from(tableBody.querySelectorAll('tr'));
-            closeUpdateModal();
-            alert('Bill details updated successfully!');
-            return;
+        fetch('billing.php', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert(data.message);
+            location.reload();
+          } else {
+            alert(data.message);
           }
+        })
+        .catch(error => {
+          alert('Error updating bill: ' + error);
         });
       });
 
@@ -711,55 +757,49 @@ requireManagerLogin();
       }
 
       function deleteBill(billNo) {
-        if (confirm('Are you sure you want to delete bill ' + billNo + '?')) {
-          const rows = tableBody.querySelectorAll('tr');
-          rows.forEach(row => {
-            const idCell = row.querySelector('td:first-child');
-            if (idCell && idCell.textContent.trim() === billNo) {
-              row.remove();
-              allRows = Array.from(tableBody.querySelectorAll('tr'));
-              alert('Bill deleted successfully!');
-              return;
+        if (confirm('Are you sure you want to delete bill ' + billNo + '? This action cannot be undone.')) {
+          const formData = new FormData();
+          formData.append('action', 'delete');
+          formData.append('billNo', billNo);
+          
+          fetch('billing.php', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            alert(data.message);
+            if (data.success) {
+              location.reload();
             }
+          })
+          .catch(error => {
+            alert('Error deleting bill: ' + error);
           });
         }
       }
 
       function quickChangeStatus(billNo, newStatus) {
-        const rows = tableBody.querySelectorAll('tr');
-        rows.forEach(row => {
-          const idCell = row.querySelector('td:first-child');
-          if (idCell && idCell.textContent.trim() === billNo) {
-            // Update the data-status attribute
-            row.setAttribute('data-status', newStatus);
-            
-            // Update the select dropdown background color
-            const statusSelect = row.querySelector('.status-select');
-            if (statusSelect) {
-              statusSelect.setAttribute('data-status', newStatus);
-              if (newStatus === 'Paid') {
-                statusSelect.style.background = '#e8f5e9';
-                statusSelect.style.color = '#00bf63';
-              } else {
-                statusSelect.style.background = '#fff3e0';
-                statusSelect.style.color = '#ff9800';
-              }
-            }
-            
-            // If changing to Paid and no payment date exists, set today's date
-            if (newStatus === 'Paid' && !row.getAttribute('data-payment-date')) {
-              const today = new Date().toISOString().split('T')[0];
-              row.setAttribute('data-payment-date', today);
-            }
-            
-            // If changing to Pending, clear payment date
-            if (newStatus === 'Pending') {
-              row.setAttribute('data-payment-date', '');
-            }
-            
-            alert('Bill status updated to ' + newStatus + '!');
-            return;
+        const formData = new FormData();
+        formData.append('action', 'updateStatus');
+        formData.append('billNo', billNo);
+        formData.append('status', newStatus);
+        
+        fetch('billing.php', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert(data.message);
+            location.reload();
+          } else {
+            alert(data.message);
           }
+        })
+        .catch(error => {
+          alert('Error updating status: ' + error);
         });
       }
     </script>
