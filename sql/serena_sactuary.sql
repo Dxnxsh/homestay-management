@@ -118,7 +118,6 @@ CREATE TABLE SERVICE (
     service_type   VARCHAR(50),
     service_cost   DECIMAL(10,2),
     service_remark VARCHAR(200),
-    service_status VARCHAR(20),
     staffID        INT,
     FOREIGN KEY (staffID) REFERENCES STAFF(staffID)
 );
@@ -130,6 +129,7 @@ CREATE TABLE HOMESTAY_SERVICE (
     homestayID  INT,
     serviceID   INT,
     main_date   DATE,
+    main_status VARCHAR(20),
     PRIMARY KEY (homestayID, serviceID),
     FOREIGN KEY (homestayID) REFERENCES HOMESTAY(homestayID),
     FOREIGN KEY (serviceID) REFERENCES SERVICE(serviceID)

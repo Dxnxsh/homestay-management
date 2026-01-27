@@ -17,17 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $serviceType = $_POST['serviceType'];
     $serviceCost = $_POST['serviceCost'];
     $serviceRemark = $_POST['serviceRemark'];
-    $serviceStatus = $_POST['serviceStatus'];
     $staffID = !empty($_POST['staffId']) ? $_POST['staffId'] : null;
 
-    $sql = "INSERT INTO SERVICE (serviceID, service_type, service_cost, service_remark, service_status, staffID)
-            VALUES (:id, :type, :cost, :remark, :status, :staffID)";
+    $sql = "INSERT INTO SERVICE (serviceID, service_type, service_cost, service_remark, staffID)
+            VALUES (:id, :type, :cost, :remark, :staffID)";
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':id', $serviceID);
     oci_bind_by_name($stmt, ':type', $serviceType);
     oci_bind_by_name($stmt, ':cost', $serviceCost);
     oci_bind_by_name($stmt, ':remark', $serviceRemark);
-    oci_bind_by_name($stmt, ':status', $serviceStatus);
     oci_bind_by_name($stmt, ':staffID', $staffID);
 
     if (oci_execute($stmt)) {
@@ -45,16 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $serviceType = $_POST['serviceType'];
     $serviceCost = $_POST['serviceCost'];
     $serviceRemark = $_POST['serviceRemark'];
-    $serviceStatus = $_POST['serviceStatus'];
     $staffID = !empty($_POST['staffId']) ? $_POST['staffId'] : null;
 
     $sql = "UPDATE SERVICE SET service_type = :type, service_cost = :cost, service_remark = :remark,
-            service_status = :status, staffID = :staffID WHERE serviceID = :id";
+            staffID = :staffID WHERE serviceID = :id";
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':type', $serviceType);
     oci_bind_by_name($stmt, ':cost', $serviceCost);
     oci_bind_by_name($stmt, ':remark', $serviceRemark);
-    oci_bind_by_name($stmt, ':status', $serviceStatus);
     oci_bind_by_name($stmt, ':staffID', $staffID);
     oci_bind_by_name($stmt, ':id', $serviceID);
 
@@ -99,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 $services = [];
-$serviceSql = "SELECT serviceID, service_type, service_cost, service_remark, service_status, staffID FROM SERVICE ORDER BY serviceID DESC";
+$serviceSql = "SELECT serviceID, service_type, service_cost, service_remark, staffID FROM SERVICE ORDER BY serviceID DESC";
 $serviceStmt = oci_parse($conn, $serviceSql);
 oci_execute($serviceStmt);
 while ($row = oci_fetch_array($serviceStmt, OCI_ASSOC)) {
@@ -284,14 +280,13 @@ oci_close($conn);
               <th>Service Type</th>
               <th>Service Cost</th>
               <th>Service Remark</th>
-              <th>Service Status</th>
               <th>Staff ID</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="servicesTableBody">
             <?php if (empty($services)): ?>
-              <tr><td colspan="7" style="text-align:center; padding:14px;">No services found.</td></tr>
+              <tr><td colspan="6" style="text-align:center; padding:14px;">No services found.</td></tr>
             <?php else: ?>
               <?php foreach ($services as $service): ?>
                 <tr data-type="<?php echo htmlspecialchars($service['SERVICE_TYPE']); ?>" data-cost="<?php echo htmlspecialchars($service['SERVICE_COST']); ?>">
@@ -299,7 +294,6 @@ oci_close($conn);
                   <td><?php echo htmlspecialchars($service['SERVICE_TYPE']); ?></td>
                   <td>RM <?php echo number_format((float)$service['SERVICE_COST'], 2, '.', ''); ?></td>
                   <td><?php echo htmlspecialchars($service['SERVICE_REMARK']); ?></td>
-                  <td><?php echo htmlspecialchars($service['SERVICE_STATUS']); ?></td>
                   <td><?php echo htmlspecialchars($service['STAFFID'] ?? 'N/A'); ?></td>
                   <td>
                     <button class="btn-update" onclick="updateService('<?php echo htmlspecialchars($service['SERVICEID']); ?>')">Update</button>
@@ -345,13 +339,6 @@ oci_close($conn);
           <textarea id="addServiceRemark" name="serviceRemark" rows="3" required></textarea>
         </div>
         <div class="form-group">
-          <label for="addServiceStatus">Service Status</label>
-          <select id="addServiceStatus" name="serviceStatus" required>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label for="addStaffId">Staff ID</label>
           <select id="addStaffId" name="staffId" required>
             <option value="">Select Staff</option>
@@ -391,13 +378,6 @@ oci_close($conn);
         <div class="form-group">
           <label for="updateServiceRemark">Service Remark</label>
           <textarea id="updateServiceRemark" name="serviceRemark" rows="3" required></textarea>
-        </div>
-        <div class="form-group">
-          <label for="updateServiceStatus">Service Status</label>
-          <select id="updateServiceStatus" name="serviceStatus" required>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
         </div>
         <div class="form-group">
           <label for="updateStaffId">Staff ID</label>
@@ -533,15 +513,13 @@ oci_close($conn);
       serviceType: cells[1].textContent.trim(),
       serviceCost: cells[2].textContent.trim().replace('RM', '').trim(),
       serviceRemark: cells[3].textContent.trim(),
-      serviceStatus: cells[4].textContent.trim(),
-      staffId: cells[5].textContent.trim()
+      staffId: cells[4].textContent.trim()
     };
     
     document.getElementById('updateServiceId').value = currentData.serviceId;
     document.getElementById('updateServiceType').value = currentData.serviceType;
     document.getElementById('updateServiceCost').value = currentData.serviceCost;
     document.getElementById('updateServiceRemark').value = currentData.serviceRemark;
-    document.getElementById('updateServiceStatus').value = currentData.serviceStatus;
     document.getElementById('updateStaffId').value = currentData.staffId;
     
     document.getElementById('updateModal').setAttribute('data-target-row', serviceId);
@@ -607,7 +585,6 @@ oci_close($conn);
     formData.append('serviceType', document.getElementById('addServiceType').value.trim());
     formData.append('serviceCost', document.getElementById('addServiceCost').value);
     formData.append('serviceRemark', document.getElementById('addServiceRemark').value.trim());
-    formData.append('serviceStatus', document.getElementById('addServiceStatus').value);
     formData.append('staffId', document.getElementById('addStaffId').value);
 
     fetch('service.php', {
@@ -636,7 +613,6 @@ oci_close($conn);
     formData.append('serviceType', document.getElementById('updateServiceType').value.trim());
     formData.append('serviceCost', document.getElementById('updateServiceCost').value);
     formData.append('serviceRemark', document.getElementById('updateServiceRemark').value.trim());
-    formData.append('serviceStatus', document.getElementById('updateServiceStatus').value);
     formData.append('staffId', document.getElementById('updateStaffId').value);
 
     fetch('service.php', {
