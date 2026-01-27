@@ -258,7 +258,7 @@ if ($conn) {
       <li>
         <div class="profile-details">
           <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
-            <i class='bx bx-log-out' style="font-size: 24px; margin-right: 10px;"></i>
+            <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
         </div>

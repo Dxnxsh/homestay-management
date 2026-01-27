@@ -135,47 +135,48 @@ oci_free_statement($stmt);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
-    <div class="sidebar close">
-      <div class="logo-details">
-        <img src="../../images/logo.png" alt="Serena Sanctuary logo" class="logo-icon">
-        <span class="logo_name">Serena Sanctuary</span>
-      </div>
-      <ul class="nav-links">
-        <li>
-          <a href="dashboard.php">
-            <i class='bxr  bx-dashboard'></i>
-            <span class="link_name">Dashboard</span>
+      <!-- Sidebar -->
+  <div class="sidebar close">
+    <div class="logo-details">
+      <img src="../../images/logo.png" alt="Serena Sanctuary logo" class="logo-icon">
+      <span class="logo_name">Serena Sanctuary</span>
+    </div>
+    <ul class="nav-links">
+      <li>
+        <a href="dashboard.php">
+          <i class='bxr  bx-dashboard'></i> 
+          <span class="link_name">Dashboard</span>
+        </a>
+        <ul class="sub-menu blank">
+          <li><a class="link_name" href="dashboard.php">Dashboard</a></li>
+        </ul>
+      </li>
+      <li>
+        <div class="icon-link">
+          <a href="manage.php">
+            <i class='bxr  bx-list-square'></i>
+            <span class="link_name">Manage</span>
           </a>
-          <ul class="sub-menu blank">
-            <li><a class="link_name" href="dashboard.php">Dashboard</a></li>
-          </ul>
-        </li>
-        <li>
-          <div class="icon-link">
-            <a href="manage.php">
-              <i class='bxr  bx-list-square'></i>
-              <span class="link_name">Manage</span>
-            </a>
-            <i class='bx bxs-chevron-down arrow'></i>
-          </div>
-          <ul class="sub-menu">
-            <li><a class="link_name" href="manage.php">Manage</a></li>
-            <li><a href="guests.php">Guests</a></li>
-            <?php if (isManager()): ?>
-            <li><a href="staff.php">Staff</a></li>
-            <?php endif; ?>
-            <li><a href="homestay.php">Homestay</a></li>
-          </ul>
-        </li>
-        <li>
-          <a href="billing.php">
-            <i class='bxr  bx-print-dollar'></i>
-            <span class="link_name">Billing</span>
-          </a>
-          <ul class="sub-menu blank">
-            <li><a class="link_name" href="billing.php">Billing</a></li>
-          </ul>
-        </li>
+          <i class='bx bxs-chevron-down arrow' ></i>
+        </div>
+        <ul class="sub-menu">
+          <li><a class="link_name" href="manage.php">Manage</a></li>
+          <li><a href="guests.php">Guests</a></li>
+          <?php if (isManager()): ?>
+          <li><a href="staff.php">Staff</a></li>
+          <?php endif; ?>
+          <li><a href="homestay.php">Homestay</a></li>
+        </ul>
+      </li>
+      <li>
+        <a href="billing.php">
+          <i class='bxr  bx-print-dollar'></i>
+          <span class="link_name">Billing</span>
+        </a>
+        <ul class="sub-menu blank">
+          <li><a class="link_name" href="billing.php">Billing</a></li>
+        </ul>
+      </li>
       <li>
         <a href="bookings.php">
           <i class='bxr  bx-home-add'></i>
@@ -196,38 +197,38 @@ oci_free_statement($stmt);
       </li>
       <li>
         <a href="calendar.php">
-            <i class='bxr  bx-calendar-alt'></i>
-            <span class="link_name">Calendar</span>
+          <i class='bxr  bx-calendar-alt'></i> 
+          <span class="link_name">Calendar</span>
+        </a>
+        <ul class="sub-menu blank">
+          <li><a class="link_name" href="calendar.php">Calendar</a></li>
+        </ul>
+      </li>
+      <li>
+        <div class="icon-link">
+          <a href="reports.php">
+            <i class='bxr  bx-file-report'></i> 
+            <span class="link_name">Reports</span>
           </a>
-          <ul class="sub-menu blank">
-            <li><a class="link_name" href="calendar.php">Calendar</a></li>
-          </ul>
-        </li>
-        <li>
-          <div class="icon-link">
-            <a href="reports.php">
-              <i class='bxr  bx-file-report'></i>
-              <span class="link_name">Reports</span>
-            </a>
-            <i class='bx bxs-chevron-down arrow'></i>
-          </div>
-          <ul class="sub-menu">
-            <li><a class="link_name" href="reports.php">Reports</a></li>
-            <li><a href="fullReports.php">Full Reports</a></li>
-            <li><a href="summary.php">Summary</a></li>
-            <li><a href="analytics.php">Analytics</a></li>
-          </ul>
-        </li>
-                  <li>
+          <i class='bx bxs-chevron-down arrow' ></i>
+        </div>
+        <ul class="sub-menu">
+          <li><a class="link_name" href="reports.php">Reports</a></li>
+          <li><a href="fullReports.php">Full Reports</a></li>
+          <li><a href="summary.php">Summary</a></li>
+          <li><a href="analytics.php">Analytics</a></li>
+        </ul>
+      </li>
+      <li>
         <div class="profile-details">
           <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
-            <i class='bx bx-log-out' style="font-size: 24px; margin-right: 10px;"></i>
+            <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
         </div>
       </li>
-      </ul>
-    </div>
+    </ul>
+  </div>
 
     <section class="home-section">
       <div class="home-content">

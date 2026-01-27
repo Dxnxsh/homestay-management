@@ -131,6 +131,7 @@ foreach ($homestays as $homestay) {
      <meta name="viewport" content="width=device-width, initial-scale=1.0">
    </head>
 <body>
+  <!-- Sidebar -->
   <div class="sidebar close">
     <div class="logo-details">
       <img src="../../images/logo.png" alt="Serena Sanctuary logo" class="logo-icon">
@@ -214,15 +215,15 @@ foreach ($homestays as $homestay) {
           <li><a href="analytics.php">Analytics</a></li>
         </ul>
       </li>
+      <li>
         <div class="profile-details">
-          
-        <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
-            <i class='bx bx-log-out' style="font-size: 24px; margin-right: 10px;"></i>
+          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+            <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
         </div>
-  </li>
-</ul>
+      </li>
+    </ul>
   </div>
 
   <section class="home-section">

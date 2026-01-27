@@ -56,7 +56,7 @@ $sidebarConfigs = [
     ],
     'profileLogout' => [
       'href' => '../logout.php',
-      'icon' => 'bx bx-log-out',
+      'icon' => 'bx bx-arrow-out-right-square-half',
       'label' => 'Logout'
     ]
   ],

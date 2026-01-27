@@ -235,11 +235,13 @@ body {
 .sidebar .profile-details i:hover{
   opacity: 0.8;
 }
-.sidebar.close .profile-details i,
+
+/* /* .sidebar.close .profile-details i,
 .sidebar.close .profile-details .profile_name,
 .sidebar.close .profile-details .job{
   display: none;
-}
+} */ */
+
 .sidebar .profile-details .job{
   font-size: 12px;
 }
