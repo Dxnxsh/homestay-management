@@ -16,7 +16,7 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             set -e
-            cd /opt/myapp/app
+            cd /opt/myapp/app/homestay-management
             git pull --ff-only origin main
             cd /opt/myapp/infra
             docker compose up -d --remove-orphans
