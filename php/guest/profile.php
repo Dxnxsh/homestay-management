@@ -68,14 +68,17 @@ if ($conn) {
     if (oci_execute($stmt)) {
         $row = oci_fetch_array($stmt, OCI_ASSOC);
         if ($row) {
-            $guest = [
-                'name' => $row['GUEST_NAME'] ?? '',
-                'email' => $row['GUEST_EMAIL'] ?? '',
-                'phoneNo' => $row['GUEST_PHONENO'] ?? '',
-                'gender' => $row['GUEST_GENDER'] ?? '',
-                'address' => $row['GUEST_ADDRESS'] ?? '',
-                'type' => $row['GUEST_TYPE'] ?? 'Regular'
-            ];
+          // Normalize guest type to handle uppercase values stored in DB
+          $typeNormalized = strtoupper($row['GUEST_TYPE'] ?? 'REGULAR');
+
+          $guest = [
+            'name' => $row['GUEST_NAME'] ?? '',
+            'email' => $row['GUEST_EMAIL'] ?? '',
+            'phoneNo' => $row['GUEST_PHONENO'] ?? '',
+            'gender' => $row['GUEST_GENDER'] ?? '',
+            'address' => $row['GUEST_ADDRESS'] ?? '',
+            'type' => $typeNormalized
+          ];
         }
     }
     oci_free_statement($stmt);
@@ -182,8 +185,8 @@ if ($conn) {
                 <div class="form-group">
                   <label>Guest Type</label>
                   <select name="guest_type" class="form-input" disabled>
-                    <option value="Regular" <?php echo $guest['type'] === 'Regular' ? 'selected' : ''; ?>>Regular</option>
-                    <option value="Membership" <?php echo $guest['type'] === 'Membership' ? 'selected' : ''; ?>>Membership</option>
+                    <option value="Regular" <?php echo strtoupper($guest['type'] ?? '') === 'REGULAR' ? 'selected' : ''; ?>>Regular</option>
+                    <option value="Membership" <?php echo strtoupper($guest['type'] ?? '') === 'MEMBERSHIP' ? 'selected' : ''; ?>>Membership</option>
                   </select>
                 </div>
               </div>
