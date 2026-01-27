@@ -145,5 +145,3 @@ function getCurrentStaffName() {
 function getCurrentStaffEmail() {
     return isset($_SESSION['staff_email']) ? $_SESSION['staff_email'] : null;
 }
-?>
-

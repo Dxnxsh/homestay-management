@@ -42,6 +42,3 @@ function closeDBConnection($conn) {
         oci_close($conn);
     }
 }
-?>
-
-
