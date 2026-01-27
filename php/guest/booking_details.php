@@ -172,9 +172,6 @@ if ($conn && empty($errors)) {
                 <a href="generate_receipt_pdf.php?bookingID=<?php echo htmlspecialchars($booking['id']); ?>" class="btn btn-secondary" aria-label="Download PDF" title="Download PDF">
                   <i class='bx bx-printer'></i>
                 </a>
-                <?php if (!$booking['is_paid']): ?>
-                  <a class="btn btn-pay" href="booking.php?booking=<?php echo htmlspecialchars($booking['id']); ?>#depositPayment">Pay Deposit</a>
-                <?php endif; ?>
               </div><br>
               <p class="eyebrow">Booking #<?php echo htmlspecialchars($booking['id']); ?></p>
               <h1><?php echo htmlspecialchars($booking['homestay_name']); ?></h1>

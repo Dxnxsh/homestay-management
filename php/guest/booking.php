@@ -90,20 +90,25 @@ if (!$conn) {
       }
 
       if (empty($paymentErrors)) {
-        $booking_sql = "SELECT b.bookingID, b.checkin_date, b.checkout_date, b.deposit_amount,
-                                b.billNo, h.homestay_name, h.homestay_address
-                         FROM BOOKING b
-                         JOIN HOMESTAY h ON b.homestayID = h.homestayID
-                         LEFT JOIN BILL bl ON b.billNo = bl.billNo
-                         WHERE b.bookingID = :bookingID
-                           AND b.guestID = :guestID
-                           AND (b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID')";
-        $booking_stmt = oci_parse($conn, $booking_sql);
-        oci_bind_by_name($booking_stmt, ':bookingID', $selectedPaymentBookingID);
-        oci_bind_by_name($booking_stmt, ':guestID', $guestID);
-
-        if (oci_execute($booking_stmt)) {
-          $booking_row = oci_fetch_array($booking_stmt, OCI_ASSOC);
+        // Check if there's a pending booking in session for this booking ID
+        $pendingBooking = $_SESSION['pending_booking'] ?? null;
+        
+        if ($pendingBooking && $pendingBooking['bookingID'] == $selectedPaymentBookingID) {
+          // Use pending booking data from session
+          $booking_row = [
+            'BOOKINGID' => $pendingBooking['bookingID'],
+            'CHECKIN_DATE' => $pendingBooking['checkin_date'],
+            'CHECKOUT_DATE' => $pendingBooking['checkout_date'],
+            'DEPOSIT_AMOUNT' => $pendingBooking['deposit_amount'],
+            'BILLNO' => null
+          ];
+          
+          // Get homestay details for the pending booking
+          if (isset($homestayLookup[$pendingBooking['homestayID']])) {
+            $booking_row['HOMESTAY_NAME'] = $homestayLookup[$pendingBooking['homestayID']]['homestay_name'];
+            $booking_row['HOMESTAY_ADDRESS'] = $homestayLookup[$pendingBooking['homestayID']]['homestay_address'];
+          }
+          
           if ($booking_row) {
             $depositAmount = isset($booking_row['DEPOSIT_AMOUNT']) ? (float) $booking_row['DEPOSIT_AMOUNT'] : 0.0;
             $membershipFee = $addMembership ? 30.00 : 0.0;
@@ -128,7 +133,7 @@ if (!$conn) {
                                                       total_amount, late_charges, bill_status, payment_date,
                                                       payment_method, guestID, staffID)
                                   VALUES (:billNo, SYSDATE, :subtotal, :disc_amount, :tax_amount, :total_amount,
-                                          :late_charges, 'Paid', SYSDATE, :payment_method, :guestID, NULL)";
+                                          :late_charges, 'Pending', SYSDATE, :payment_method, :guestID, NULL)";
               $bill_insert_stmt = oci_parse($conn, $bill_insert_sql);
               oci_bind_by_name($bill_insert_stmt, ':billNo', $nextBillNo);
               oci_bind_by_name($bill_insert_stmt, ':subtotal', $subtotal);
@@ -139,18 +144,47 @@ if (!$conn) {
               oci_bind_by_name($bill_insert_stmt, ':payment_method', $paymentMethod);
               oci_bind_by_name($bill_insert_stmt, ':guestID', $guestID);
 
-              $booking_update_sql = 'UPDATE BOOKING SET billNo = :billNo WHERE bookingID = :bookingID';
-              $booking_update_stmt = oci_parse($conn, $booking_update_sql);
-              oci_bind_by_name($booking_update_stmt, ':billNo', $nextBillNo);
-              oci_bind_by_name($booking_update_stmt, ':bookingID', $selectedPaymentBookingID);
-
+              // Execute bill insert FIRST (must exist before booking can reference it)
               $bill_insert_result = oci_execute($bill_insert_stmt, OCI_NO_AUTO_COMMIT);
-              $booking_update_result = false;
-              if ($bill_insert_result) {
-                $booking_update_result = oci_execute($booking_update_stmt, OCI_NO_AUTO_COMMIT);
+
+              // Create the booking in database (if from pending session)
+              $booking_insert_result = true;
+              if ($bill_insert_result && $pendingBooking) {
+                $insert_booking_sql = "INSERT INTO BOOKING (bookingID, checkin_date, checkout_date, num_adults, num_children,
+                                        deposit_amount, homestayID, guestID, staffID, billNo)
+                                 VALUES (:bookingID,
+                                     TO_DATE(:checkin_date, 'YYYY-MM-DD'),
+                                     TO_DATE(:checkout_date, 'YYYY-MM-DD'),
+                                     :num_adults,
+                                     :num_children,
+                                     :deposit_amount,
+                                     :homestayID,
+                                     :guestID,
+                                     NULL,
+                                     :billNo)";
+                $insert_booking_stmt = oci_parse($conn, $insert_booking_sql);
+                oci_bind_by_name($insert_booking_stmt, ':bookingID', $pendingBooking['bookingID']);
+                oci_bind_by_name($insert_booking_stmt, ':checkin_date', $pendingBooking['checkin_date']);
+                oci_bind_by_name($insert_booking_stmt, ':checkout_date', $pendingBooking['checkout_date']);
+                oci_bind_by_name($insert_booking_stmt, ':num_adults', $pendingBooking['num_adults']);
+                oci_bind_by_name($insert_booking_stmt, ':num_children', $pendingBooking['num_children']);
+                oci_bind_by_name($insert_booking_stmt, ':deposit_amount', $pendingBooking['deposit_amount']);
+                oci_bind_by_name($insert_booking_stmt, ':homestayID', $pendingBooking['homestayID']);
+                oci_bind_by_name($insert_booking_stmt, ':guestID', $pendingBooking['guestID']);
+                oci_bind_by_name($insert_booking_stmt, ':billNo', $nextBillNo);
+                $booking_insert_result = oci_execute($insert_booking_stmt, OCI_NO_AUTO_COMMIT);
+              } elseif ($bill_insert_result && !$pendingBooking) {
+                // For existing bookings (if any), update billNo
+                $booking_update_sql = 'UPDATE BOOKING SET billNo = :billNo WHERE bookingID = :bookingID';
+                $booking_update_stmt = oci_parse($conn, $booking_update_sql);
+                oci_bind_by_name($booking_update_stmt, ':billNo', $nextBillNo);
+                oci_bind_by_name($booking_update_stmt, ':bookingID', $selectedPaymentBookingID);
+                $booking_insert_result = oci_execute($booking_update_stmt, OCI_NO_AUTO_COMMIT);
+              } elseif (!$bill_insert_result) {
+                $booking_insert_result = false;
               }
 
-              if ($bill_insert_result && $booking_update_result) {
+              if ($bill_insert_result && $booking_insert_result) {
                 // Create membership if user opted in and doesn't have one
                 $membershipCreated = false;
                 if ($addMembership) {
@@ -181,9 +215,15 @@ if (!$conn) {
                   oci_free_statement($id_stmt);
                 }
                 oci_commit($conn);
+                
+                // Clear pending booking from session after successful payment
+                if (isset($_SESSION['pending_booking'])) {
+                  unset($_SESSION['pending_booking']);
+                }
+                
                 $hasMembership = $hasMembership || $membershipCreated;
                 $discountRate = $membershipCreated ? 10.00 : $discountRate;
-                $paymentSuccessMessage = 'Payment received successfully. Thank you!';
+                $paymentSuccessMessage = 'Payment received successfully. Your booking is now confirmed!';
                 if ($membershipCreated) {
                   $paymentSuccessMessage .= ' Membership activated with 10% discount!';
                 }
@@ -204,21 +244,24 @@ if (!$conn) {
                 $paymentMethodInput = '';
               } else {
                 oci_rollback($conn);
-                $errorSource = !$bill_insert_result ? $bill_insert_stmt : $booking_update_stmt;
+                $errorSource = !$bill_insert_result ? $bill_insert_stmt : ($pendingBooking ? $insert_booking_stmt : $booking_update_stmt);
                 $errorMessage = oci_error($errorSource);
                 $paymentErrors[] = 'Unable to record your payment: ' . ($errorMessage['message'] ?? 'Unexpected error');
               }
 
               oci_free_statement($bill_insert_stmt);
-              oci_free_statement($booking_update_stmt);
+              if ($pendingBooking && isset($insert_booking_stmt)) {
+                oci_free_statement($insert_booking_stmt);
+              } elseif (isset($booking_update_stmt)) {
+                oci_free_statement($booking_update_stmt);
+              }
             }
           } else {
             $paymentErrors[] = 'The selected booking is not available for payment or has already been settled.';
           }
         } else {
-          $paymentErrors[] = 'Unable to validate the selected booking. Please try again.';
+          $paymentErrors[] = 'Booking not found. Please create a new booking and try again.';
         }
-        oci_free_statement($booking_stmt);
       }
     } else {
       $selectedHomestayID = isset($_POST['homestayID']) ? (int) $_POST['homestayID'] : null;
@@ -292,56 +335,41 @@ if (!$conn) {
         }
 
         if (empty($bookingErrors)) {
-          $insert_sql = "INSERT INTO BOOKING (bookingID, checkin_date, checkout_date, num_adults, num_children,
-                            deposit_amount, homestayID, guestID, staffID, billNo)
-                   VALUES (:bookingID,
-                       TO_DATE(:checkin_date, 'YYYY-MM-DD'),
-                       TO_DATE(:checkout_date, 'YYYY-MM-DD'),
-                       :num_adults,
-                       :num_children,
-                       :deposit_amount,
-                       :homestayID,
-                       :guestID,
-                       NULL,
-                       NULL)";
-          $insert_stmt = oci_parse($conn, $insert_sql);
-          oci_bind_by_name($insert_stmt, ':bookingID', $nextBookingID);
-          oci_bind_by_name($insert_stmt, ':checkin_date', $checkinStr);
-          oci_bind_by_name($insert_stmt, ':checkout_date', $checkoutStr);
-          oci_bind_by_name($insert_stmt, ':num_adults', $numAdultsInput);
-          oci_bind_by_name($insert_stmt, ':num_children', $numChildrenInput);
-          oci_bind_by_name($insert_stmt, ':deposit_amount', $depositAmount);
-          oci_bind_by_name($insert_stmt, ':homestayID', $selectedHomestayID);
-          oci_bind_by_name($insert_stmt, ':guestID', $guestID);
-
-          if (oci_execute($insert_stmt)) {
-            oci_commit($conn);
-            $bookingSuccessMessage = 'Your booking request has been submitted successfully! Complete the deposit below to lock it in.';
-            $bookingSummary = [
-              'bookingID' => $nextBookingID,
-              'homestay' => $homestayLookup[$selectedHomestayID]['homestay_name'],
-              'nights' => $nights,
-              'checkin' => $checkinDate->format('d M Y'),
-              'checkout' => $checkoutDate->format('d M Y'),
-              'adults' => $numAdultsInput,
-              'children' => $numChildrenInput,
-              'total' => $totalAmount,
-              'deposit' => $depositAmount
-            ];
-            $selectedPaymentBookingID = $nextBookingID;
-            $shouldPromptPayment = true;
-            // Reset form values so a fresh booking can be created
-            $checkinInput = '';
-            $checkoutInput = '';
-            $numAdultsInput = 1;
-            $numChildrenInput = 0;
-            $selectedHomestayID = null;
-          } else {
-            oci_rollback($conn);
-            $error = oci_error($insert_stmt);
-            $bookingErrors[] = 'Unable to save your booking: ' . ($error['message'] ?? 'Unknown error');
-          }
-          oci_free_statement($insert_stmt);
+          // Store booking details in session instead of database
+          // Booking will only be created after deposit payment is completed
+          $_SESSION['pending_booking'] = [
+            'bookingID' => $nextBookingID,
+            'checkin_date' => $checkinStr,
+            'checkout_date' => $checkoutStr,
+            'num_adults' => $numAdultsInput,
+            'num_children' => $numChildrenInput,
+            'deposit_amount' => $depositAmount,
+            'homestayID' => $selectedHomestayID,
+            'guestID' => $guestID,
+            'nights' => $nights,
+            'total_amount' => $totalAmount
+          ];
+          
+          $bookingSuccessMessage = 'Your booking request has been prepared! Complete the deposit payment below to confirm your booking.';
+          $bookingSummary = [
+            'bookingID' => $nextBookingID,
+            'homestay' => $homestayLookup[$selectedHomestayID]['homestay_name'],
+            'nights' => $nights,
+            'checkin' => $checkinDate->format('d M Y'),
+            'checkout' => $checkoutDate->format('d M Y'),
+            'adults' => $numAdultsInput,
+            'children' => $numChildrenInput,
+            'total' => $totalAmount,
+            'deposit' => $depositAmount
+          ];
+          $selectedPaymentBookingID = $nextBookingID;
+          $shouldPromptPayment = true;
+          // Reset form values so a fresh booking can be created
+          $checkinInput = '';
+          $checkoutInput = '';
+          $numAdultsInput = 1;
+          $numChildrenInput = 0;
+          $selectedHomestayID = null;
         }
       }
     }
@@ -376,34 +404,33 @@ if (!$conn) {
   }
   oci_free_statement($bookings_stmt);
 
-  $outstanding_sql = "SELECT b.bookingID, b.checkin_date, b.checkout_date, b.deposit_amount,
-                              h.homestay_name, h.homestay_address
-                       FROM BOOKING b
-                       JOIN HOMESTAY h ON b.homestayID = h.homestayID
-                       LEFT JOIN BILL bl ON b.billNo = bl.billNo
-                       WHERE b.guestID = :guestID
-                         AND (b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID')
-                       ORDER BY b.checkin_date ASC";
-  $outstanding_stmt = oci_parse($conn, $outstanding_sql);
-  oci_bind_by_name($outstanding_stmt, ':guestID', $guestID);
-  if (oci_execute($outstanding_stmt)) {
-    while ($row = oci_fetch_array($outstanding_stmt, OCI_ASSOC)) {
-      $outstandingBookings[] = [
-        'bookingID' => isset($row['BOOKINGID']) ? (int) $row['BOOKINGID'] : null,
-        'checkin_date' => $row['CHECKIN_DATE'],
-        'checkout_date' => $row['CHECKOUT_DATE'],
-        'deposit_amount' => isset($row['DEPOSIT_AMOUNT']) ? (float) $row['DEPOSIT_AMOUNT'] : 0.0,
-        'homestay_name' => $row['HOMESTAY_NAME'],
-        'homestay_address' => $row['HOMESTAY_ADDRESS']
-      ];
-    }
+  // Only show pending booking from session in outstanding bookings
+  if (isset($_SESSION['pending_booking'])) {
+    $pendingBooking = $_SESSION['pending_booking'];
+    $homestayName = isset($homestayLookup[$pendingBooking['homestayID']]) 
+      ? $homestayLookup[$pendingBooking['homestayID']]['homestay_name'] 
+      : 'Unknown Homestay';
+    $homestayAddress = isset($homestayLookup[$pendingBooking['homestayID']]) 
+      ? $homestayLookup[$pendingBooking['homestayID']]['homestay_address'] 
+      : '';
+    
+    // Only add the pending booking from session
+    $outstandingBookings[] = [
+      'bookingID' => $pendingBooking['bookingID'],
+      'checkin_date' => $pendingBooking['checkin_date'],
+      'checkout_date' => $pendingBooking['checkout_date'],
+      'deposit_amount' => $pendingBooking['deposit_amount'],
+      'homestay_name' => $homestayName,
+      'homestay_address' => $homestayAddress
+    ];
   }
-  oci_free_statement($outstanding_stmt);
+  
   $showDepositSection = $shouldPromptPayment
     || $bookingSummary !== null
-    || $paymentSummary !== null
-    || !empty($paymentErrors)
-    || !empty($paymentSuccessMessage);
+    || !empty($paymentErrors);
+  
+  $showConfirmationSection = $paymentSummary !== null || !empty($paymentSuccessMessage);
+  
   closeDBConnection($conn);
 }
 ?>
@@ -676,6 +703,7 @@ if (!$conn) {
       </div>
     </section>
 
+    <?php if (!$showDepositSection && !$showConfirmationSection): ?>
     <section class="booking-flow-section">
       <div class="container">
         <?php if ($membershipFlash): ?>
@@ -684,7 +712,7 @@ if (!$conn) {
           </div>
         <?php endif; ?>
         <div class="booking-flow-grid">
-          <?php if (!$showDepositSection): ?>
+          <?php if (!$showDepositSection && !$showConfirmationSection): ?>
           <div class="booking-form-card">
             <div class="form-header">
               <div>
@@ -808,7 +836,7 @@ if (!$conn) {
           </div>
           <?php endif; ?>
 
-          <?php if (!$showDepositSection): ?>
+          <?php if (!$showDepositSection && !$showConfirmationSection): ?>
           <div class="booking-summary-card" id="bookingSummaryCard">
             <h3>Live Estimate</h3>
             <p class="summary-description">We calculate the number of nights, estimated total, and deposit as you complete the form.</p>
@@ -844,8 +872,9 @@ if (!$conn) {
         </div>
       </div>
     </section>
+    <?php endif; ?>
 
-    <?php if ($showDepositSection): ?>
+    <?php if ($showDepositSection && !$showConfirmationSection): ?>
     <section class="deposit-payment-section" id="depositPayment">
       <div class="container">
         <div class="deposit-header">
@@ -863,12 +892,6 @@ if (!$conn) {
               <span class="badge">Required</span>
             </div>
 
-            <?php if ($paymentSuccessMessage): ?>
-              <div class="alert alert-success">
-                <p><?php echo htmlspecialchars($paymentSuccessMessage); ?></p>
-              </div>
-            <?php endif; ?>
-
             <?php if (!empty($paymentErrors)): ?>
               <div class="alert alert-error">
                 <ul>
@@ -876,48 +899,6 @@ if (!$conn) {
                     <li><?php echo htmlspecialchars($error); ?></li>
                   <?php endforeach; ?>
                 </ul>
-              </div>
-            <?php endif; ?>
-
-            <?php if ($paymentSummary): ?>
-              <div class="payment-success-summary">
-                <div class="summary-row">
-                  <span>Bill No.</span>
-                  <strong>#<?php echo htmlspecialchars($paymentSummary['billNo']); ?></strong>
-                </div>
-                <div class="summary-row">
-                  <span>Booking Ref</span>
-                  <strong>#<?php echo htmlspecialchars($paymentSummary['bookingID']); ?></strong>
-                </div>
-                <div class="summary-row">
-                  <span>Homestay</span>
-                  <strong><?php echo htmlspecialchars($paymentSummary['homestay']); ?></strong>
-                </div>
-                <div class="summary-row">
-                  <span>Period</span>
-                  <?php
-                    $paymentSummaryCheckin = !empty($paymentSummary['checkin']) ? date('d M Y', strtotime($paymentSummary['checkin'])) : '--';
-                    $paymentSummaryCheckout = !empty($paymentSummary['checkout']) ? date('d M Y', strtotime($paymentSummary['checkout'])) : '--';
-                    $paymentSummaryRange = ($paymentSummaryCheckin !== '--' && $paymentSummaryCheckout !== '--')
-                      ? $paymentSummaryCheckin . ' - ' . $paymentSummaryCheckout
-                      : '--';
-                  ?>
-                  <strong><?php echo $paymentSummaryRange; ?></strong>
-                </div>
-                <div class="summary-row">
-                  <span>Method</span>
-                  <strong><?php echo htmlspecialchars($paymentSummary['method']); ?></strong>
-                </div>
-                <?php if (!empty($paymentSummary['membershipFee']) && $paymentSummary['membershipFee'] > 0): ?>
-                <div class="summary-row">
-                  <span>Membership Fee</span>
-                  <strong>RM <?php echo number_format($paymentSummary['membershipFee'], 2); ?></strong>
-                </div>
-                <?php endif; ?>
-                <div class="summary-row highlight">
-                  <span>Total Paid</span>
-                  <strong>RM <?php echo number_format($paymentSummary['total'], 2); ?></strong>
-                </div>
               </div>
             <?php endif; ?>
 
@@ -997,7 +978,6 @@ if (!$conn) {
             <?php endif; ?>
           </div>
 
-          <?php if (empty($paymentSuccessMessage)): ?>
           <div class="deposit-summary-card" id="inlinePaymentSummary" data-discount-rate="<?php echo $discountRate; ?>">
             <h3>Payment Summary</h3>
             <p class="summary-description">
@@ -1033,10 +1013,344 @@ if (!$conn) {
             </div>
             <p class="summary-note">Deposits are non-refundable if bookings are cancelled within 7 days of arrival.</p>
           </div>
-          <?php endif; ?>
         </div>
       </div>
     </section>
+    <?php endif; ?>
+
+    <?php if ($showConfirmationSection): ?>
+    <section class="confirmation-section" id="paymentConfirmation">
+      <div class="container">
+        <div class="confirmation-header">
+          <p class="eyebrow">Step 3</p>
+          <h2>Payment Confirmed!</h2>
+          <p>Your deposit has been received and your booking is now confirmed. The team has been notified.</p>
+        </div>
+        
+        <div class="confirmation-content">
+          <div class="confirmation-card">
+            <div class="success-icon">
+              <i class='bx bx-check-circle'></i>
+            </div>
+            
+            <?php if ($paymentSuccessMessage): ?>
+              <div class="confirmation-message">
+                <h3><?php echo htmlspecialchars($paymentSuccessMessage); ?></h3>
+              </div>
+            <?php endif; ?>
+
+            <?php if ($paymentSummary): ?>
+              <?php
+                $paymentSummaryCheckin = !empty($paymentSummary['checkin']) ? date('d M Y', strtotime($paymentSummary['checkin'])) : '--';
+                $paymentSummaryCheckout = !empty($paymentSummary['checkout']) ? date('d M Y', strtotime($paymentSummary['checkout'])) : '--';
+                $paymentSummaryRange = ($paymentSummaryCheckin !== '--' && $paymentSummaryCheckout !== '--')
+                  ? $paymentSummaryCheckin . ' - ' . $paymentSummaryCheckout
+                  : '--';
+              ?>
+              <div class="confirmation-details">
+                <h4>Booking Details</h4>
+                <div class="details-grid">
+                  <div class="detail-item">
+                    <span class="detail-label">Bill Number</span>
+                    <span class="detail-value">#<?php echo htmlspecialchars($paymentSummary['billNo']); ?></span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Booking Reference</span>
+                    <span class="detail-value">#<?php echo htmlspecialchars($paymentSummary['bookingID']); ?></span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Homestay</span>
+                    <span class="detail-value"><?php echo htmlspecialchars($paymentSummary['homestay']); ?></span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Check-in to Check-out</span>
+                    <span class="detail-value"><?php echo $paymentSummaryRange; ?></span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Payment Method</span>
+                    <span class="detail-value"><?php echo htmlspecialchars($paymentSummary['method']); ?></span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Deposit Paid</span>
+                    <span class="detail-value">RM <?php echo number_format($paymentSummary['subtotal'] - ($paymentSummary['membershipFee'] ?? 0), 2); ?></span>
+                  </div>
+                  <?php if (!empty($paymentSummary['membershipFee']) && $paymentSummary['membershipFee'] > 0): ?>
+                  <div class="detail-item">
+                    <span class="detail-label">Membership Fee</span>
+                    <span class="detail-value">RM <?php echo number_format($paymentSummary['membershipFee'], 2); ?></span>
+                  </div>
+                  <?php endif; ?>
+                  <?php if (!empty($paymentSummary['discount']) && $paymentSummary['discount'] > 0): ?>
+                  <div class="detail-item">
+                    <span class="detail-label">Discount Applied</span>
+                    <span class="detail-value">- RM <?php echo number_format($paymentSummary['discount'], 2); ?></span>
+                  </div>
+                  <?php endif; ?>
+                  <div class="detail-item highlight">
+                    <span class="detail-label">Total Paid</span>
+                    <span class="detail-value">RM <?php echo number_format($paymentSummary['total'], 2); ?></span>
+                  </div>
+                </div>
+              </div>
+            <?php endif; ?>
+
+            <div class="confirmation-actions">
+              <a href="booking_details.php?bookingID=<?php echo htmlspecialchars($paymentSummary['bookingID']); ?>" class="btn btn-primary">
+                <i class='bx bx-receipt'></i> View Booking Details
+              </a>
+              <a href="booking.php" class="btn btn-secondary">Make Another Booking</a>
+            </div>
+
+            <div class="next-steps">
+              <h4>What's Next?</h4>
+              <div class="steps-list">
+                <div class="step">
+                  <div class="step-icon">
+                    <i class='bx bx-check'></i>
+                  </div>
+                  <div class="step-content">
+                    <h5>Deposit Received</h5>
+                    <p>Your deposit payment has been confirmed and recorded.</p>
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="step-icon">
+                    <i class='bx bx-time'></i>
+                  </div>
+                  <div class="step-content">
+                    <h5>Awaiting Full Payment</h5>
+                    <p>Pay the remaining balance at our counter before your check-in date.</p>
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="step-icon">
+                    <i class='bx bx-home-heart'></i>
+                  </div>
+                  <div class="step-content">
+                    <h5>Enjoy Your Stay</h5>
+                    <p>Check in on your scheduled date and enjoy your homestay experience!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <style>
+      .confirmation-section {
+        padding: 60px 0;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      }
+
+      .confirmation-header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .confirmation-header .eyebrow {
+        color: #28a745;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .confirmation-header h2 {
+        font-size: 36px;
+        color: #2d3748;
+        margin-bottom: 12px;
+      }
+
+      .confirmation-header p {
+        color: #718096;
+        font-size: 16px;
+      }
+
+      .confirmation-content {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .confirmation-card {
+        background: white;
+        border-radius: 16px;
+        padding: 48px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .success-icon {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      .success-icon i {
+        font-size: 80px;
+        color: #28a745;
+        animation: scaleIn 0.5s ease-out;
+      }
+
+      @keyframes scaleIn {
+        from {
+          transform: scale(0);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .confirmation-message {
+        text-align: center;
+        margin-bottom: 32px;
+        padding-bottom: 32px;
+        border-bottom: 2px solid #e9ecef;
+      }
+
+      .confirmation-message h3 {
+        font-size: 20px;
+        color: #2d3748;
+        line-height: 1.6;
+      }
+
+      .confirmation-details h4 {
+        font-size: 18px;
+        color: #2d3748;
+        margin-bottom: 20px;
+        font-weight: 600;
+      }
+
+      .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+      }
+
+      .detail-item.highlight {
+        grid-column: 1 / -1;
+        background: linear-gradient(135deg, #C5814B 0%, #b3703a 100%);
+      }
+
+      .detail-item.highlight .detail-label,
+      .detail-item.highlight .detail-value {
+        color: white;
+      }
+
+      .detail-label {
+        font-size: 12px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+      }
+
+      .detail-value {
+        font-size: 16px;
+        color: #2d3748;
+        font-weight: 600;
+      }
+
+      .confirmation-actions {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 32px;
+        padding-bottom: 32px;
+        border-bottom: 2px solid #e9ecef;
+      }
+
+      .confirmation-actions .btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 14px 24px;
+      }
+
+      .next-steps h4 {
+        font-size: 18px;
+        color: #2d3748;
+        margin-bottom: 20px;
+        font-weight: 600;
+      }
+
+      .steps-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .step {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+      }
+
+      .step-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e6f4ea;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .step-icon i {
+        font-size: 20px;
+        color: #28a745;
+      }
+
+      .step-content h5 {
+        font-size: 16px;
+        color: #2d3748;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+
+      .step-content p {
+        font-size: 14px;
+        color: #718096;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      @media (max-width: 768px) {
+        .confirmation-card {
+          padding: 32px 24px;
+        }
+
+        .details-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .detail-item.highlight {
+          grid-column: 1;
+        }
+
+        .confirmation-actions {
+          flex-direction: column;
+        }
+
+        .confirmation-header h2 {
+          font-size: 28px;
+        }
+      }
+    </style>
     <?php endif; ?>
 
     <section class="content-section">
@@ -1078,9 +1392,12 @@ if (!$conn) {
                 <p class="booking-status <?php echo $status_class; ?>"><?php echo ucfirst($status); ?></p>
               </div>
               <div class="booking-actions">
-                <?php if ($isDepositSettled): ?>
+                <?php if ($status === 'pending'): ?>
                   <a class="btn btn-secondary" href="booking_details.php?bookingID=<?php echo htmlspecialchars($booking['bookingID']); ?>">View Details</a>
-                  <p class="action-footnote">Need changes? Contact support.</p>
+                  <p class="action-footnote">Awaiting full payment at counter</p>
+                <?php elseif ($isDepositSettled): ?>
+                  <a class="btn btn-secondary" href="booking_details.php?bookingID=<?php echo htmlspecialchars($booking['bookingID']); ?>">View Details</a>
+                  <p class="action-footnote">Thank you for your stay.</p>
                 <?php else: ?>
                   <button type="button" class="btn btn-pay pay-trigger" data-booking-id="<?php echo htmlspecialchars($booking['bookingID']); ?>">Pay Deposit</button>
                   <p class="action-footnote">Secure this stay today</p>
