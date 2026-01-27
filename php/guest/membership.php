@@ -59,15 +59,17 @@ if ($conn) {
     }
     oci_free_statement($membership_stmt);
     
-    // Get booking count (completed bookings)
-    $booking_sql = "SELECT COUNT(*) as count 
-                    FROM BOOKING 
-                    WHERE guestID = :guestID AND checkout_date < SYSDATE";
+    // Count all paid bookings (date-agnostic per request)
+    $booking_sql = "SELECT COUNT(*) as count
+            FROM BOOKING b
+            JOIN BILL bl ON b.billNo = bl.billNo
+            WHERE b.guestID = :guestID
+              AND UPPER(bl.bill_status) = 'PAID'";
     $booking_stmt = oci_parse($conn, $booking_sql);
     oci_bind_by_name($booking_stmt, ':guestID', $guestID);
     if (oci_execute($booking_stmt)) {
-        $row = oci_fetch_array($booking_stmt, OCI_ASSOC);
-        $booking_count = $row['COUNT'] ?? 0;
+      $row = oci_fetch_array($booking_stmt, OCI_ASSOC);
+      $booking_count = $row['COUNT'] ?? 0;
     }
     oci_free_statement($booking_stmt);
     
