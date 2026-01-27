@@ -266,6 +266,10 @@ body {
     font-size: 1rem;
     transition: border 0.2s ease, box-shadow 0.2s ease;
     appearance: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
 }
 
 .form-group input:focus,
@@ -528,9 +532,10 @@ body {
 }
 
 .btn-secondary {
-    background: transparent;
-    color: #C5814B;
+    background: #C5814B;
+    color: #FFFFFF;
     border: 2px solid #C5814B;
+    box-shadow: 0 4px 12px rgba(197, 129, 75, 0.2);
 }
 
 .btn-secondary:hover {

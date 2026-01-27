@@ -167,6 +167,15 @@ if ($conn && empty($errors)) {
         <div class="container">
           <div class="hero-grid">
             <div class="hero-text">
+              <div class="hero-actions">
+                <a class="btn btn-secondary" href="booking.php">Back to Bookings</a>
+                <a href="generate_receipt_pdf.php?bookingID=<?php echo htmlspecialchars($booking['id']); ?>" class="btn btn-secondary" aria-label="Download PDF" title="Download PDF">
+                  <i class='bx bx-printer'></i>
+                </a>
+                <?php if (!$booking['is_paid']): ?>
+                  <a class="btn btn-pay" href="booking.php?booking=<?php echo htmlspecialchars($booking['id']); ?>#depositPayment">Pay Deposit</a>
+                <?php endif; ?>
+              </div><br>
               <p class="eyebrow">Booking #<?php echo htmlspecialchars($booking['id']); ?></p>
               <h1><?php echo htmlspecialchars($booking['homestay_name']); ?></h1>
               <p class="hero-address"><i class='bx bx-map'></i> <?php echo htmlspecialchars($booking['homestay_address']); ?></p>
@@ -174,12 +183,6 @@ if ($conn && empty($errors)) {
                 <span class="status-chip <?php echo htmlspecialchars($booking['bill_status_class']); ?>"><?php echo htmlspecialchars($booking['bill_status_label']); ?></span>
                 <span class="meta-chip"><i class='bx bx-calendar-star'></i> <?php echo htmlspecialchars($booking['checkin']); ?> - <?php echo htmlspecialchars($booking['checkout']); ?></span>
                 <span class="meta-chip"><i class='bx bx-moon'></i> <?php echo htmlspecialchars($booking['nights']); ?> nights</span>
-              </div>
-              <div class="hero-actions">
-                <a class="btn btn-secondary" href="booking.php">Back to Bookings</a>
-                <?php if (!$booking['is_paid']): ?>
-                  <a class="btn btn-pay" href="booking.php?booking=<?php echo htmlspecialchars($booking['id']); ?>#depositPayment">Pay Deposit</a>
-                <?php endif; ?>
               </div>
             </div>
             <div class="hero-card">
