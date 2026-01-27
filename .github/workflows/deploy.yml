@@ -1,0 +1,22 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/myapp/app
+            git pull --ff-only origin main
+            cd /opt/myapp/infra
+            docker compose up -d --remove-orphans
