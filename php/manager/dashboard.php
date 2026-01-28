@@ -315,7 +315,20 @@ if ($conn) {
         <i class='bxr  bx-user-circle'></i>
         <div class="header-profile-info">
           <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Staff'); ?></div>
-          <div class="header-profile-job"><?php echo htmlspecialchars($_SESSION['staff_type'] ?? 'Staff'); ?></div>
+          <div class="header-profile-job"><?php
+  if (isManager()) {
+    echo 'Manager';
+  } else {
+    $st = $_SESSION['staff_type'] ?? '';
+    if (stripos($st, 'part') !== false) {
+      echo 'Part-time';
+    } elseif (stripos($st, 'full') !== false) {
+      echo 'Full-time';
+    } else {
+      echo htmlspecialchars($st ?: 'Staff');
+    }
+  }
+?></div>
         </div>
       </div>
     </div>
