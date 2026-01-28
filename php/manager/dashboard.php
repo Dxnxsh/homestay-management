@@ -90,44 +90,34 @@ if ($conn) {
   }
   oci_free_statement($stmt);
 
-  // Get homestay occupancy for current month
-  $sql = "SELECT h.homestayID, h.homestay_name, 
-                   COUNT(DISTINCT b.bookingID) as current_bookings
-            FROM HOMESTAY h
-            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
-                AND EXTRACT(MONTH FROM b.checkin_date) = EXTRACT(MONTH FROM SYSDATE)
-                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE)
-            GROUP BY h.homestayID, h.homestay_name
-            ORDER BY h.homestayID";
-  $stmt = oci_parse($conn, $sql);
+  // Get homestay occupancy for current year
+  $stmt = oci_parse($conn, $sqlOccupancyCurrentYear);
   if (oci_execute($stmt)) {
     while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
       $homestayOccupancy[] = [
         'id' => $row['HOMESTAYID'],
         'name' => $row['HOMESTAY_NAME'],
-        'current' => $row['CURRENT_BOOKINGS'] ?? 0
+        'current' => $row['CURRENT_BOOKINGS'] ?? 0,
+        'last' => 0  // Initialize last year value
       ];
     }
   }
   oci_free_statement($stmt);
 
-  // Get last month occupancy for comparison
-  $sql = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings
-            FROM HOMESTAY h
-            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
-                AND EXTRACT(MONTH FROM b.checkin_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
-                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
-            GROUP BY h.homestayID
-            ORDER BY h.homestayID";
-  $stmt = oci_parse($conn, $sql);
+  // Get last year occupancy for comparison
+  $stmt = oci_parse($conn, $sqlOccupancyLastYear);
   if (oci_execute($stmt)) {
-    $i = 0;
+    $lastYearData = [];
     while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-      if (isset($homestayOccupancy[$i])) {
-        $homestayOccupancy[$i]['last'] = $row['LAST_BOOKINGS'] ?? 0;
-      }
-      $i++;
+      $lastYearData[$row['HOMESTAYID']] = $row['LAST_BOOKINGS'] ?? 0;
     }
+    // Update homestayOccupancy with last year data
+    foreach ($homestayOccupancy as &$homestay) {
+      if (isset($lastYearData[$homestay['id']])) {
+        $homestay['last'] = $lastYearData[$homestay['id']];
+      }
+    }
+    unset($homestay); // Break reference
   }
   oci_free_statement($stmt);
 
@@ -450,7 +440,7 @@ if ($conn) {
           <div class="chart-header">
             <p>Occupancy by Homestay</p>
             <span class="info-icon-wrap">
-              <button type="button" class="info-icon" aria-label="Show SQL query"><i class='bxr  bx-info-circle'></i></button>
+              <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
               <span class="sql-tooltip"><pre>Current year:
 <?php echo htmlspecialchars($sqlOccupancyCurrentYear); ?>
 
@@ -466,7 +456,7 @@ Last year:
           <div class="chart-header">
             <p>House Distribution</p>
             <span class="info-icon-wrap">
-              <button type="button" class="info-icon" aria-label="Show SQL query"><i class='bxr  bx-info-circle'></i></button>
+              <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
               <span class="sql-tooltip"><pre>Current year:
 <?php echo htmlspecialchars($sqlOccupancyCurrentYear); ?>
 
@@ -594,8 +584,8 @@ Last year:
     }
 
     const chartCanvas = document.getElementById("houseComparisonChart");
-    if (chartCanvas) {
-      const houseLabels = homestayOccupancy.map(h => h.name);
+    if (chartCanvas && homestayOccupancy && homestayOccupancy.length > 0) {
+      const houseLabels = homestayOccupancy.map(h => h.name || 'Unknown');
       const currentYearValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
       const lastYearValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
       const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];

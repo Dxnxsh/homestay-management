@@ -511,14 +511,21 @@ body {
   white-space: pre-wrap;
   width: max-content;
   max-width: min(90vw, 520px);
+  min-width: 200px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   border: 1px solid #f0d5be;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   z-index: 100;
-  pointer-events: none;
+  pointer-events: auto;
   text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 .content1 .sub-content1 .sql-tooltip pre{
   margin: 0;
@@ -526,9 +533,14 @@ body {
   font-size: inherit;
   white-space: pre-wrap;
   word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 .content1 .sub-content1 .info-icon-wrap:hover .sql-tooltip,
-.content1 .sub-content1 .info-icon-wrap:focus-within .sql-tooltip{
+.content1 .sub-content1 .info-icon-wrap:focus-within .sql-tooltip,
+.content1 .sub-content1 .sql-tooltip:hover{
   opacity: 1;
   visibility: visible;
 }
@@ -637,14 +649,21 @@ body {
   white-space: pre-wrap;
   width: max-content;
   max-width: min(90vw, 520px);
+  min-width: 200px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   border: 1px solid #f0d5be;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   z-index: 100;
-  pointer-events: none;
+  pointer-events: auto;
   text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 .content2 .sub-content2-1 .sql-tooltip pre,
 .content2 .sub-content2-2 .sql-tooltip pre{
@@ -653,11 +672,17 @@ body {
   font-size: inherit;
   white-space: pre-wrap;
   word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 .content2 .sub-content2-1 .info-icon-wrap:hover .sql-tooltip,
 .content2 .sub-content2-1 .info-icon-wrap:focus-within .sql-tooltip,
+.content2 .sub-content2-1 .sql-tooltip:hover,
 .content2 .sub-content2-2 .info-icon-wrap:hover .sql-tooltip,
-.content2 .sub-content2-2 .info-icon-wrap:focus-within .sql-tooltip{
+.content2 .sub-content2-2 .info-icon-wrap:focus-within .sql-tooltip,
+.content2 .sub-content2-2 .sql-tooltip:hover{
   opacity: 1;
   visibility: visible;
 }
