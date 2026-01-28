@@ -3,6 +3,10 @@ session_start();
 require_once '../config/session_check.php';
 require_once '../config/db_connection.php';
 requireStaffLogin();
+if (!isManager()) {
+  header('Location: dashboard.php');
+  exit();
+}
 
 $conn = getDBConnection();
 if (!$conn) {

@@ -3,6 +3,10 @@ session_start();
 require_once '../config/session_check.php';
 require_once '../config/db_connection.php';
 requireStaffLogin();
+if (!isManager()) {
+  header('Location: dashboard.php');
+  exit();
+}
 
 $conn = getDBConnection();
 if (!$conn) {
@@ -121,6 +125,7 @@ oci_close($conn);
           <li><a class="link_name" href="calendar.php">Calendar</a></li>
         </ul>
       </li>
+      <?php if (isManager()): ?>
       <li>
         <div class="icon-link">
           <a href="reports.php">
@@ -136,6 +141,7 @@ oci_close($conn);
           <li><a href="analytics.php">Analytics</a></li>
         </ul>
       </li>
+      <?php endif; ?>
             <li>
               <div class="profile-details">
                 <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">

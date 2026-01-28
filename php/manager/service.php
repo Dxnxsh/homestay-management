@@ -256,6 +256,7 @@ oci_close($conn);
           <li><a class="link_name" href="calendar.php">Calendar</a></li>
         </ul>
       </li>
+      <?php if (isManager()): ?>
       <li>
         <div class="icon-link">
           <a href="reports.php">
@@ -271,6 +272,7 @@ oci_close($conn);
           <li><a href="analytics.php">Analytics</a></li>
         </ul>
       </li>
+      <?php endif; ?>
       <li>
         <div class="profile-details">
           <a href="../logout.php" class="profile-content"
