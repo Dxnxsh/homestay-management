@@ -163,7 +163,8 @@ if ($conn) {
               <div class="profile-info">
                 <h2 style="margin: 0; margin-bottom: 5px;"><?php echo htmlspecialchars($guest['name']); ?></h2>
                 <p class="profile-email" style="margin: 0; margin-bottom: 5px;">
-                  <?php echo htmlspecialchars($guest['email']); ?></p>
+                  <?php echo htmlspecialchars($guest['email']); ?>
+                </p>
                 <?php if (!empty($guest['phoneNo'])): ?>
                   <p class="profile-phone" style="margin: 0;"><?php echo htmlspecialchars($guest['phoneNo']); ?></p>
                 <?php endif; ?>
@@ -237,9 +238,9 @@ if ($conn) {
                   <?php if ($membership_tier === 'Gold'): ?>
                     <i class='bx bx-crown'></i>
                   <?php elseif ($membership_tier === 'Silver'): ?>
-                    <i class='bx bx-medal'></i>
+                    <i class='bx bx-medal-star'></i>
                   <?php else: ?>
-                    <i class='bx bx-award'></i>
+                    <i class='bx bx-medal'></i>
                   <?php endif; ?>
                 </div>
                 <div class="mem-details" style="flex: 1;">
