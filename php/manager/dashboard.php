@@ -503,7 +503,7 @@ Last year:
         <div class="new-guests-table-container">
           <div class="table-header-row">
             <div class="chart-header">
-              <p>New Guests</p>
+              <p>Recent Guests</p>
               <span class="info-icon-wrap">
                 <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
                 <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlRecentGuests); ?></pre></span>
