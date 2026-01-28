@@ -413,9 +413,16 @@ oci_free_statement($monthlyGuestsStmt);
       <div class="content4">
         <div class="new-guests-table-container">
           <div class="table-header-row">
-            <p>Recent Guests</p>
+            <div class="chart-header">
+              <p>Recent Guests</p>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($recentGuestsSql); ?></pre></span>
+              </span>
+            </div>
             <a href="guests.php" class="btn-manage">Manage Guests</a>
           </div>
+          <div class="table-scroll-wrapper">
           <table class="new-guests-table">
             <thead>
               <tr>
@@ -446,6 +453,7 @@ oci_free_statement($monthlyGuestsStmt);
               <?php endif; ?>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -454,9 +462,16 @@ oci_free_statement($monthlyGuestsStmt);
         <div class="content4">
           <div class="new-guests-table-container">
             <div class="table-header-row">
-              <p>Recent Staff</p>
+              <div class="chart-header">
+                <p>Recent Staff</p>
+                <span class="info-icon-wrap">
+                  <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                  <span class="sql-tooltip"><pre><?php echo htmlspecialchars($recentStaffSql); ?></pre></span>
+                </span>
+              </div>
               <a href="staff.php" class="btn-manage">Manage Staff</a>
             </div>
+            <div class="table-scroll-wrapper">
             <table class="new-guests-table">
               <thead>
                 <tr>
@@ -487,6 +502,7 @@ oci_free_statement($monthlyGuestsStmt);
                 <?php endif; ?>
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       <?php endif; ?>
@@ -495,9 +511,16 @@ oci_free_statement($monthlyGuestsStmt);
       <div class="content4">
         <div class="new-guests-table-container">
           <div class="table-header-row">
-            <p>Homestay</p>
+            <div class="chart-header">
+              <p>Homestay</p>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($homestaysSql); ?></pre></span>
+              </span>
+            </div>
             <a href="homestay.php" class="btn-manage">Manage Homestay</a>
           </div>
+          <div class="table-scroll-wrapper">
           <table class="new-guests-table">
             <thead>
               <tr>
@@ -528,6 +551,7 @@ oci_free_statement($monthlyGuestsStmt);
               <?php endif; ?>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
