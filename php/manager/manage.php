@@ -7,7 +7,7 @@ requireStaffLogin();
 // Get database connection
 $conn = getDBConnection();
 if (!$conn) {
-    die("Database connection failed. Please try again later.");
+  die("Database connection failed. Please try again later.");
 }
 
 // Fetch statistics
@@ -64,7 +64,7 @@ $recentGuestsStmt = oci_parse($conn, $recentGuestsSql);
 oci_execute($recentGuestsStmt);
 $recentGuests = [];
 while ($row = oci_fetch_array($recentGuestsStmt, OCI_ASSOC)) {
-    $recentGuests[] = $row;
+  $recentGuests[] = $row;
 }
 oci_free_statement($recentGuestsStmt);
 
@@ -74,7 +74,7 @@ $recentStaffStmt = oci_parse($conn, $recentStaffSql);
 oci_execute($recentStaffStmt);
 $recentStaff = [];
 while ($row = oci_fetch_array($recentStaffStmt, OCI_ASSOC)) {
-    $recentStaff[] = $row;
+  $recentStaff[] = $row;
 }
 oci_free_statement($recentStaffStmt);
 
@@ -84,52 +84,54 @@ $homestaysStmt = oci_parse($conn, $homestaysSql);
 oci_execute($homestaysStmt);
 $homestays = [];
 while ($row = oci_fetch_array($homestaysStmt, OCI_ASSOC)) {
-    $homestays[] = $row;
+  $homestays[] = $row;
 }
 oci_free_statement($homestaysStmt);
 
 // Homestay Revenue (total from bills per homestay)
 $homestayRevenue = [];
 foreach ($homestays as $homestay) {
-    $revenueSql = "SELECT NVL(SUM(b.total_amount), 0) as revenue 
+  $revenueSql = "SELECT NVL(SUM(b.total_amount), 0) as revenue 
                    FROM BILL b 
                    JOIN BOOKING bk ON b.guestID = bk.guestID 
                    WHERE bk.homestayID = :homestayID";
-    $revenueStmt = oci_parse($conn, $revenueSql);
-    $hId = $homestay['HOMESTAYID'];
-    oci_bind_by_name($revenueStmt, ':homestayID', $hId);
-    oci_execute($revenueStmt);
-    $revenueRow = oci_fetch_array($revenueStmt, OCI_ASSOC);
-    $homestayRevenue[$homestay['HOMESTAYID']] = $revenueRow['REVENUE'];
-    oci_free_statement($revenueStmt);
+  $revenueStmt = oci_parse($conn, $revenueSql);
+  $hId = $homestay['HOMESTAYID'];
+  oci_bind_by_name($revenueStmt, ':homestayID', $hId);
+  oci_execute($revenueStmt);
+  $revenueRow = oci_fetch_array($revenueStmt, OCI_ASSOC);
+  $homestayRevenue[$homestay['HOMESTAYID']] = $revenueRow['REVENUE'];
+  oci_free_statement($revenueStmt);
 }
 
 // Homestay total guests this year
 $homestayGuestCount = [];
 foreach ($homestays as $homestay) {
-    $guestCountSql = "SELECT COUNT(*) as total 
+  $guestCountSql = "SELECT COUNT(*) as total 
                       FROM BOOKING 
                       WHERE homestayID = :homestayID 
                       AND EXTRACT(YEAR FROM checkin_date) = EXTRACT(YEAR FROM SYSDATE)";
-    $guestCountStmt = oci_parse($conn, $guestCountSql);
-    $hId = $homestay['HOMESTAYID'];
-    oci_bind_by_name($guestCountStmt, ':homestayID', $hId);
-    oci_execute($guestCountStmt);
-    $guestCountRow = oci_fetch_array($guestCountStmt, OCI_ASSOC);
-    $homestayGuestCount[$homestay['HOMESTAYID']] = $guestCountRow['TOTAL'];
-    oci_free_statement($guestCountStmt);
+  $guestCountStmt = oci_parse($conn, $guestCountSql);
+  $hId = $homestay['HOMESTAYID'];
+  oci_bind_by_name($guestCountStmt, ':homestayID', $hId);
+  oci_execute($guestCountStmt);
+  $guestCountRow = oci_fetch_array($guestCountStmt, OCI_ASSOC);
+  $homestayGuestCount[$homestay['HOMESTAYID']] = $guestCountRow['TOTAL'];
+  oci_free_statement($guestCountStmt);
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Manage</title>
-    <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/manageStyle.css">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Manage</title>
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/manageStyle.css">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
 <body>
   <!-- Sidebar -->
   <div class="sidebar close">
@@ -140,7 +142,7 @@ foreach ($homestays as $homestay) {
     <ul class="nav-links">
       <li>
         <a href="dashboard.php">
-          <i class='bxr  bx-dashboard'></i> 
+          <i class='bxr  bx-dashboard'></i>
           <span class="link_name">Dashboard</span>
         </a>
         <ul class="sub-menu blank">
@@ -153,13 +155,13 @@ foreach ($homestays as $homestay) {
             <i class='bxr  bx-list-square'></i>
             <span class="link_name">Manage</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
           <?php if (isManager()): ?>
-          <li><a href="staff.php">Staff</a></li>
+            <li><a href="staff.php">Staff</a></li>
           <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
@@ -193,7 +195,7 @@ foreach ($homestays as $homestay) {
       </li>
       <li>
         <a href="calendar.php">
-          <i class='bxr  bx-calendar-alt'></i> 
+          <i class='bxr  bx-calendar-alt'></i>
           <span class="link_name">Calendar</span>
         </a>
         <ul class="sub-menu blank">
@@ -203,10 +205,10 @@ foreach ($homestays as $homestay) {
       <li>
         <div class="icon-link">
           <a href="reports.php">
-            <i class='bxr  bx-file-report'></i> 
+            <i class='bxr  bx-file-report'></i>
             <span class="link_name">Reports</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="reports.php">Reports</a></li>
@@ -217,7 +219,8 @@ foreach ($homestays as $homestay) {
       </li>
       <li>
         <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+          <a href="../logout.php" class="profile-content"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
             <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
@@ -229,7 +232,7 @@ foreach ($homestays as $homestay) {
   <section class="home-section">
     <!-- Header -->
     <div class="home-content">
-      <i class='bx bx-menu' ></i>
+      <i class='bx bx-menu'></i>
       <span class="text">Serena Sanctuary</span>
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
@@ -258,13 +261,13 @@ foreach ($homestays as $homestay) {
           <i class='bxr  bxs-user'></i>
         </a>
         <?php if (isManager()): ?>
-        <a href="staff.php" class="sub-content1">
-          <div class="subcard">
-            <div class="subcard-number"><?php echo $totalStaff; ?></div>
-            <div class="subcard-text">Total Staff</div>
-          </div>
-          <i class='bxr  bxs-community'></i>
-        </a>
+          <a href="staff.php" class="sub-content1">
+            <div class="subcard">
+              <div class="subcard-number"><?php echo $totalStaff; ?></div>
+              <div class="subcard-text">Total Staff</div>
+            </div>
+            <i class='bxr  bxs-community'></i>
+          </a>
         <?php endif; ?>
         <a href="homestay.php" class="sub-content1">
           <div class="subcard">
@@ -288,24 +291,24 @@ foreach ($homestays as $homestay) {
             </div>
           </a>
           <?php if (isManager()): ?>
-          <a href="staff.php" class="sub-content2-card">
-            <div class="subcard">
-              <div class="subcard-number"><?php echo $fullTimeStaff; ?></div>
-              <div class="subcard-text">Full Time Staff</div>
-            </div>
-            <div class="mini-chart-container">
-              <canvas id="miniChart2"></canvas>
-            </div>
-          </a>
-          <a href="staff.php" class="sub-content2-card">
-            <div class="subcard">
-              <div class="subcard-number"><?php echo $partTimeStaff; ?></div>
-              <div class="subcard-text">Part Time Staff</div>
-            </div>
-            <div class="mini-chart-container">
-              <canvas id="miniChart3"></canvas>
-            </div>
-          </a>
+            <a href="staff.php" class="sub-content2-card">
+              <div class="subcard">
+                <div class="subcard-number"><?php echo $fullTimeStaff; ?></div>
+                <div class="subcard-text">Full Time Staff</div>
+              </div>
+              <div class="mini-chart-container">
+                <canvas id="miniChart2"></canvas>
+              </div>
+            </a>
+            <a href="staff.php" class="sub-content2-card">
+              <div class="subcard">
+                <div class="subcard-number"><?php echo $partTimeStaff; ?></div>
+                <div class="subcard-text">Part Time Staff</div>
+              </div>
+              <div class="mini-chart-container">
+                <canvas id="miniChart3"></canvas>
+              </div>
+            </a>
           <?php endif; ?>
         </div>
         <div class="sub-content2-1">
@@ -330,37 +333,40 @@ foreach ($homestays as $homestay) {
         </div>
         <div class="sub-content3-3-wrapper">
           <div class="sub-content3-3">
-          <p>Homestay Revenue</p>
-          <div class="revenue-cards-container">
-            <?php foreach ($homestays as $homestay): ?>
-            <div class="revenue-card">
-              <div class="revenue-card-content">
-                <div class="revenue-image-container">
-                  <img src="../../images/houseIcon.png" alt="House Icon" class="revenue-house-icon">
-                  <div class="revenue-overlay">
-                    <div class="revenue-card-amount">RM <span class="revenue-value" data-target="<?php echo number_format($homestayRevenue[$homestay['HOMESTAYID']], 0, '', ''); ?>">0</span></div>
+            <p>Homestay Revenue</p>
+            <div class="revenue-cards-container">
+              <?php foreach ($homestays as $homestay): ?>
+                <div class="revenue-card">
+                  <div class="revenue-card-content">
+                    <div class="revenue-image-container">
+                      <img src="../../images/houseIcon.png" alt="House Icon" class="revenue-house-icon">
+                      <div class="revenue-overlay">
+                        <div class="revenue-card-amount">RM <span class="revenue-value"
+                            data-target="<?php echo number_format($homestayRevenue[$homestay['HOMESTAYID']], 0, '', ''); ?>">0</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="revenue-card-label"><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></div>
                   </div>
                 </div>
-                <div class="revenue-card-label"><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></div>
-              </div>
+              <?php endforeach; ?>
             </div>
-            <?php endforeach; ?>
           </div>
-        </div>
-        <div class="sub-content3-4">
-          <p>Total Guests (This Year)</p>
-          <div class="guests-cards-container">
-            <?php foreach ($homestays as $homestay): ?>
-            <div class="guests-card">
-              <div class="guests-card-content">
-                <i class='bx bx-group guests-icon'></i>
-                <div class="guests-card-amount"><span class="guests-value" data-target="<?php echo $homestayGuestCount[$homestay['HOMESTAYID']]; ?>">0</span></div>
-                <div class="guests-card-label"><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></div>
-              </div>
+          <div class="sub-content3-4">
+            <p>Total Guests (This Year)</p>
+            <div class="guests-cards-container">
+              <?php foreach ($homestays as $homestay): ?>
+                <div class="guests-card">
+                  <div class="guests-card-content">
+                    <i class='bx bx-group guests-icon'></i>
+                    <div class="guests-card-amount"><span class="guests-value"
+                        data-target="<?php echo $homestayGuestCount[$homestay['HOMESTAYID']]; ?>">0</span></div>
+                    <div class="guests-card-label"><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
             </div>
-            <?php endforeach; ?>
           </div>
-        </div>
         </div>
       </div>
 
@@ -384,20 +390,20 @@ foreach ($homestays as $homestay) {
             </thead>
             <tbody>
               <?php if (empty($recentGuests)): ?>
-              <tr>
-                <td colspan="6" style="text-align: center;">No guests found</td>
-              </tr>
+                <tr>
+                  <td colspan="6" style="text-align: center;">No guests found</td>
+                </tr>
               <?php else: ?>
-              <?php foreach ($recentGuests as $guest): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($guest['GUESTID']); ?></td>
-                <td><?php echo htmlspecialchars($guest['GUEST_NAME']); ?></td>
-                <td><?php echo htmlspecialchars($guest['GUEST_PHONENO']); ?></td>
-                <td><?php echo htmlspecialchars($guest['GUEST_GENDER']); ?></td>
-                <td><?php echo htmlspecialchars($guest['GUEST_EMAIL']); ?></td>
-                <td><?php echo htmlspecialchars($guest['GUEST_TYPE']); ?></td>
-              </tr>
-              <?php endforeach; ?>
+                <?php foreach ($recentGuests as $guest): ?>
+                  <tr>
+                    <td><?php echo htmlspecialchars($guest['GUESTID']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['GUEST_NAME']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['GUEST_PHONENO']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['GUEST_GENDER']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['GUEST_EMAIL']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['GUEST_TYPE']); ?></td>
+                  </tr>
+                <?php endforeach; ?>
               <?php endif; ?>
             </tbody>
           </table>
@@ -406,44 +412,44 @@ foreach ($homestays as $homestay) {
 
       <!-- Staff Table -->
       <?php if (isManager()): ?>
-      <div class="content4">
-        <div class="new-guests-table-container">
-          <div class="table-header-row">
-            <p>Recent Staff</p>
-            <a href="staff.php" class="btn-manage">Manage Staff</a>
+        <div class="content4">
+          <div class="new-guests-table-container">
+            <div class="table-header-row">
+              <p>Recent Staff</p>
+              <a href="staff.php" class="btn-manage">Manage Staff</a>
+            </div>
+            <table class="new-guests-table">
+              <thead>
+                <tr>
+                  <th>Staff ID</th>
+                  <th>Name</th>
+                  <th>Phone No.</th>
+                  <th>Email</th>
+                  <th>Type</th>
+                  <th>Manager ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php if (empty($recentStaff)): ?>
+                  <tr>
+                    <td colspan="6" style="text-align: center;">No staff found</td>
+                  </tr>
+                <?php else: ?>
+                  <?php foreach ($recentStaff as $staff): ?>
+                    <tr>
+                      <td><?php echo htmlspecialchars($staff['STAFFID']); ?></td>
+                      <td><?php echo htmlspecialchars($staff['STAFF_NAME']); ?></td>
+                      <td><?php echo htmlspecialchars($staff['STAFF_PHONENO']); ?></td>
+                      <td><?php echo htmlspecialchars($staff['STAFF_EMAIL']); ?></td>
+                      <td><?php echo htmlspecialchars($staff['STAFF_TYPE']); ?></td>
+                      <td><?php echo !empty($staff['MANAGERID']) ? htmlspecialchars($staff['MANAGERID']) : '-'; ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </tbody>
+            </table>
           </div>
-          <table class="new-guests-table">
-            <thead>
-              <tr>
-                <th>Staff ID</th>
-                <th>Name</th>
-                <th>Phone No.</th>
-                <th>Email</th>
-                <th>Type</th>
-                <th>Manager ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($recentStaff)): ?>
-              <tr>
-                <td colspan="6" style="text-align: center;">No staff found</td>
-              </tr>
-              <?php else: ?>
-              <?php foreach ($recentStaff as $staff): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($staff['STAFFID']); ?></td>
-                <td><?php echo htmlspecialchars($staff['STAFF_NAME']); ?></td>
-                <td><?php echo htmlspecialchars($staff['STAFF_PHONENO']); ?></td>
-                <td><?php echo htmlspecialchars($staff['STAFF_EMAIL']); ?></td>
-                <td><?php echo htmlspecialchars($staff['STAFF_TYPE']); ?></td>
-                <td><?php echo $staff['MANAGERID'] ? htmlspecialchars($staff['MANAGERID']) : '-'; ?></td>
-              </tr>
-              <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
         </div>
-      </div>
       <?php endif; ?>
 
       <!-- Homestay Table -->
@@ -466,20 +472,20 @@ foreach ($homestays as $homestay) {
             </thead>
             <tbody>
               <?php if (empty($homestays)): ?>
-              <tr>
-                <td colspan="6" style="text-align: center;">No homestays found</td>
-              </tr>
+                <tr>
+                  <td colspan="6" style="text-align: center;">No homestays found</td>
+                </tr>
               <?php else: ?>
-              <?php foreach ($homestays as $homestay): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($homestay['HOMESTAYID']); ?></td>
-                <td><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></td>
-                <td><?php echo htmlspecialchars($homestay['HOMESTAY_ADDRESS']); ?></td>
-                <td><?php echo htmlspecialchars($homestay['OFFICE_PHONENO']); ?></td>
-                <td>RM <?php echo number_format($homestay['RENT_PRICE'], 2); ?></td>
-                <td><?php echo htmlspecialchars($homestay['STAFFID']); ?></td>
-              </tr>
-              <?php endforeach; ?>
+                <?php foreach ($homestays as $homestay): ?>
+                  <tr>
+                    <td><?php echo htmlspecialchars($homestay['HOMESTAYID']); ?></td>
+                    <td><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></td>
+                    <td><?php echo htmlspecialchars($homestay['HOMESTAY_ADDRESS']); ?></td>
+                    <td><?php echo htmlspecialchars($homestay['OFFICE_PHONENO']); ?></td>
+                    <td>RM <?php echo number_format($homestay['RENT_PRICE'], 2); ?></td>
+                    <td><?php echo htmlspecialchars($homestay['STAFFID']); ?></td>
+                  </tr>
+                <?php endforeach; ?>
               <?php endif; ?>
             </tbody>
           </table>
@@ -496,221 +502,222 @@ foreach ($homestays as $homestay) {
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-  let arrow = document.querySelectorAll(".arrow");
-  for (var i = 0; i < arrow.length; i++) {
-    arrow[i].addEventListener("click", (e)=>{
-   let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
-   arrowParent.classList.toggle("showMenu");
+    let arrow = document.querySelectorAll(".arrow");
+    for (var i = 0; i < arrow.length; i++) {
+      arrow[i].addEventListener("click", (e) => {
+        let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+        arrowParent.classList.toggle("showMenu");
+      });
+    }
+    let sidebar = document.querySelector(".sidebar");
+    let sidebarBtn = document.querySelector(".bx-menu");
+    console.log(sidebarBtn);
+    sidebarBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("close");
     });
-  }
-  let sidebar = document.querySelector(".sidebar");
-  let sidebarBtn = document.querySelector(".bx-menu");
-  console.log(sidebarBtn);
-  sidebarBtn.addEventListener("click", ()=>{
-    sidebar.classList.toggle("close");
-  });
 
-  // Date display
-  const dateLine = document.querySelector(".date-line");
-  if (dateLine) {
-    const now = new Date();
-    const format = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
-  }
+    // Date display
+    const dateLine = document.querySelector(".date-line");
+    if (dateLine) {
+      const now = new Date();
+      const format = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
+    }
 
-  // Guests Chart - Bar Chart
-  const guestsChartCanvas = document.getElementById("guestsChart");
-  if (guestsChartCanvas) {
-    const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const guestsData = [45, 52, 48, 61, 58, 67, 73, 65, 59, 54, 49, 42];
-    
-    new Chart(guestsChartCanvas, {
-      type: "bar",
-      data: {
-        labels: monthLabels,
-        datasets: [{
-          label: "New Guests",
-          data: guestsData,
-          backgroundColor: "#00bf63",
-          barThickness: 24,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false,
-          },
+    // Guests Chart - Bar Chart
+    const guestsChartCanvas = document.getElementById("guestsChart");
+    if (guestsChartCanvas) {
+      const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const guestsData = [45, 52, 48, 61, 58, 67, 73, 65, 59, 54, 49, 42];
+
+      new Chart(guestsChartCanvas, {
+        type: "bar",
+        data: {
+          labels: monthLabels,
+          datasets: [{
+            label: "New Guests",
+            data: guestsData,
+            backgroundColor: "#00bf63",
+            barThickness: 24,
+          }],
         },
-        scales: {
-          x: {
-            grid: {
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
               display: false,
             },
           },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: "rgba(0,0,0,0.05)",
+          scales: {
+            x: {
+              grid: {
+                display: false,
+              },
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(0,0,0,0.05)",
+              },
             },
           },
         },
-      },
-    });
-  }
+      });
+    }
 
-  // Mini Charts for Subcards
-  const miniChart1 = document.getElementById("miniChart1");
-  if (miniChart1) {
-    new Chart(miniChart1, {
-      type: "line",
-      data: {
-        labels: ["", "", "", "", "", "", ""],
-        datasets: [{
-          data: [1, 4, 2, 5, 3, 6, 9],
-          borderColor: "#00bf63",
-          backgroundColor: "rgba(0, 191, 99, 0.1)",
-          borderWidth: 2,
-          fill: true,
-          tension: 0,
-          pointRadius: 0,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: false },
+    // Mini Charts for Subcards
+    const miniChart1 = document.getElementById("miniChart1");
+    if (miniChart1) {
+      new Chart(miniChart1, {
+        type: "line",
+        data: {
+          labels: ["", "", "", "", "", "", ""],
+          datasets: [{
+            data: [1, 4, 2, 5, 3, 6, 9],
+            borderColor: "#00bf63",
+            backgroundColor: "rgba(0, 191, 99, 0.1)",
+            borderWidth: 2,
+            fill: true,
+            tension: 0,
+            pointRadius: 0,
+          }],
         },
-        scales: {
-          x: { display: false },
-          y: { display: false },
-        },
-      },
-    });
-  }
-
-  const miniChart2 = document.getElementById("miniChart2");
-  if (miniChart2) {
-    new Chart(miniChart2, {
-      type: "line",
-      data: {
-        labels: ["", "", "", "", "", "", ""],
-        datasets: [{
-          data: [8, 3, 5, 4, 3, 10, 7],
-          borderColor: "#38b6ff",
-          backgroundColor: "rgba(56, 182, 255, 0.1)",
-          borderWidth: 2,
-          fill: true,
-          tension: 0,
-          pointRadius: 0,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: false },
-        },
-        scales: {
-          x: { display: false },
-          y: { display: false },
-        },
-      },
-    });
-  }
-
-  const miniChart3 = document.getElementById("miniChart3");
-  if (miniChart3) {
-    new Chart(miniChart3, {
-      type: "line",
-      data: {
-        labels: ["", "", "", "", "", "", ""],
-        datasets: [{
-          data: [4, 5, 14, 2, 13, 3, 12],
-          borderColor: "#ffde59",
-          backgroundColor: "rgba(255, 222, 89, 0.1)",
-          borderWidth: 2,
-          fill: true,
-          tension: 0,
-          pointRadius: 0,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: false },
-        },
-        scales: {
-          x: { display: false },
-          y: { display: false },
-        },
-      },
-    });
-  }
-
-  // Staff Chart - Doughnut Chart
-  const staffChartCanvas = document.getElementById("staffChart");
-  if (staffChartCanvas) {
-    const staffTypes = ["Full Time", "Part Time"];
-    const staffValues = [<?php echo $fullTimeStaff; ?>, <?php echo $partTimeStaff; ?>];
-    
-    new Chart(staffChartCanvas, {
-      type: 'doughnut',
-      data: {
-        labels: staffTypes,
-        datasets: [{
-          data: staffValues,
-          backgroundColor: ['#38b6ff', '#ffde59'],
-          borderWidth: 0,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: {
-            display: false,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+          },
+          scales: {
+            x: { display: false },
+            y: { display: false },
           },
         },
-        cutout: '75%',
-      }
+      });
+    }
+
+    const miniChart2 = document.getElementById("miniChart2");
+    if (miniChart2) {
+      new Chart(miniChart2, {
+        type: "line",
+        data: {
+          labels: ["", "", "", "", "", "", ""],
+          datasets: [{
+            data: [8, 3, 5, 4, 3, 10, 7],
+            borderColor: "#38b6ff",
+            backgroundColor: "rgba(56, 182, 255, 0.1)",
+            borderWidth: 2,
+            fill: true,
+            tension: 0,
+            pointRadius: 0,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+          },
+          scales: {
+            x: { display: false },
+            y: { display: false },
+          },
+        },
+      });
+    }
+
+    const miniChart3 = document.getElementById("miniChart3");
+    if (miniChart3) {
+      new Chart(miniChart3, {
+        type: "line",
+        data: {
+          labels: ["", "", "", "", "", "", ""],
+          datasets: [{
+            data: [4, 5, 14, 2, 13, 3, 12],
+            borderColor: "#ffde59",
+            backgroundColor: "rgba(255, 222, 89, 0.1)",
+            borderWidth: 2,
+            fill: true,
+            tension: 0,
+            pointRadius: 0,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+          },
+          scales: {
+            x: { display: false },
+            y: { display: false },
+          },
+        },
+      });
+    }
+
+    // Staff Chart - Doughnut Chart
+    const staffChartCanvas = document.getElementById("staffChart");
+    if (staffChartCanvas) {
+      const staffTypes = ["Full Time", "Part Time"];
+      const staffValues = [<?php echo $fullTimeStaff; ?>, <?php echo $partTimeStaff; ?>];
+
+      new Chart(staffChartCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: staffTypes,
+          datasets: [{
+            data: staffValues,
+            backgroundColor: ['#38b6ff', '#ffde59'],
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          cutout: '75%',
+        }
+      });
+    }
+
+    // Animated Revenue Cards
+    function animateValue(element, start, end, duration) {
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const current = Math.floor(progress * (end - start) + start);
+        element.textContent = current.toLocaleString();
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    const revenueValues = document.querySelectorAll('.revenue-value');
+    revenueValues.forEach((element) => {
+      const target = parseInt(element.getAttribute('data-target'));
+      animateValue(element, 0, target, 2000);
     });
-  }
 
-  // Animated Revenue Cards
-  function animateValue(element, start, end, duration) {
-    let startTimestamp = null;
-    const step = (timestamp) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      const current = Math.floor(progress * (end - start) + start);
-      element.textContent = current.toLocaleString();
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      }
-    };
-    window.requestAnimationFrame(step);
-  }
-
-  const revenueValues = document.querySelectorAll('.revenue-value');
-  revenueValues.forEach((element) => {
-    const target = parseInt(element.getAttribute('data-target'));
-    animateValue(element, 0, target, 2000);
-  });
-
-  const guestsValues = document.querySelectorAll('.guests-value');
-  guestsValues.forEach((element) => {
-    const target = parseInt(element.getAttribute('data-target'));
-    animateValue(element, 0, target, 2000);
-  });
+    const guestsValues = document.querySelectorAll('.guests-value');
+    guestsValues.forEach((element) => {
+      const target = parseInt(element.getAttribute('data-target'));
+      animateValue(element, 0, target, 2000);
+    });
   </script>
 </body>
+
 </html>
