@@ -13,16 +13,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   header('Content-Type: application/json');
 
   if ($_POST['action'] === 'add') {
-    $serviceID = $_POST['serviceId'];
     $serviceType = $_POST['serviceType'];
     $serviceCost = $_POST['serviceCost'];
     $serviceRemark = $_POST['serviceRemark'];
     $staffID = !empty($_POST['staffId']) ? $_POST['staffId'] : null;
 
-    $sql = "INSERT INTO SERVICE (serviceID, service_type, service_cost, service_remark, staffID)
-            VALUES (:id, :type, :cost, :remark, :staffID)";
+    // serviceID will be auto-generated
+    $sql = "INSERT INTO SERVICE (service_type, service_cost, service_remark, staffID)
+            VALUES (:type, :cost, :remark, :staffID)";
     $stmt = oci_parse($conn, $sql);
-    oci_bind_by_name($stmt, ':id', $serviceID);
     oci_bind_by_name($stmt, ':type', $serviceType);
     oci_bind_by_name($stmt, ':cost', $serviceCost);
     oci_bind_by_name($stmt, ':remark', $serviceRemark);
@@ -323,9 +322,6 @@ oci_close($conn);
       </div>
       <form id="addServiceForm" class="modal-form">
         <div class="form-group">
-          <label for="addServiceId">Service ID</label>
-          <input type="text" id="addServiceId" name="serviceId" required>
-        </div>
         <div class="form-group">
           <label for="addServiceType">Service Type</label>
           <input type="text" id="addServiceType" name="serviceType" required>
@@ -581,9 +577,6 @@ oci_close($conn);
 
     const formData = new FormData();
     formData.append('action', 'add');
-    formData.append('serviceId', document.getElementById('addServiceId').value.trim());
-    formData.append('serviceType', document.getElementById('addServiceType').value.trim());
-    formData.append('serviceCost', document.getElementById('addServiceCost').value);
     formData.append('serviceRemark', document.getElementById('addServiceRemark').value.trim());
     formData.append('staffId', document.getElementById('addStaffId').value);
 

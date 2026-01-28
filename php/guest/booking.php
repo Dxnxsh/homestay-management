@@ -118,42 +118,49 @@ if (!$conn) {
             $lateCharges = 0.0;
             $totalAmount = max(0, $subtotal - $discountAmount + $taxAmount + $lateCharges);
 
-            $bill_id_stmt = oci_parse($conn, 'SELECT NVL(MAX(billNo), 0) + 1 AS NEXT_ID FROM BILL');
-            $nextBillNo = null;
-            if (oci_execute($bill_id_stmt)) {
-              $bill_id_row = oci_fetch_array($bill_id_stmt, OCI_ASSOC);
-              $nextBillNo = isset($bill_id_row['NEXT_ID']) ? (int) $bill_id_row['NEXT_ID'] : 1;
-            }
-            oci_free_statement($bill_id_stmt);
-
-            if ($nextBillNo === null) {
-              $paymentErrors[] = 'Unable to generate a new bill number. Please try again shortly.';
-            } else {
-              $bill_insert_sql = "INSERT INTO BILL (billNo, bill_date, bill_subtotal, disc_amount, tax_amount,
+            // billNo will be auto-generated
+            $bill_insert_sql = "INSERT INTO BILL (bill_date, bill_subtotal, disc_amount, tax_amount,
                                                       total_amount, late_charges, bill_status, payment_date,
                                                       payment_method, guestID, staffID)
-                                  VALUES (:billNo, SYSDATE, :subtotal, :disc_amount, :tax_amount, :total_amount,
+                                  VALUES (SYSDATE, :subtotal, :disc_amount, :tax_amount, :total_amount,
                                           :late_charges, 'Pending', SYSDATE, :payment_method, :guestID, NULL)";
-              $bill_insert_stmt = oci_parse($conn, $bill_insert_sql);
-              oci_bind_by_name($bill_insert_stmt, ':billNo', $nextBillNo);
-              oci_bind_by_name($bill_insert_stmt, ':subtotal', $subtotal);
-              oci_bind_by_name($bill_insert_stmt, ':disc_amount', $discountAmount);
-              oci_bind_by_name($bill_insert_stmt, ':tax_amount', $taxAmount);
-              oci_bind_by_name($bill_insert_stmt, ':total_amount', $totalAmount);
-              oci_bind_by_name($bill_insert_stmt, ':late_charges', $lateCharges);
-              oci_bind_by_name($bill_insert_stmt, ':payment_method', $paymentMethod);
-              oci_bind_by_name($bill_insert_stmt, ':guestID', $guestID);
+            $bill_insert_stmt = oci_parse($conn, $bill_insert_sql);
+            oci_bind_by_name($bill_insert_stmt, ':subtotal', $subtotal);
+            oci_bind_by_name($bill_insert_stmt, ':disc_amount', $discountAmount);
+            oci_bind_by_name($bill_insert_stmt, ':tax_amount', $taxAmount);
+            oci_bind_by_name($bill_insert_stmt, ':total_amount', $totalAmount);
+            oci_bind_by_name($bill_insert_stmt, ':late_charges', $lateCharges);
+            oci_bind_by_name($bill_insert_stmt, ':payment_method', $paymentMethod);
+            oci_bind_by_name($bill_insert_stmt, ':guestID', $guestID);
 
-              // Execute bill insert FIRST (must exist before booking can reference it)
-              $bill_insert_result = oci_execute($bill_insert_stmt, OCI_NO_AUTO_COMMIT);
+            // Execute bill insert FIRST (must exist before booking can reference it)
+            $bill_insert_result = oci_execute($bill_insert_stmt, OCI_NO_AUTO_COMMIT);
+            
+            // Get the auto-generated billNo
+            $nextBillNo = null;
+            if ($bill_insert_result) {
+              // For Oracle, get the last inserted ID using RETURNING clause
+              // If RETURNING is not working, we can query the max billNo
+              $nextBillNo_sql = "SELECT MAX(billNo) AS billNo FROM BILL";
+              $nextBillNo_stmt = oci_parse($conn, $nextBillNo_sql);
+              if (oci_execute($nextBillNo_stmt)) {
+                $billNo_row = oci_fetch_array($nextBillNo_stmt, OCI_ASSOC);
+                $nextBillNo = isset($billNo_row['BILLNO']) ? (int) $billNo_row['BILLNO'] : null;
+              }
+              oci_free_statement($nextBillNo_stmt);
+            }
+            
+            if ($nextBillNo === null && $bill_insert_result) {
+              $paymentErrors[] = 'Unable to retrieve bill number. Please try again shortly.';
+              $bill_insert_result = false;
+            } else {
 
               // Create the booking in database (if from pending session)
               $booking_insert_result = true;
               if ($bill_insert_result && $pendingBooking) {
-                $insert_booking_sql = "INSERT INTO BOOKING (bookingID, checkin_date, checkout_date, num_adults, num_children,
+                $insert_booking_sql = "INSERT INTO BOOKING (checkin_date, checkout_date, num_adults, num_children,
                                         deposit_amount, homestayID, guestID, staffID, billNo)
-                                 VALUES (:bookingID,
-                                     TO_DATE(:checkin_date, 'YYYY-MM-DD'),
+                                 VALUES (TO_DATE(:checkin_date, 'YYYY-MM-DD'),
                                      TO_DATE(:checkout_date, 'YYYY-MM-DD'),
                                      :num_adults,
                                      :num_children,
@@ -163,7 +170,6 @@ if (!$conn) {
                                      NULL,
                                      :billNo)";
                 $insert_booking_stmt = oci_parse($conn, $insert_booking_sql);
-                oci_bind_by_name($insert_booking_stmt, ':bookingID', $pendingBooking['bookingID']);
                 oci_bind_by_name($insert_booking_stmt, ':checkin_date', $pendingBooking['checkin_date']);
                 oci_bind_by_name($insert_booking_stmt, ':checkout_date', $pendingBooking['checkout_date']);
                 oci_bind_by_name($insert_booking_stmt, ':num_adults', $pendingBooking['num_adults']);
@@ -188,34 +194,25 @@ if (!$conn) {
                 // Create membership if user opted in and doesn't have one
                 $membershipCreated = false;
                 if ($addMembership) {
-                  $id_sql = "SELECT NVL(MAX(membershipID), 0) + 1 AS NEXT_ID FROM MEMBERSHIP";
-                  $id_stmt = oci_parse($conn, $id_sql);
-                  if (oci_execute($id_stmt)) {
-                    $id_row = oci_fetch_array($id_stmt, OCI_ASSOC);
-                    $membershipID = isset($id_row['NEXT_ID']) ? (int) $id_row['NEXT_ID'] : 1;
-                    $disc_rate = 10.00;
-                    $insert_membership_sql = "INSERT INTO MEMBERSHIP (membershipID, guestID, disc_rate) VALUES (:membershipID, :guestID, :disc_rate)";
-                    $insert_membership_stmt = oci_parse($conn, $insert_membership_sql);
-                    oci_bind_by_name($insert_membership_stmt, ':membershipID', $membershipID);
-                    oci_bind_by_name($insert_membership_stmt, ':guestID', $guestID);
-                    oci_bind_by_name($insert_membership_stmt, ':disc_rate', $disc_rate);
-                    if (oci_execute($insert_membership_stmt, OCI_NO_AUTO_COMMIT)) {
-                      $guest_type = 'MEMBERSHIP';
-                      $update_guest_sql = "UPDATE GUEST SET guest_type = :guest_type WHERE guestID = :guestID";
-                      $update_guest_stmt = oci_parse($conn, $update_guest_sql);
-                      oci_bind_by_name($update_guest_stmt, ':guest_type', $guest_type);
-                      oci_bind_by_name($update_guest_stmt, ':guestID', $guestID);
-                      if (oci_execute($update_guest_stmt, OCI_NO_AUTO_COMMIT)) {
-                        $membershipCreated = true;
-                      }
-                      oci_free_statement($update_guest_stmt);
+                  $disc_rate = 10.00;
+                  $insert_membership_sql = "INSERT INTO MEMBERSHIP (guestID, disc_rate) VALUES (:guestID, :disc_rate)";
+                  $insert_membership_stmt = oci_parse($conn, $insert_membership_sql);
+                  oci_bind_by_name($insert_membership_stmt, ':guestID', $guestID);
+                  oci_bind_by_name($insert_membership_stmt, ':disc_rate', $disc_rate);
+                  if (oci_execute($insert_membership_stmt, OCI_NO_AUTO_COMMIT)) {
+                    $guest_type = 'MEMBERSHIP';
+                    $update_guest_sql = "UPDATE GUEST SET guest_type = :guest_type WHERE guestID = :guestID";
+                    $update_guest_stmt = oci_parse($conn, $update_guest_sql);
+                    oci_bind_by_name($update_guest_stmt, ':guest_type', $guest_type);
+                    oci_bind_by_name($update_guest_stmt, ':guestID', $guestID);
+                    if (oci_execute($update_guest_stmt, OCI_NO_AUTO_COMMIT)) {
+                      $membershipCreated = true;
                     }
-                    oci_free_statement($insert_membership_stmt);
+                    oci_free_statement($update_guest_stmt);
                   }
-                  oci_free_statement($id_stmt);
+                  oci_free_statement($insert_membership_stmt);
                 }
                 oci_commit($conn);
-                
                 // Clear pending booking from session after successful payment
                 if (isset($_SESSION['pending_booking'])) {
                   unset($_SESSION['pending_booking']);
@@ -322,17 +319,8 @@ if (!$conn) {
         $depositAmount = round($totalAmount * 0.30, 2);
 
         // Generate next booking ID
-        $id_stmt = oci_parse($conn, 'SELECT NVL(MAX(bookingID), 0) + 1 AS NEXT_ID FROM BOOKING');
-        $nextBookingID = null;
-        if (oci_execute($id_stmt)) {
-          $id_row = oci_fetch_array($id_stmt, OCI_ASSOC);
-          $nextBookingID = (int) ($id_row['NEXT_ID'] ?? 1);
-        }
-        oci_free_statement($id_stmt);
-
-        if (!$nextBookingID) {
-          $bookingErrors[] = 'Unable to generate a booking reference. Please try again shortly.';
-        }
+        // bookingID will be auto-generated
+        $nextBookingID = null; // Will be auto-generated by database
 
         if (empty($bookingErrors)) {
           // Store booking details in session instead of database
@@ -433,6 +421,7 @@ if (!$conn) {
   
   closeDBConnection($conn);
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">

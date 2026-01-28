@@ -15,7 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   header('Content-Type: application/json');
     
   if ($_POST['action'] === 'add') {
-    $bookingID = $_POST['bookingId'];
     $checkIn = $_POST['checkIn'];
     $checkOut = $_POST['checkOut'];
     $numAdults = $_POST['numAdults'];
@@ -26,11 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $staffID = $_POST['staffId'];
     $billNo = !empty($_POST['billNo']) ? $_POST['billNo'] : null;
         
-    $sql = "INSERT INTO BOOKING (bookingID, checkin_date, checkout_date, num_adults, num_children, deposit_amount, homestayID, guestID, staffID, billNo)
-        VALUES (:id, TO_DATE(:checkIn, 'YYYY-MM-DD'), TO_DATE(:checkOut, 'YYYY-MM-DD'), :numAdults, :numChildren, :deposit, :homestayID, :guestID, :staffID, :billNo)";
+    $sql = "INSERT INTO BOOKING (checkin_date, checkout_date, num_adults, num_children, deposit_amount, homestayID, guestID, staffID, billNo)
+        VALUES (TO_DATE(:checkIn, 'YYYY-MM-DD'), TO_DATE(:checkOut, 'YYYY-MM-DD'), :numAdults, :numChildren, :deposit, :homestayID, :guestID, :staffID, :billNo)";
         
     $stmt = oci_parse($conn, $sql);
-    oci_bind_by_name($stmt, ':id', $bookingID);
+    
     oci_bind_by_name($stmt, ':checkIn', $checkIn);
     oci_bind_by_name($stmt, ':checkOut', $checkOut);
     oci_bind_by_name($stmt, ':numAdults', $numAdults);
@@ -89,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     oci_bind_by_name($stmt, ':guestID', $guestID);
     oci_bind_by_name($stmt, ':staffID', $staffID);
     oci_bind_by_name($stmt, ':billNo', $billNo);
-    oci_bind_by_name($stmt, ':id', $bookingID);
+    
         
     if (oci_execute($stmt)) {
       echo json_encode(['success' => true, 'message' => 'Booking updated successfully']);
@@ -119,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
     $sql = "DELETE FROM BOOKING WHERE bookingID = :id";
     $stmt = oci_parse($conn, $sql);
-    oci_bind_by_name($stmt, ':id', $bookingID);
+    
         
     if (oci_execute($stmt)) {
       echo json_encode(['success' => true, 'message' => 'Booking deleted successfully']);
