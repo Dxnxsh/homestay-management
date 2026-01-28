@@ -32,6 +32,10 @@ if (isset($_GET['error']) && $_GET['error'] == '1') {
 }
 
 if ($conn) {
+  // Update membership tier
+  require_once '../config/membership_helper.php';
+  updateMembershipTier($conn, $guestID);
+
   // Get guest_type from GUEST table
   $guest_type_sql = "SELECT guest_type FROM GUEST WHERE guestID = :guestID";
   $guest_type_stmt = oci_parse($conn, $guest_type_sql);

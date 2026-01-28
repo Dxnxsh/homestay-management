@@ -39,6 +39,10 @@ $conn = getDBConnection();
 if (!$conn) {
   $errors[] = 'Unable to connect to the booking system. Please try again later.';
 } else {
+  // Update membership tier to ensure correct discount
+  require_once '../config/membership_helper.php';
+  updateMembershipTier($conn, $guestID);
+
   $membership_sql = "SELECT disc_rate FROM MEMBERSHIP WHERE guestID = :guestID";
   $membership_stmt = oci_parse($conn, $membership_sql);
   oci_bind_by_name($membership_stmt, ':guestID', $guestID);
