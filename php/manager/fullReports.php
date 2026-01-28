@@ -84,7 +84,7 @@ oci_free_statement($stmt);
 <head>
   <meta charset="UTF-8">
   <title>Full Reports</title>
-  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/summaryStyle.css?v=3">
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/fullReportsStyle.css">
   <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
@@ -244,8 +244,21 @@ oci_free_statement($stmt);
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
         <div class="header-profile-info">
-          <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Manager'); ?></div>
-          <div class="header-profile-job">Manager</div>
+          <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Staff'); ?></div>
+          <div class="header-profile-job"><?php
+            if (isManager()) {
+              echo 'Manager';
+            } else {
+              $st = $_SESSION['staff_type'] ?? '';
+              if (stripos($st, 'part') !== false) {
+                echo 'Part-time';
+              } elseif (stripos($st, 'full') !== false) {
+                echo 'Full-time';
+              } else {
+                echo htmlspecialchars($st ?: 'Staff');
+              }
+            }
+          ?></div>
         </div>
       </div>
     </div>
@@ -254,9 +267,8 @@ oci_free_statement($stmt);
         <h1>Full Reports</h1>
         <p class="subdued">Complete data export for all bookings, guests, billing, and properties</p>
       </div>
-      <button onclick="generatePDF()" class="pill"
-        style="cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid #8a4d1c;">
-        <i class='bx bx-download' style="font-size: 18px;"></i> Download PDF
+      <button type="button" onclick="generatePDF()" class="pill">
+        <i class='bx bx-download'></i> Download PDF
       </button>
     </div><br>
 
