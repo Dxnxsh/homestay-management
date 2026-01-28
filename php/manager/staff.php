@@ -185,6 +185,9 @@ if ($conn) {
     </div>
     <div class="page-heading">
       <h1>Staff Management</h1>
+      <button class="btn-add-staff" onclick="openAddModal()">
+        <i class='bx bx-plus'></i> Add Staff
+      </button>
     </div>
     <!-- Content -->
     <div class="content">
@@ -271,9 +274,11 @@ if ($conn) {
                 </td>
                 <!-- Hidden fields for JS use -->
                 <td style="display:none;" class="hidden-password">
-                  <?php echo htmlspecialchars($staff['STAFF_PASSWORD']); ?></td>
+                  <?php echo htmlspecialchars($staff['STAFF_PASSWORD']); ?>
+                </td>
                 <td style="display:none;" class="hidden-manager-id">
-                  <?php echo htmlspecialchars($staff['MANAGERID'] ?? '-'); ?></td>
+                  <?php echo htmlspecialchars($staff['MANAGERID'] ?? '-'); ?>
+                </td>
               </tr>
             <?php endforeach; ?>
           </tbody>
@@ -319,8 +324,8 @@ if ($conn) {
         <div class="form-group">
           <label for="updateType">Type</label>
           <select id="updateType" name="type" required onchange="toggleManagerId()">
-            <option value="Full Time">Full Time</option>
-            <option value="Part Time">Part Time</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
           </select>
         </div>
         <div class="form-group">
@@ -330,8 +335,54 @@ if ($conn) {
           </select>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
           <button type="submit" class="btn-save">Save Changes</button>
+          <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Staff Modal -->
+  <div id="addModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New Staff</h2>
+        <span class="close-modal" onclick="closeAddModal()">&times;</span>
+      </div>
+      <form id="addStaffForm" class="modal-form">
+        <div class="form-group">
+          <label for="addStaffName">Name</label>
+          <input type="text" id="addStaffName" required>
+        </div>
+        <div class="form-group">
+          <label for="addPhone">Phone No.</label>
+          <input type="text" id="addPhone" required>
+        </div>
+        <div class="form-group">
+          <label for="addEmail">Email</label>
+          <input type="email" id="addEmail" required>
+        </div>
+        <div class="form-group">
+          <label for="addPassword">Password</label>
+          <input type="password" id="addPassword" value="pass123" required>
+        </div>
+        <div class="form-group">
+          <label for="addType">Type</label>
+          <select id="addType" onchange="toggleAddManagerId()" required>
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="addManagerId">Reports To (Manager)</label>
+          <select id="addManagerId" disabled>
+            <option value="">-</option>
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-save">Add Staff</button>
+          <button type="button" class="btn-cancel" onclick="closeAddModal()">Cancel</button>
         </div>
       </form>
     </div>
@@ -467,19 +518,59 @@ if ($conn) {
         managerId: hiddenManagerId === '-' ? '' : hiddenManagerId
       };
 
-      document.getElementById('updateStaffId').value = currentData.id;
-      document.getElementById('updateStaffName').value = currentData.name;
-      document.getElementById('updatePhone').value = currentData.phone;
-      document.getElementById('updateEmail').value = currentData.email;
-      document.getElementById('updatePassword').value = currentData.password;
-      document.getElementById('updateType').value = currentData.type;
+      openUpdateModal(currentData.id, currentData.name, currentData.phone, currentData.email, currentData.password, currentData.type, currentData.managerId);
+    }
 
-      // Populate manager dropdown first, then set value
-      toggleManagerId();
-      document.getElementById('updateManagerId').value = currentData.managerId;
+    function openUpdateModal(staffId, name, phone, email, password, type, managerId) {
+      document.getElementById('updateStaffId').value = staffId;
+      document.getElementById('updateStaffName').value = name;
+      document.getElementById('updatePhone').value = phone;
+      document.getElementById('updateEmail').value = email;
+      document.getElementById('updatePassword').value = password;
+      document.getElementById('updateType').value = type;
+
+      // Populate valid managers first
+      populateManagerDropdown('updateManagerId');
+
+      document.getElementById('updateManagerId').value = managerId ? managerId : '';
+
+      toggleManagerId(); // Updates disabled state
 
       document.getElementById('updateModal').setAttribute('data-target-row', staffId);
       document.getElementById('updateModal').style.display = 'block';
+    }
+
+    function openAddModal() {
+      document.getElementById('addStaffForm').reset();
+      populateManagerDropdown('addManagerId');
+      toggleAddManagerId();
+      document.getElementById('addModal').style.display = 'block';
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').style.display = 'none';
+    }
+
+    // New Helper to populate Manager Dropdown from existing table data (or fetch from API ideally)
+    function populateManagerDropdown(selectId) {
+      const select = document.getElementById(selectId);
+      select.innerHTML = '<option value="">-</option>';
+
+      // Use the rows already rendered
+      const rows = document.querySelectorAll('#staffTableBody tr');
+      rows.forEach(row => {
+        const id = row.getAttribute('data-id');
+        const name = row.getAttribute('data-name');
+        const type = row.getAttribute('data-type');
+
+        // Only Full Time staff can be managers
+        if (type === 'Full-time') {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = name + ' (' + id + ')';
+          select.appendChild(opt);
+        }
+      });
     }
 
     function closeUpdateModal() {
@@ -490,38 +581,28 @@ if ($conn) {
     function toggleManagerId() {
       const typeSelect = document.getElementById('updateType');
       const managerIdSelect = document.getElementById('updateManagerId');
-      const currentStaffId = document.getElementById('updateStaffId').value;
 
-      if (typeSelect.value === 'Full Time') {
+      if (typeSelect.value === 'Full-time') {
         managerIdSelect.value = '';
         managerIdSelect.disabled = true;
         managerIdSelect.required = false;
       } else {
         managerIdSelect.disabled = false;
         managerIdSelect.required = true;
+      }
+    }
 
-        // Populate Manager ID dropdown with Full Time staff (excluding current staff)
-        // Ideally this should come from a separate list of full-time staff
-        managerIdSelect.innerHTML = '<option value="">-</option>';
-        const rows = tableBody.querySelectorAll('tr');
-        rows.forEach(row => {
-          const idCell = row.querySelector('td:first-child');
-          const typeAttr = row.getAttribute('data-type');
-          const nameCell = row.querySelector('td:nth-child(2)');
+    function toggleAddManagerId() {
+      const typeSelect = document.getElementById('addType');
+      const managerIdSelect = document.getElementById('addManagerId');
 
-          if (idCell && typeAttr && nameCell) {
-            const staffId = idCell.textContent.trim();
-            const staffType = typeAttr;
-            const staffName = nameCell.textContent.trim();
-
-            if (staffType === 'Full Time' && staffId !== currentStaffId) {
-              const option = document.createElement('option');
-              option.value = staffId;
-              option.textContent = staffId + ' - ' + staffName;
-              managerIdSelect.appendChild(option);
-            }
-          }
-        });
+      if (typeSelect.value === 'Full-time') {
+        managerIdSelect.value = '';
+        managerIdSelect.disabled = true;
+        managerIdSelect.required = false;
+      } else {
+        managerIdSelect.disabled = false;
+        managerIdSelect.required = true;
       }
     }
 
@@ -532,21 +613,77 @@ if ($conn) {
       const typeValue = document.getElementById('updateType').value;
       const managerIdValue = document.getElementById('updateManagerId').value;
 
-      // Validate: Full Time should have no Manager ID
-      if (typeValue === 'Full Time' && managerIdValue !== '') {
-        alert('Full Time staff cannot have a Manager ID. Please set Manager ID to "-"');
-        return;
-      }
+      const payload = {
+        staffId: staffId,
+        name: document.getElementById('updateStaffName').value,
+        phone: document.getElementById('updatePhone').value,
+        email: document.getElementById('updateEmail').value,
+        password: document.getElementById('updatePassword').value,
+        type: typeValue,
+        managerId: managerIdValue
+      };
+
+      fetch('update_staff.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Staff updated successfully!');
+            closeUpdateModal();
+            location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while updating staff.');
+        });
+    });
+
+    document.getElementById('addStaffForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const typeValue = document.getElementById('addType').value;
+      const managerIdValue = document.getElementById('addManagerId').value;
 
       // Validate: Part Time must have a Manager ID
-      if (typeValue === 'Part Time' && managerIdValue === '') {
+      if (typeValue === 'Part-time' && managerIdValue === '') {
         alert('Part Time staff must have a Manager ID');
         return;
       }
 
-      // In a real application, submit to backend here
-      alert('This is a demo. Backend update logic would go here.');
-      closeUpdateModal();
+      const payload = {
+        name: document.getElementById('addStaffName').value,
+        phone: document.getElementById('addPhone').value,
+        email: document.getElementById('addEmail').value,
+        password: document.getElementById('addPassword').value,
+        type: typeValue,
+        managerId: managerIdValue
+      };
+
+      fetch('add_staff.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Staff added successfully!');
+            closeAddModal();
+            location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while adding staff.');
+        });
     });
 
     window.onclick = function (event) {
@@ -560,18 +697,37 @@ if ($conn) {
 
     function deleteStaff(staffId) {
       if (confirm('Are you sure you want to delete staff ' + staffId + '?')) {
-        // In a real application, call backend API here
-        // For now, remove from table
-        const rows = tableBody.querySelectorAll('tr');
-        rows.forEach(row => {
-          const idCell = row.querySelector('td:first-child');
-          if (idCell && idCell.textContent.trim() === staffId) {
-            row.remove();
-            allRows = Array.from(tableBody.querySelectorAll('tr'));
-            alert('Staff deleted successfully (Frontend only)!');
-            return;
-          }
-        });
+        fetch('delete_staff.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staffId: staffId })
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert('Staff deleted successfully!');
+              location.reload();
+            } else {
+              console.error('Server reported error:', data.message);
+              alert('Error: ' + (data.message || 'Failed to delete staff.'));
+            }
+          })
+          .catch(error => {
+            console.error('Fetch Error:', error);
+            alert('An error occurred while deleting staff. Check console for details.');
+          });
+      }
+    }
+
+    // Window click to close modals
+    window.onclick = function (event) {
+      const updateModal = document.getElementById('updateModal');
+      const addModal = document.getElementById('addModal');
+      if (event.target === updateModal) {
+        closeUpdateModal();
+      }
+      if (event.target === addModal) {
+        closeAddModal();
       }
     }
   </script>
