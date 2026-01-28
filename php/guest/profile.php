@@ -304,15 +304,6 @@ if ($conn) {
                     </select>
                   </div>
                 </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Guest Type</label>
-                    <select name="guest_type" class="form-input" disabled>
-                      <option value="Regular" <?php echo strtoupper($guest['type'] ?? '') === 'REGULAR' ? 'selected' : ''; ?>>Regular</option>
-                      <option value="Membership" <?php echo strtoupper($guest['type'] ?? '') === 'Member' ? 'selected' : ''; ?>>Membership</option>
-                    </select>
-                  </div>
-                </div>
                 <div class="form-group">
                   <label>Address</label>
                   <textarea name="guest_address" class="form-input"
