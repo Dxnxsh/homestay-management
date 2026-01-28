@@ -155,12 +155,17 @@ if ($conn) {
 
         <?php if ($guest): ?>
           <div class="profile-container">
-            <div class="profile-header">
+            <div class="profile-header" style="justify-content: flex-start; gap: 20px;">
+              <div class="profile-icon"
+                style="background: #FFF8F0; padding: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class='bx bx-user' style="font-size: 60px; color: #C5814B;"></i>
+              </div>
               <div class="profile-info">
-                <h2><?php echo htmlspecialchars($guest['name']); ?></h2>
-                <p class="profile-email"><?php echo htmlspecialchars($guest['email']); ?></p>
+                <h2 style="margin: 0; margin-bottom: 5px;"><?php echo htmlspecialchars($guest['name']); ?></h2>
+                <p class="profile-email" style="margin: 0; margin-bottom: 5px;">
+                  <?php echo htmlspecialchars($guest['email']); ?></p>
                 <?php if (!empty($guest['phoneNo'])): ?>
-                  <p class="profile-phone"><?php echo htmlspecialchars($guest['phoneNo']); ?></p>
+                  <p class="profile-phone" style="margin: 0;"><?php echo htmlspecialchars($guest['phoneNo']); ?></p>
                 <?php endif; ?>
               </div>
             </div>
