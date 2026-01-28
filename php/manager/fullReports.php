@@ -54,6 +54,32 @@ while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
 }
 oci_free_statement($stmt);
 
+// Fetch all staff with inheritance details (FULL_TIME / PART_TIME)
+$staffData = [];
+$staffSql = "SELECT s.STAFFID,
+                    s.STAFF_NAME,
+                    s.STAFF_PHONENO,
+                    s.STAFF_EMAIL,
+                    s.STAFF_TYPE,
+                    s.MANAGERID,
+                    m.STAFF_NAME AS MANAGER_NAME,
+                    ft.FULL_TIME_SALARY,
+                    ft.VACATION_DAYS,
+                    ft.BONUS,
+                    pt.HOURLY_RATE,
+                    pt.SHIFT_TIME
+             FROM STAFF s
+             LEFT JOIN STAFF m ON s.MANAGERID = m.STAFFID
+             LEFT JOIN FULL_TIME ft ON s.STAFFID = ft.STAFFID
+             LEFT JOIN PART_TIME pt ON s.STAFFID = pt.STAFFID
+             ORDER BY s.STAFFID ASC";
+$stmt = oci_parse($conn, $staffSql);
+oci_execute($stmt);
+while ($row = oci_fetch_array($stmt, OCI_ASSOC + OCI_RETURN_NULLS)) {
+  $staffData[] = $row;
+}
+oci_free_statement($stmt);
+
 // Fetch all bills
 $billsData = [];
 $billSql = "SELECT bi.billNo, g.guest_name, h.homestay_name, 
@@ -324,10 +350,11 @@ oci_free_statement($stmt);
             <div class="filter-container">
               <select id="reportFilter" name="report-filter" class="filter-select">
                 <option value="all">All Reports</option>
-                <option value="bookings">Bookings</option>
                 <option value="guests">Guests</option>
-                <option value="bills">Bills</option>
+                <option value="staff">Staff</option>
                 <option value="properties">Homestay</option>
+                <option value="bills">Bills</option>
+                <option value="bookings">Bookings</option>
               </select>
             </div>
           </div>
@@ -352,45 +379,6 @@ oci_free_statement($stmt);
     </div>
 
     <div class="report-wrapper">
-      <!-- Bookings Report -->
-      <div class="report-section" data-report="bookings">
-        <h2>All Bookings</h2>
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Booking ID</th>
-              <th>Guest</th>
-              <th>Property</th>
-              <th>Check-In</th>
-              <th>Check-Out</th>
-              <th>Nights</th>
-              <th>Amount</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (!empty($bookingsData)): ?>
-              <?php foreach ($bookingsData as $b): ?>
-                <tr>
-                  <td><?php echo htmlspecialchars($b['BOOKINGID']); ?></td>
-                  <td><?php echo htmlspecialchars($b['GUEST_NAME'] ?? 'N/A'); ?></td>
-                  <td><?php echo htmlspecialchars($b['HOMESTAY_NAME'] ?? 'N/A'); ?></td>
-                  <td><?php echo htmlspecialchars($b['CHECKIN_DATE']); ?></td>
-                  <td><?php echo htmlspecialchars($b['CHECKOUT_DATE']); ?></td>
-                  <td><?php echo (int) $b['STAY_NIGHTS']; ?></td>
-                  <td>RM <?php echo number_format($b['AMOUNT'], 2); ?></td>
-                  <td><span class="pill-sm"><?php echo htmlspecialchars($b['STATUS']); ?></span></td>
-                </tr>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="8" style="text-align:center; color:#999;">No bookings found</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
-
       <!-- Guests Report -->
       <div class="report-section" data-report="guests">
         <h2>All Guests</h2>
@@ -437,37 +425,53 @@ oci_free_statement($stmt);
         </table>
       </div>
 
-      <!-- Billing Report -->
-      <div class="report-section" data-report="bills">
-        <h2>All Bills</h2>
+      <!-- Staff Report -->
+      <div class="report-section" data-report="staff">
+        <h2>All Staff</h2>
         <table class="report-table">
           <thead>
             <tr>
-              <th>Bill No.</th>
-              <th>Guest</th>
-              <th>Property</th>
-              <th>Bill Date</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Payment Method</th>
+              <th>Staff ID</th>
+              <th>Name</th>
+              <th>Phone No.</th>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Manager</th>
+              <th>Full-time Salary</th>
+              <th>Vacation Days</th>
+              <th>Bonus</th>
+              <th>Hourly Rate</th>
+              <th>Shift Time</th>
             </tr>
           </thead>
           <tbody>
-            <?php if (!empty($billsData)): ?>
-              <?php foreach ($billsData as $bi): ?>
+            <?php if (!empty($staffData)): ?>
+              <?php foreach ($staffData as $s): ?>
                 <tr>
-                  <td><?php echo htmlspecialchars($bi['BILLNO']); ?></td>
-                  <td><?php echo htmlspecialchars($bi['GUEST_NAME'] ?? 'N/A'); ?></td>
-                  <td><?php echo htmlspecialchars($bi['HOMESTAY_NAME'] ?? 'N/A'); ?></td>
-                  <td><?php echo htmlspecialchars($bi['BILL_DATE']); ?></td>
-                  <td>RM <?php echo number_format($bi['TOTAL_AMOUNT'], 2); ?></td>
-                  <td><span class="pill-sm"><?php echo htmlspecialchars($bi['BILL_STATUS']); ?></span></td>
-                  <td><?php echo htmlspecialchars($bi['PAYMENT_METHOD'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($s['STAFFID']); ?></td>
+                  <td><?php echo htmlspecialchars($s['STAFF_NAME']); ?></td>
+                  <td><?php echo htmlspecialchars($s['STAFF_PHONENO'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($s['STAFF_EMAIL'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($s['STAFF_TYPE'] ?? 'N/A'); ?></td>
+                  <td><?php echo !empty($s['MANAGERID']) ? htmlspecialchars($s['MANAGERID']) : '—'; ?></td>
+                  <td>
+                    <?php echo isset($s['FULL_TIME_SALARY']) ? 'RM ' . number_format($s['FULL_TIME_SALARY'], 2) : '—'; ?>
+                  </td>
+                  <td>
+                    <?php echo isset($s['VACATION_DAYS']) ? (int)$s['VACATION_DAYS'] : '—'; ?>
+                  </td>
+                  <td>
+                    <?php echo isset($s['BONUS']) ? 'RM ' . number_format($s['BONUS'], 2) : '—'; ?>
+                  </td>
+                  <td>
+                    <?php echo isset($s['HOURLY_RATE']) ? 'RM ' . number_format($s['HOURLY_RATE'], 2) : '—'; ?>
+                  </td>
+                  <td><?php echo htmlspecialchars($s['SHIFT_TIME'] ?? '—'); ?></td>
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>
               <tr>
-                <td colspan="7" style="text-align:center; color:#999;">No bills found</td>
+                <td colspan="11" style="text-align:center; color:#999;">No staff found</td>
               </tr>
             <?php endif; ?>
           </tbody>
@@ -507,6 +511,82 @@ oci_free_statement($stmt);
             <?php else: ?>
               <tr>
                 <td colspan="5" style="text-align:center; color:#999;">No properties found</td>
+              </tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Billing Report -->
+      <div class="report-section" data-report="bills">
+        <h2>All Bills</h2>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Bill No.</th>
+              <th>Guest</th>
+              <th>Property</th>
+              <th>Bill Date</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Payment Method</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (!empty($billsData)): ?>
+              <?php foreach ($billsData as $bi): ?>
+                <tr>
+                  <td><?php echo htmlspecialchars($bi['BILLNO']); ?></td>
+                  <td><?php echo htmlspecialchars($bi['GUEST_NAME'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($bi['HOMESTAY_NAME'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($bi['BILL_DATE']); ?></td>
+                  <td>RM <?php echo number_format($bi['TOTAL_AMOUNT'], 2); ?></td>
+                  <td><span class="pill-sm"><?php echo htmlspecialchars($bi['BILL_STATUS']); ?></span></td>
+                  <td><?php echo htmlspecialchars($bi['PAYMENT_METHOD'] ?? 'N/A'); ?></td>
+                </tr>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <tr>
+                <td colspan="7" style="text-align:center; color:#999;">No bills found</td>
+              </tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Bookings Report -->
+      <div class="report-section" data-report="bookings">
+        <h2>All Bookings</h2>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Booking ID</th>
+              <th>Guest</th>
+              <th>Property</th>
+              <th>Check-In</th>
+              <th>Check-Out</th>
+              <th>Nights</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (!empty($bookingsData)): ?>
+              <?php foreach ($bookingsData as $b): ?>
+                <tr>
+                  <td><?php echo htmlspecialchars($b['BOOKINGID']); ?></td>
+                  <td><?php echo htmlspecialchars($b['GUEST_NAME'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($b['HOMESTAY_NAME'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($b['CHECKIN_DATE']); ?></td>
+                  <td><?php echo htmlspecialchars($b['CHECKOUT_DATE']); ?></td>
+                  <td><?php echo (int) $b['STAY_NIGHTS']; ?></td>
+                  <td>RM <?php echo number_format($b['AMOUNT'], 2); ?></td>
+                  <td><span class="pill-sm"><?php echo htmlspecialchars($b['STATUS']); ?></span></td>
+                </tr>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <tr>
+                <td colspan="8" style="text-align:center; color:#999;">No bookings found</td>
               </tr>
             <?php endif; ?>
           </tbody>
