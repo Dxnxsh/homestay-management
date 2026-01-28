@@ -247,9 +247,9 @@ if ($conn) {
               <?php
               // Prepare tooltip details based on type
               $details = "";
-              if ($staff['STAFF_TYPE'] === 'Full Time') {
+              if ($staff['STAFF_TYPE'] === 'Full Time' || $staff['STAFF_TYPE'] === 'Full-time') {
                 $details = "Salary: RM " . $staff['FULL_TIME_SALARY'] . " | Vacation: " . $staff['VACATION_DAYS'] . " days";
-              } elseif ($staff['STAFF_TYPE'] === 'Part Time') {
+              } elseif ($staff['STAFF_TYPE'] === 'Part Time' || $staff['STAFF_TYPE'] === 'Part-time') {
                 $details = "Hourly: RM " . $staff['HOURLY_RATE'] . "/hr | Shift: " . $staff['SHIFT_TIME'];
               }
 
@@ -518,7 +518,11 @@ if ($conn) {
         managerId: hiddenManagerId === '-' ? '' : hiddenManagerId
       };
 
-      openUpdateModal(currentData.id, currentData.name, currentData.phone, currentData.email, currentData.password, currentData.type, currentData.managerId);
+      let normalizedType = currentData.type;
+      if (normalizedType === 'Full Time') normalizedType = 'Full-time';
+      if (normalizedType === 'Part Time') normalizedType = 'Part-time';
+
+      openUpdateModal(currentData.id, currentData.name, currentData.phone, currentData.email, currentData.password, normalizedType, currentData.managerId);
     }
 
     function openUpdateModal(staffId, name, phone, email, password, type, managerId) {
@@ -529,8 +533,8 @@ if ($conn) {
       document.getElementById('updatePassword').value = password;
       document.getElementById('updateType').value = type;
 
-      // Populate valid managers first
-      populateManagerDropdown('updateManagerId');
+      // Populate valid managers first, excluding self
+      populateManagerDropdown('updateManagerId', staffId);
 
       document.getElementById('updateManagerId').value = managerId ? managerId : '';
 
@@ -542,7 +546,7 @@ if ($conn) {
 
     function openAddModal() {
       document.getElementById('addStaffForm').reset();
-      populateManagerDropdown('addManagerId');
+      populateManagerDropdown('addManagerId', null);
       toggleAddManagerId();
       document.getElementById('addModal').style.display = 'block';
     }
@@ -552,7 +556,7 @@ if ($conn) {
     }
 
     // New Helper to populate Manager Dropdown from existing table data (or fetch from API ideally)
-    function populateManagerDropdown(selectId) {
+    function populateManagerDropdown(selectId, excludeStaffId) {
       const select = document.getElementById(selectId);
       select.innerHTML = '<option value="">-</option>';
 
@@ -560,11 +564,21 @@ if ($conn) {
       const rows = document.querySelectorAll('#staffTableBody tr');
       rows.forEach(row => {
         const id = row.getAttribute('data-id');
-        const name = row.getAttribute('data-name');
-        const type = row.getAttribute('data-type');
 
-        // Only Full Time staff can be managers
-        if (type === 'Full-time') {
+        // Prevent assigning self as manager
+        if (excludeStaffId && id === excludeStaffId) {
+            return;
+        }
+
+        const name = row.getAttribute('data-name');
+        // Find the hidden manager ID cell
+        // It is the last td, but safer to query class
+        const hiddenManagerIdCell = row.querySelector('.hidden-manager-id');
+        const managerIdOfStaff = hiddenManagerIdCell ? hiddenManagerIdCell.textContent.trim() : '-';
+
+        // A staff member can be a manager for others if they are a Manager themselves (i.e., they have NO manager)
+        // Check if their manager ID is empty or '-'
+        if (managerIdOfStaff === '-' || managerIdOfStaff === '') {
           const opt = document.createElement('option');
           opt.value = id;
           opt.textContent = name + ' (' + id + ')';
@@ -583,10 +597,12 @@ if ($conn) {
       const managerIdSelect = document.getElementById('updateManagerId');
 
       if (typeSelect.value === 'Full-time') {
-        managerIdSelect.value = '';
-        managerIdSelect.disabled = true;
+        // Full-time staff CAN have a manager (be a subordinate) OR not (be a manager)
+        // So we do NOT disable it, but it is not required.
+        managerIdSelect.disabled = false;
         managerIdSelect.required = false;
       } else {
+        // Part-time staff MUST have a manager (business rule assumed/enforced in submit)
         managerIdSelect.disabled = false;
         managerIdSelect.required = true;
       }
@@ -597,8 +613,8 @@ if ($conn) {
       const managerIdSelect = document.getElementById('addManagerId');
 
       if (typeSelect.value === 'Full-time') {
-        managerIdSelect.value = '';
-        managerIdSelect.disabled = true;
+        // Full-time staff CAN have a manager (be a subordinate) OR not (be a manager)
+        managerIdSelect.disabled = false;
         managerIdSelect.required = false;
       } else {
         managerIdSelect.disabled = false;
