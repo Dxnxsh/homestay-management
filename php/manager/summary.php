@@ -200,7 +200,7 @@ oci_close($conn);
     <div class="page-heading">
       <div>
         <h1>Summary</h1>
-        <p class="subdued">Annual business performance overview.</p>
+        <p class="subdued">Key metrics condensed into a overview</p>
       </div>
     </div>
 

@@ -323,7 +323,7 @@ oci_free_statement($stmt);
     <div class="page-heading">
       <div>
         <h1>Full Reports</h1>
-        <p class="subdued">Complete data export for all bookings, guests, billing, and homestay</p>
+        <p class="subdued">Detailed tables for guests, staff, homestays, billing and bookings</p>
       </div>
     </div>
 
