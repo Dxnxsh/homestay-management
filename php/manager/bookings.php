@@ -735,7 +735,7 @@ oci_free_statement($billStmt);
         bookingId: cells[0].textContent.trim(),
         checkIn: cells[1].textContent.trim(),
         checkOut: cells[2].textContent.trim(),
-        deposit: cells[3].textContent.trim().replace('RM ', '').trim(),
+        deposit: cells[3].textContent.trim().replace('RM ', '').replace(/,/g, '').trim(),
         homestayId: cells[4].textContent.trim(),
         guestId: cells[5].textContent.trim(),
         billNo: cells[6].textContent.trim() === '-' ? '' : cells[6].textContent.trim(),
