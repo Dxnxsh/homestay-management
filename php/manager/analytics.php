@@ -9,7 +9,8 @@ if (!$conn) {
   die('Database connection failed. Please try again later.');
 }
 
-function fetchOne($conn, $sql) {
+function fetchOne($conn, $sql)
+{
   $stmt = oci_parse($conn, $sql);
   oci_execute($stmt);
   $row = oci_fetch_array($stmt, OCI_ASSOC);
@@ -17,7 +18,8 @@ function fetchOne($conn, $sql) {
   return $row ?: [];
 }
 
-function fetchAll($conn, $sql) {
+function fetchAll($conn, $sql)
+{
   $result = [];
   $stmt = oci_parse($conn, $sql);
   if ($stmt && @oci_execute($stmt)) {
@@ -111,15 +113,17 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Analytics</title>
-    <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/summaryStyle.css?v=3">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Analytics</title>
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/summaryStyle.css?v=3">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
 <body>
-   <!-- Sidebar -->
+  <!-- Sidebar -->
   <div class="sidebar close">
     <div class="logo-details">
       <img src="../../images/logo.png" alt="Serena Sanctuary logo" class="logo-icon">
@@ -128,7 +132,7 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
     <ul class="nav-links">
       <li>
         <a href="dashboard.php">
-          <i class='bxr  bx-dashboard'></i> 
+          <i class='bxr  bx-dashboard'></i>
           <span class="link_name">Dashboard</span>
         </a>
         <ul class="sub-menu blank">
@@ -141,13 +145,13 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
             <i class='bxr  bx-list-square'></i>
             <span class="link_name">Manage</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
           <?php if (isManager()): ?>
-          <li><a href="staff.php">Staff</a></li>
+            <li><a href="staff.php">Staff</a></li>
           <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
@@ -181,7 +185,7 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
       </li>
       <li>
         <a href="calendar.php">
-          <i class='bxr  bx-calendar-alt'></i> 
+          <i class='bxr  bx-calendar-alt'></i>
           <span class="link_name">Calendar</span>
         </a>
         <ul class="sub-menu blank">
@@ -191,10 +195,10 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
       <li>
         <div class="icon-link">
           <a href="reports.php">
-            <i class='bxr  bx-file-report'></i> 
+            <i class='bxr  bx-file-report'></i>
             <span class="link_name">Reports</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="reports.php">Reports</a></li>
@@ -205,7 +209,8 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
       </li>
       <li>
         <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+          <a href="../logout.php" class="profile-content"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
             <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
@@ -216,7 +221,7 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
 
   <section class="home-section">
     <div class="home-content">
-      <i class='bx bx-menu' ></i>
+      <i class='bx bx-menu'></i>
       <span class="text">Serena Sanctuary</span>
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
@@ -226,7 +231,7 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
         </div>
       </div>
     </div>
-    
+
     <div class="page-heading">
       <h1>Analytics</h1>
     </div><br>
@@ -247,11 +252,13 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
           </div>
           <div class="kpi-card">
             <h4 class="kpi-label">Revenue Growth</h4>
-            <p class="kpi-value <?php echo $revGrowth >= 0 ? 'positive' : 'negative'; ?>"><?php echo $revGrowth >= 0 ? '+' : ''; ?><?php echo $revGrowth; ?>%</p>
+            <p class="kpi-value <?php echo $revGrowth >= 0 ? 'positive' : 'negative'; ?>">
+              <?php echo $revGrowth >= 0 ? '+' : ''; ?><?php echo $revGrowth; ?>%</p>
           </div>
           <div class="kpi-card">
             <h4 class="kpi-label">Adults / Children</h4>
-            <p class="kpi-value"><?php echo $demographics['ADULTS'] ?? 0; ?> / <?php echo $demographics['CHILDREN'] ?? 0; ?></p>
+            <p class="kpi-value"><?php echo $demographics['ADULTS'] ?? 0; ?> /
+              <?php echo $demographics['CHILDREN'] ?? 0; ?></p>
           </div>
         </div>
       </section>
@@ -319,7 +326,7 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
                   <div class="revenue-bar-container">
                     <div class="revenue-bar" style="width: <?php echo max(6, $pct); ?>%;"></div>
                   </div>
-                  <div class="revenue-amount">$<?php echo number_format($data['REVENUE'], 0); ?></div>
+                  <div class="revenue-amount">RM <?php echo number_format($data['REVENUE'], 0); ?></div>
                 </div>
               <?php endforeach; ?>
             <?php else: ?>
@@ -359,19 +366,20 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
   </section>
 
   <script>
-  let arrow = document.querySelectorAll(".arrow");
-  for (var i = 0; i < arrow.length; i++) {
-    arrow[i].addEventListener("click", (e)=>{
-   let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
-   arrowParent.classList.toggle("showMenu");
+    let arrow = document.querySelectorAll(".arrow");
+    for (var i = 0; i < arrow.length; i++) {
+      arrow[i].addEventListener("click", (e) => {
+        let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+        arrowParent.classList.toggle("showMenu");
+      });
+    }
+    let sidebar = document.querySelector(".sidebar");
+    let sidebarBtn = document.querySelector(".bx-menu");
+    console.log(sidebarBtn);
+    sidebarBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("close");
     });
-  }
-  let sidebar = document.querySelector(".sidebar");
-  let sidebarBtn = document.querySelector(".bx-menu");
-  console.log(sidebarBtn);
-  sidebarBtn.addEventListener("click", ()=>{
-    sidebar.classList.toggle("close");
-  });
   </script>
 </body>
+
 </html>

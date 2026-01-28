@@ -9,7 +9,8 @@ if (!$conn) {
   die('Database connection failed. Please try again later.');
 }
 
-function fetchOne($conn, $sql) {
+function fetchOne($conn, $sql)
+{
   $stmt = oci_parse($conn, $sql);
   oci_execute($stmt);
   $row = oci_fetch_array($stmt, OCI_ASSOC);
@@ -63,13 +64,15 @@ oci_close($conn);
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Summary</title>
-    <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/summaryStyle.css?v=3">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Summary</title>
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/summaryStyle.css?v=3">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
 <body>
   <div class="sidebar close">
     <div class="logo-details">
@@ -79,7 +82,7 @@ oci_close($conn);
     <ul class="nav-links">
       <li>
         <a href="dashboard.php">
-          <i class='bxr  bx-dashboard'></i> 
+          <i class='bxr  bx-dashboard'></i>
           <span class="link_name">Dashboard</span>
         </a>
         <ul class="sub-menu blank">
@@ -92,13 +95,13 @@ oci_close($conn);
             <i class='bxr  bx-list-square'></i>
             <span class="link_name">Manage</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
           <?php if (isManager()): ?>
-          <li><a href="staff.php">Staff</a></li>
+            <li><a href="staff.php">Staff</a></li>
           <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
@@ -132,7 +135,7 @@ oci_close($conn);
       </li>
       <li>
         <a href="calendar.php">
-          <i class='bxr  bx-calendar-alt'></i> 
+          <i class='bxr  bx-calendar-alt'></i>
           <span class="link_name">Calendar</span>
         </a>
         <ul class="sub-menu blank">
@@ -142,10 +145,10 @@ oci_close($conn);
       <li>
         <div class="icon-link">
           <a href="reports.php">
-            <i class='bxr  bx-file-report'></i> 
+            <i class='bxr  bx-file-report'></i>
             <span class="link_name">Reports</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="reports.php">Reports</a></li>
@@ -156,7 +159,8 @@ oci_close($conn);
       </li>
       <li>
         <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+          <a href="../logout.php" class="profile-content"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
             <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
@@ -166,7 +170,7 @@ oci_close($conn);
   </div>
   <section class="home-section">
     <div class="home-content">
-      <i class='bx bx-menu' ></i>
+      <i class='bx bx-menu'></i>
       <span class="text">Serena Sanctuary</span>
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
@@ -186,23 +190,23 @@ oci_close($conn);
     <div class="kpi-grid">
       <div class="kpi-card">
         <p class="kpi-label">Total Revenue</p>
-        <p class="kpi-value">$<?php echo number_format($totalRevenue['TOTAL'] ?? 0, 0); ?></p>
+        <p class="kpi-value">RM <?php echo number_format($totalRevenue['TOTAL'] ?? 0, 0); ?></p>
       </div>
       <div class="kpi-card">
         <p class="kpi-label">Total Bookings</p>
-        <p class="kpi-value"><?php echo (int)($totalBookings['CNT'] ?? 0); ?></p>
+        <p class="kpi-value"><?php echo (int) ($totalBookings['CNT'] ?? 0); ?></p>
       </div>
       <div class="kpi-card">
         <p class="kpi-label">Registered Guests</p>
-        <p class="kpi-value"><?php echo (int)($totalGuests['CNT'] ?? 0); ?></p>
+        <p class="kpi-value"><?php echo (int) ($totalGuests['CNT'] ?? 0); ?></p>
       </div>
       <div class="kpi-card">
         <p class="kpi-label">Properties</p>
-        <p class="kpi-value"><?php echo (int)($totalHomestays['CNT'] ?? 0); ?></p>
+        <p class="kpi-value"><?php echo (int) ($totalHomestays['CNT'] ?? 0); ?></p>
       </div>
       <div class="kpi-card">
         <p class="kpi-label">Avg. Guest Count/Booking</p>
-        <p class="kpi-value"><?php echo (float)($avgOccupancy['AVG_OCC'] ?? 0); ?></p>
+        <p class="kpi-value"><?php echo (float) ($avgOccupancy['AVG_OCC'] ?? 0); ?></p>
       </div>
     </div>
 
@@ -212,7 +216,8 @@ oci_close($conn);
         <div class="bar-chart" id="revenueChart">
           <?php foreach ($monthlyRevenue as $month): ?>
             <div class="bar-item">
-              <div class="bar" style="height: <?php echo min(100, max(1, ($month['AMT'] / 50000) * 100)); ?>%;" title="$<?php echo number_format($month['AMT'], 0); ?>"></div>
+              <div class="bar" style="height: <?php echo min(100, max(1, ($month['AMT'] / 50000) * 100)); ?>%;"
+                title="$<?php echo number_format($month['AMT'], 0); ?>"></div>
               <span><?php echo substr(trim($month['MONTH_NAME']), 0, 3); ?></span>
             </div>
           <?php endforeach; ?>
@@ -233,7 +238,7 @@ oci_close($conn);
                 <div class="revenue-bar-container">
                   <div class="revenue-bar" style="width: <?php echo max(6, $pct); ?>%;"></div>
                 </div>
-                <div class="revenue-amount"><?php echo (int)$h['BOOKING_COUNT']; ?> bookings</div>
+                <div class="revenue-amount"><?php echo (int) $h['BOOKING_COUNT']; ?> bookings</div>
               </div>
             <?php endforeach; ?>
           <?php else: ?>
@@ -250,7 +255,7 @@ oci_close($conn);
           <?php foreach ($bookingStatus as $bs): ?>
             <div class="status-row">
               <span class="status-label"><?php echo htmlspecialchars($bs['STATUS_NAME']); ?></span>
-              <span class="status-count"><?php echo (int)$bs['CNT']; ?></span>
+              <span class="status-count"><?php echo (int) $bs['CNT']; ?></span>
             </div>
           <?php endforeach; ?>
         </div>
@@ -266,19 +271,20 @@ oci_close($conn);
   </section>
 
   <script>
-  let arrow = document.querySelectorAll(".arrow");
-  for (var i = 0; i < arrow.length; i++) {
-    arrow[i].addEventListener("click", (e)=>{
-   let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
-   arrowParent.classList.toggle("showMenu");
+    let arrow = document.querySelectorAll(".arrow");
+    for (var i = 0; i < arrow.length; i++) {
+      arrow[i].addEventListener("click", (e) => {
+        let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+        arrowParent.classList.toggle("showMenu");
+      });
+    }
+    let sidebar = document.querySelector(".sidebar");
+    let sidebarBtn = document.querySelector(".bx-menu");
+    console.log(sidebarBtn);
+    sidebarBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("close");
     });
-  }
-  let sidebar = document.querySelector(".sidebar");
-  let sidebarBtn = document.querySelector(".bx-menu");
-  console.log(sidebarBtn);
-  sidebarBtn.addEventListener("click", ()=>{
-    sidebar.classList.toggle("close");
-  });
   </script>
 </body>
+
 </html>

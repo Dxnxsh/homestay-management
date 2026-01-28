@@ -225,7 +225,8 @@ oci_free_statement($stmt);
       </li>
       <li>
         <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+          <a href="../logout.php" class="profile-content"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
             <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
@@ -280,8 +281,8 @@ oci_free_statement($stmt);
                   <td><?php echo htmlspecialchars($b['HOMESTAY_NAME'] ?? 'N/A'); ?></td>
                   <td><?php echo htmlspecialchars($b['CHECKIN_DATE']); ?></td>
                   <td><?php echo htmlspecialchars($b['CHECKOUT_DATE']); ?></td>
-                  <td><?php echo (int)$b['STAY_NIGHTS']; ?></td>
-                  <td>$<?php echo number_format($b['AMOUNT'], 2); ?></td>
+                  <td><?php echo (int) $b['STAY_NIGHTS']; ?></td>
+                  <td>RM <?php echo number_format($b['AMOUNT'], 2); ?></td>
                   <td><span class="pill-sm"><?php echo htmlspecialchars($b['STATUS']); ?></span></td>
                 </tr>
               <?php endforeach; ?>
@@ -311,7 +312,7 @@ oci_free_statement($stmt);
                 <tr>
                   <td><?php echo htmlspecialchars($g['GUESTID']); ?></td>
                   <td><?php echo htmlspecialchars($g['GUEST_NAME']); ?></td>
-                  <td><?php echo (int)$g['TOTAL_BOOKINGS']; ?></td>
+                  <td><?php echo (int) $g['TOTAL_BOOKINGS']; ?></td>
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>
@@ -380,7 +381,7 @@ oci_free_statement($stmt);
                   <td><?php echo htmlspecialchars($p['HOMESTAYID']); ?></td>
                   <td><?php echo htmlspecialchars($p['HOMESTAY_NAME']); ?></td>
                   <td><?php echo htmlspecialchars($p['LOCATION'] ?? 'N/A'); ?></td>
-                  <td><?php echo (int)$p['TOTAL_BOOKINGS']; ?></td>
+                  <td><?php echo (int) $p['TOTAL_BOOKINGS']; ?></td>
                   <td>$<?php echo number_format($p['TOTAL_REVENUE'], 2); ?></td>
                 </tr>
               <?php endforeach; ?>
