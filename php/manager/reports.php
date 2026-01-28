@@ -202,6 +202,30 @@ oci_close($conn);
       </div>
     </div>
 
+    <div class="report-actions">
+      <button type="button" class="report-btn report-btn-with-icon" onclick="window.location.href='fullReports.php'">
+        <span class="report-btn-text">
+          <span class="report-btn-title">Full Reports</span>
+          <span class="report-btn-desc">Detailed tables for guests, staff, homestays, billing and bookings</span>
+        </span>
+        <span class="report-btn-icon"><i class='bxr  bx-table'></i></span>
+      </button>
+      <button type="button" class="report-btn report-btn-with-icon" onclick="window.location.href='summary.php'">
+        <span class="report-btn-text">
+          <span class="report-btn-title">Summary</span>
+          <span class="report-btn-desc">Key metrics condensed into a overview</span>
+        </span>
+        <span class="report-btn-icon"><i class='bxr  bx-list-ul-square'></i></span>
+      </button>
+      <button type="button" class="report-btn report-btn-with-icon" onclick="window.location.href='analytics.php'">
+        <span class="report-btn-text">
+          <span class="report-btn-title">Analytics</span>
+          <span class="report-btn-desc">Calculation of profit and loss</span>
+        </span>
+        <span class="report-btn-icon"><i class='bxr  bx-chart-trend'></i></span>
+      </button>
+    </div>
+
     <div class="reports-grid">
       <div class="panel">
         <div class="panel-header">
@@ -253,7 +277,11 @@ oci_close($conn);
                 <?php foreach ($recentBills as $bill): ?>
                   <tr>
                     <td><?php echo htmlspecialchars($bill['BILLNO']); ?></td>
-                    <td><span class="pill tiny <?php echo $bill['BILL_STATUS'] === 'Paid' ? 'paid' : 'unpaid'; ?>"><?php echo htmlspecialchars($bill['BILL_STATUS']); ?></span></td>
+                    <td><span class="pill tiny <?php
+                      if ($bill['BILL_STATUS'] === 'Paid') { echo 'paid'; }
+                      elseif ($bill['BILL_STATUS'] === 'Pending') { echo 'pending'; }
+                      else { echo 'unpaid'; }
+                    ?>"><?php echo htmlspecialchars($bill['BILL_STATUS']); ?></span></td>
                     <td><?php echo htmlspecialchars($bill['BILL_DATE']); ?></td>
                     <td>RM <?php echo number_format((float)$bill['TOTAL_AMOUNT'], 2, '.', ''); ?></td>
                   </tr>
