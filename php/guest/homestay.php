@@ -15,7 +15,7 @@ $metadata = [
     'features' => [
       ['icon' => 'bx-bed', 'text' => '11 Bedrooms'],
       ['icon' => 'bx-bath', 'text' => '8 Bathrooms'],
-      ['icon' => 'bx-group', 'text' => '16-30 Guests']
+      ['icon' => 'bx-group', 'text' => 'Up to 30 Guests']
     ],
     'description' => 'This is the largest unit, designed for significant gatherings. It features 11 bedrooms and can accommodate between 16 to 30 guests. Perfect for large family reunions, corporate retreats, and special events. Features modern amenities, fully equipped kitchen, and spacious common areas.',
     'images' => ['homestay1.jpg', 'homestay1(1).jpg', 'homestay1(2).jpg']
@@ -26,7 +26,7 @@ $metadata = [
     'features' => [
       ['icon' => 'bx-bed', 'text' => '4 Bedrooms'],
       ['icon' => 'bx-bath', 'text' => '4 Bathrooms'],
-      ['icon' => 'bx-group', 'text' => '10-20 Guests']
+      ['icon' => 'bx-group', 'text' => 'Up to 20 Guests']
     ],
     'description' => 'A mid-sized option suitable for smaller groups or families, consisting of 4 bedrooms and accommodating 10 to 20 guests. Perfect for family gatherings and group retreats. Features modern amenities, comfortable living spaces, and a welcoming atmosphere.',
     'images' => array_merge(['homestay2.jpg'], array_map(function ($i) {
@@ -39,7 +39,7 @@ $metadata = [
     'features' => [
       ['icon' => 'bx-bed', 'text' => '8 Bedrooms'],
       ['icon' => 'bx-bath', 'text' => '6 Bathrooms'],
-      ['icon' => 'bx-group', 'text' => '20-36 Guests']
+      ['icon' => 'bx-group', 'text' => 'Up to 36 Guests']
     ],
     'description' => 'This unit is situated near a natural river stream (Sungai Selaru). It offers 8 bedrooms with a capacity for 20 to 36 guests. Perfect for nature lovers and large groups seeking a peaceful riverside experience. Features modern amenities and stunning natural surroundings.',
     'images' => array_merge(['homestay3.jpg'], array_map(function ($i) {
@@ -140,36 +140,36 @@ if ($conn) {
       <div class="container">
         <div class="homestays-grid">
           <?php foreach ($homestays as $hs): ?>
-            <div class="homestay-card"
-              onclick="scrollToDetail('homestay-detail-<?php echo htmlspecialchars($hs['id']); ?>')">
-              <div class="homestay-image">
-                <img
-                  src="../../images/<?php echo htmlspecialchars($hs['meta']['folder']); ?>/<?php echo htmlspecialchars($hs['meta']['images'][0] ?? 'homestay1.jpg'); ?>"
-                  alt="<?php echo htmlspecialchars($hs['name']); ?>">
-              </div>
-              <div class="homestay-details">
-                <h3>
-                  <?php echo htmlspecialchars($hs['name']); ?>
-                </h3>
-                <p class="homestay-location"><i class='bx bx-map'></i>
-                  <?php echo htmlspecialchars($hs['address']); ?>
-                </p>
-                <div class="homestay-features">
-                  <?php foreach ($hs['meta']['features'] as $feature): ?>
-                    <span><i class='bx <?php echo htmlspecialchars($feature['icon']); ?>'></i>
-                      <?php echo htmlspecialchars($feature['text']); ?>
+              <div class="homestay-card"
+                onclick="scrollToDetail('homestay-detail-<?php echo htmlspecialchars($hs['id']); ?>')">
+                <div class="homestay-image">
+                  <img
+                    src="../../images/<?php echo htmlspecialchars($hs['meta']['folder']); ?>/<?php echo htmlspecialchars($hs['meta']['images'][0] ?? 'homestay1.jpg'); ?>"
+                    alt="<?php echo htmlspecialchars($hs['name']); ?>">
+                </div>
+                <div class="homestay-details">
+                  <h3>
+                    <?php echo htmlspecialchars($hs['name']); ?>
+                  </h3>
+                  <p class="homestay-location"><i class='bx bx-map'></i>
+                    <?php echo htmlspecialchars($hs['address']); ?>
+                  </p>
+                  <div class="homestay-features">
+                    <?php foreach ($hs['meta']['features'] as $feature): ?>
+                        <span><i class='bx <?php echo htmlspecialchars($feature['icon']); ?>'></i>
+                          <?php echo htmlspecialchars($feature['text']); ?>
+                        </span>
+                    <?php endforeach; ?>
+                  </div>
+                  <div class="homestay-price">
+                    <span class="price">RM
+                      <?php echo number_format($hs['price'], 0); ?>
                     </span>
-                  <?php endforeach; ?>
+                    <span class="period">/ night</span>
+                  </div>
+                  <a href="booking.php" class="btn btn-primary" onclick="event.stopPropagation()">Book Now</a>
                 </div>
-                <div class="homestay-price">
-                  <span class="price">RM
-                    <?php echo number_format($hs['price'], 0); ?>
-                  </span>
-                  <span class="period">/ night</span>
-                </div>
-                <a href="booking.php" class="btn btn-primary" onclick="event.stopPropagation()">Book Now</a>
               </div>
-            </div>
           <?php endforeach; ?>
         </div>
       </div>
@@ -179,62 +179,62 @@ if ($conn) {
     <section class="homestay-details-section">
       <div class="container">
         <?php foreach ($homestays as $hs): ?>
-          <div class="homestay-detail-card" id="homestay-detail-<?php echo htmlspecialchars($hs['id']); ?>">
-            <div class="detail-image-carousel">
-              <div class="carousel-container">
-                <?php foreach ($hs['meta']['images'] as $index => $img): ?>
-                  <img
-                    src="../../images/<?php echo htmlspecialchars($hs['meta']['folder']); ?>/<?php echo htmlspecialchars($img); ?>"
-                    alt="<?php echo htmlspecialchars($hs['name']); ?>"
-                    class="carousel-image <?php echo $index === 0 ? 'active' : ''; ?>">
-                <?php endforeach; ?>
-              </div>
-              <button class="carousel-arrow carousel-arrow-left" aria-label="Previous image">
-                <i class='bx bx-chevron-left'></i>
-              </button>
-              <button class="carousel-arrow carousel-arrow-right" aria-label="Next image">
-                <i class='bx bx-chevron-right'></i>
-              </button>
-              <div class="carousel-indicators">
-                <?php foreach ($hs['meta']['images'] as $index => $img): ?>
-                  <span class="indicator <?php echo $index === 0 ? 'active' : ''; ?>"
-                    data-slide="<?php echo $index; ?>"></span>
-                <?php endforeach; ?>
-              </div>
-            </div>
-            <div class="detail-content">
-              <h2>
-                <?php echo htmlspecialchars($hs['name']); ?>
-              </h2>
-              <p class="detail-location"><i class='bx bx-map'></i>
-                <?php echo htmlspecialchars($hs['address']); ?>
-              </p>
-              <p class="detail-description">
-                <?php echo htmlspecialchars($hs['meta']['description']); ?>
-              </p>
-              <div class="detail-features">
-                <?php foreach ($hs['meta']['features'] as $feature): ?>
-                  <div class="feature-item">
-                    <i class='bx <?php echo htmlspecialchars($feature['icon']); ?>'></i>
-                    <span>
-                      <?php echo htmlspecialchars($feature['text']); ?>
-                    </span>
-                  </div>
-                <?php endforeach; ?>
-                <div class="feature-item">
-                  <i class='bx bx-wifi'></i>
-                  <span>Free WiFi</span>
+            <div class="homestay-detail-card" id="homestay-detail-<?php echo htmlspecialchars($hs['id']); ?>">
+              <div class="detail-image-carousel">
+                <div class="carousel-container">
+                  <?php foreach ($hs['meta']['images'] as $index => $img): ?>
+                      <img
+                        src="../../images/<?php echo htmlspecialchars($hs['meta']['folder']); ?>/<?php echo htmlspecialchars($img); ?>"
+                        alt="<?php echo htmlspecialchars($hs['name']); ?>"
+                        class="carousel-image <?php echo $index === 0 ? 'active' : ''; ?>">
+                  <?php endforeach; ?>
+                </div>
+                <button class="carousel-arrow carousel-arrow-left" aria-label="Previous image">
+                  <i class='bx bx-chevron-left'></i>
+                </button>
+                <button class="carousel-arrow carousel-arrow-right" aria-label="Next image">
+                  <i class='bx bx-chevron-right'></i>
+                </button>
+                <div class="carousel-indicators">
+                  <?php foreach ($hs['meta']['images'] as $index => $img): ?>
+                      <span class="indicator <?php echo $index === 0 ? 'active' : ''; ?>"
+                        data-slide="<?php echo $index; ?>"></span>
+                  <?php endforeach; ?>
                 </div>
               </div>
-              <div class="detail-price">
-                <span class="price">RM
-                  <?php echo number_format($hs['price'], 0); ?>
-                </span>
-                <span class="period">/ night</span>
+              <div class="detail-content">
+                <h2>
+                  <?php echo htmlspecialchars($hs['name']); ?>
+                </h2>
+                <p class="detail-location"><i class='bx bx-map'></i>
+                  <?php echo htmlspecialchars($hs['address']); ?>
+                </p>
+                <p class="detail-description">
+                  <?php echo htmlspecialchars($hs['meta']['description']); ?>
+                </p>
+                <div class="detail-features">
+                  <?php foreach ($hs['meta']['features'] as $feature): ?>
+                      <div class="feature-item">
+                        <i class='bx <?php echo htmlspecialchars($feature['icon']); ?>'></i>
+                        <span>
+                          <?php echo htmlspecialchars($feature['text']); ?>
+                        </span>
+                      </div>
+                  <?php endforeach; ?>
+                  <div class="feature-item">
+                    <i class='bx bx-wifi'></i>
+                    <span>Free WiFi</span>
+                  </div>
+                </div>
+                <div class="detail-price">
+                  <span class="price">RM
+                    <?php echo number_format($hs['price'], 0); ?>
+                  </span>
+                  <span class="period">/ night</span>
+                </div>
+                <a href="booking.php" class="btn btn-primary">Book Now</a>
               </div>
-              <a href="booking.php" class="btn btn-primary">Book Now</a>
             </div>
-          </div>
         <?php endforeach; ?>
       </div>
     </section>

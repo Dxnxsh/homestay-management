@@ -136,7 +136,7 @@ if ($conn) {
       'features' => [
         ['icon' => 'bx-bed', 'text' => '11 Bedrooms'],
         ['icon' => 'bx-bath', 'text' => '8 Bathrooms'],
-        ['icon' => 'bx-group', 'text' => '16-30 Guests']
+        ['icon' => 'bx-group', 'text' => 'Up to 30 Guests']
       ],
       'images' => ['homestay1.jpg']
     ],
@@ -146,7 +146,7 @@ if ($conn) {
       'features' => [
         ['icon' => 'bx-bed', 'text' => '4 Bedrooms'],
         ['icon' => 'bx-bath', 'text' => '4 Bathrooms'],
-        ['icon' => 'bx-group', 'text' => '10-20 Guests']
+        ['icon' => 'bx-group', 'text' => 'Up to 20 Guests']
       ],
       'images' => ['homestay2.jpg']
     ],
@@ -156,7 +156,7 @@ if ($conn) {
       'features' => [
         ['icon' => 'bx-bed', 'text' => '8 Bedrooms'],
         ['icon' => 'bx-bath', 'text' => '6 Bathrooms'],
-        ['icon' => 'bx-group', 'text' => '20-36 Guests']
+        ['icon' => 'bx-group', 'text' => 'Up to 36 Guests']
       ],
       'images' => ['homestay3.jpg']
     ],
