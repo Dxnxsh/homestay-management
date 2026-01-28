@@ -91,15 +91,14 @@ oci_free_statement($stmt);
     .report-section {
       background: #fff;
       border: 1px solid #f0d5be;
-      border-radius: 12px;
-      padding: 16px;
+      padding: 24px;
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
-      margin-bottom: 16px;
+      margin-bottom: 24px;
     }
 
     .report-section h2 {
-      margin: 0 0 12px 0;
-      font-size: 18px;
+      margin: 0 0 16px 0;
+      font-size: 20px;
       font-weight: 700;
       color: #2d2a32;
     }
@@ -107,7 +106,7 @@ oci_free_statement($stmt);
     .report-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 15px;
     }
 
     .report-table thead {
@@ -116,14 +115,15 @@ oci_free_statement($stmt);
     }
 
     .report-table th {
-      padding: 10px;
+      padding: 14px 16px;
       text-align: left;
       font-weight: 700;
+      font-size: 15px;
       color: #8a4d1c;
     }
 
     .report-table td {
-      padding: 8px 10px;
+      padding: 12px 16px;
       border-bottom: 1px solid #f4e1d1;
     }
 
@@ -132,9 +132,13 @@ oci_free_statement($stmt);
     }
 
     .report-wrapper {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 0 16px 24px 16px;
+      width: 100%;
+      padding: 0 24px 32px 24px;
+      box-sizing: border-box;
+    }
+
+    .content-reports {
+      padding: 0 24px 12px 24px;
     }
   </style>
 </head>
@@ -267,10 +271,51 @@ oci_free_statement($stmt);
         <h1>Full Reports</h1>
         <p class="subdued">Complete data export for all bookings, guests, billing, and properties</p>
       </div>
-      <button type="button" onclick="generatePDF()" class="pill">
-        <i class='bx bx-download'></i> Download PDF
-      </button>
-    </div><br>
+    </div>
+
+    <div class="content-reports">
+      <div class="button-container">
+        <button type="button" class="btn-add" onclick="generatePDF()">
+          <i class='bx bx-download'></i> Download PDF
+        </button>
+        <div class="spinner-container">
+          <div class="spinner-select-wrapper">
+            <select class="spinner-select" id="sortOrder">
+              <option value="">Select Order</option>
+              <option value="ascending">Ascending</option>
+              <option value="descending">Descending</option>
+            </select>
+          </div>
+          <div class="spinner-select-wrapper">
+            <select class="spinner-select" id="sortBy">
+              <option value="">Sort By</option>
+              <option value="id">By ID</option>
+              <option value="name">By Name</option>
+              <option value="date">By Date</option>
+            </select>
+          </div>
+        </div>
+        <form class="search-form" onsubmit="return false;">
+          <div class="search-container">
+            <div class="search-by">
+              <select id="searchType" name="search-type">
+                <option value="all">All</option>
+                <option value="id">ID</option>
+                <option value="name">Name</option>
+                <option value="guest">Guest</option>
+                <option value="property">Property</option>
+              </select>
+            </div>
+            <div class="search-input">
+              <input id="searchReports" type="text" placeholder="Search Reports" />
+            </div>
+            <div class="search-button">
+              <button class="btn-search" type="button" aria-label="Search"></button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <div class="report-wrapper">
       <!-- Bookings Report -->
@@ -433,6 +478,81 @@ oci_free_statement($stmt);
       sidebar.classList.toggle("close");
     });
 
+    // Filter and sort report tables (like guests page)
+    const sortOrderSelect = document.getElementById("sortOrder");
+    const sortBySelect = document.getElementById("sortBy");
+    const searchTypeSelect = document.getElementById("searchType");
+    const searchInput = document.getElementById("searchReports");
+    const searchBtn = document.querySelector(".content-reports .btn-search");
+
+    function getSortColumnIndex(sortBy, thCount) {
+      if (sortBy === "id") return 0;
+      if (sortBy === "name") return 1;
+      if (sortBy === "date") {
+        if (thCount >= 4) return 3;
+        if (thCount >= 3) return 2;
+        return 0;
+      }
+      return 0;
+    }
+
+    function applySort() {
+      const order = sortOrderSelect.value;
+      const sortBy = sortBySelect.value;
+      if (!order || !sortBy) return;
+      document.querySelectorAll(".report-wrapper .report-table").forEach(function (table) {
+        const tbody = table.tbody || table.querySelector("tbody");
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll("tr")).filter(function (tr) {
+          return !tr.cells.length || tr.cells[0].colSpan !== tr.cells.length;
+        });
+        const colCount = rows[0] ? rows[0].cells.length : 0;
+        const colIndex = getSortColumnIndex(sortBy, colCount);
+        rows.sort(function (a, b) {
+          const aVal = (a.cells[colIndex] && a.cells[colIndex].textContent.trim()) || "";
+          const bVal = (b.cells[colIndex] && b.cells[colIndex].textContent.trim()) || "";
+          let cmp = 0;
+          if (aVal !== bVal) cmp = aVal.localeCompare(bVal, undefined, { numeric: true });
+          return order === "descending" ? -cmp : cmp;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    }
+
+    function applySearch() {
+      const term = (searchInput.value || "").toLowerCase().trim();
+      const searchBy = searchTypeSelect.value;
+      document.querySelectorAll(".report-wrapper .report-table tbody tr").forEach(function (tr) {
+        if (tr.cells.length === 0 || (tr.cells.length === 1 && tr.cells[0].colSpan > 1)) {
+          tr.style.display = term ? "none" : "";
+          return;
+        }
+        if (!term) {
+          tr.style.display = "";
+          return;
+        }
+        let match = false;
+        if (searchBy === "all") {
+          for (let i = 0; i < tr.cells.length; i++) {
+            if (tr.cells[i].textContent.toLowerCase().indexOf(term) !== -1) { match = true; break; }
+          }
+        } else {
+          let colIndex = 0;
+          if (searchBy === "id") colIndex = 0;
+          else if (searchBy === "name" || searchBy === "guest") colIndex = 1;
+          else if (searchBy === "property") colIndex = Math.min(2, tr.cells.length - 1);
+          if (tr.cells[colIndex] && tr.cells[colIndex].textContent.toLowerCase().indexOf(term) !== -1) match = true;
+        }
+        tr.style.display = match ? "" : "none";
+      });
+    }
+
+    if (sortOrderSelect) sortOrderSelect.addEventListener("change", applySort);
+    if (sortBySelect) sortBySelect.addEventListener("change", applySort);
+    if (searchInput) searchInput.addEventListener("input", applySearch);
+    if (searchInput) searchInput.addEventListener("keyup", function (e) { if (e.key === "Enter") applySearch(); });
+    if (searchBtn) searchBtn.addEventListener("click", applySearch);
+
     function generatePDF() {
       const element = document.querySelector('.report-wrapper');
 
@@ -452,12 +572,26 @@ oci_free_statement($stmt);
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
-      // Add a title to the clone for the PDF
+      // Add PDF header: logo top left, generated date top right
+      const pdfHeader = document.createElement('div');
+      pdfHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; width: 100%;';
+      const logoImg = document.createElement('img');
+      logoImg.src = '../../images/logoTitle.png';
+      logoImg.alt = 'Serena Sanctuary';
+      logoImg.style.cssText = 'height: 64px; width: auto;';
+      const dateSpan = document.createElement('span');
+      dateSpan.style.cssText = 'color: #666; font-size: 14px; font-weight: 500;';
+      dateSpan.textContent = 'Generated on ' + new Date().toLocaleDateString();
+      pdfHeader.appendChild(logoImg);
+      pdfHeader.appendChild(dateSpan);
+      clone.insertBefore(pdfHeader, clone.firstChild);
+
+      // Title div for PDF
       const titleDiv = document.createElement('div');
       titleDiv.style.marginBottom = '20px';
       titleDiv.style.textAlign = 'center';
       titleDiv.innerHTML = '<h1 style="color: #c5814b; margin-bottom: 5px;">Serena Sanctuary - Full Report</h1><p style="color: #666;">Generated on ' + new Date().toLocaleDateString() + '</p>';
-      clone.insertBefore(titleDiv, clone.firstChild);
+      clone.insertBefore(titleDiv, clone.firstChild.nextSibling);
 
       html2pdf().set(opt).from(clone).toPdf().get('pdf').then(function (pdf) {
         window.open(pdf.output('bloburl'), '_blank');
