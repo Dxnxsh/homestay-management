@@ -76,10 +76,16 @@ if ($conn && empty($errors)) {
         $statusClass = 'status-pending';
       }
       $remainingBalance = max(0, $baseTotal - $depositAmount);
-      $imageMap = [1 => 'homestay1', 2 => 'homestay2', 3 => 'homestay3', 4 => 'homestay4'];
-      $imageFolder = $imageMap[$row['HOMESTAYID']] ?? 'homestay1';
-
+      $homestayID = trim($row['HOMESTAYID']);
+      $idData = [
+        'HM101' => 'homestay1',
+        'HM102' => 'homestay2',
+        'HM103' => 'homestay3',
+        'HM104' => 'homestay4'
+      ];
+      $targetFolder = $idData[$homestayID] ?? 'homestay1';
       $booking = [
+        'image_folder' => $targetFolder,
         'id' => $row['BOOKINGID'],
         'checkin' => $checkinDate ? $checkinDate->format('d M Y') : '--',
         'checkout' => $checkoutDate ? $checkoutDate->format('d M Y') : '--',
@@ -104,7 +110,6 @@ if ($conn && empty($errors)) {
         'paid_amount' => $paidAmount,
         'payment_method' => $paymentMethod,
         'tax_amount' => isset($row['TAX_AMOUNT']) ? (float) $row['TAX_AMOUNT'] : 0.0,
-        'image_folder' => $imageFolder,
         'is_fully_paid' => $isFullyPaid,
         'is_deposit_paid' => $isDepositPaid,
         'deposit_discount_rate' => $membershipDiscount

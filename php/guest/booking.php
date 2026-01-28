@@ -1367,8 +1367,14 @@ if (!$conn) {
             <?php foreach ($bookings as $booking): 
               $checkin = date('d M Y', strtotime($booking['checkin_date']));
               $checkout = date('d M Y', strtotime($booking['checkout_date']));
-              $image_map = [1 => 'homestay1', 2 => 'homestay2', 3 => 'homestay3', 4 => 'homestay4'];
-              $img_folder = $image_map[$booking['homestayID']] ?? 'homestay1';
+              $homestayID = trim($booking['homestayID']);
+              $id_map = [
+                  'HM101' => 'homestay1',
+                  'HM102' => 'homestay2',
+                  'HM103' => 'homestay3',
+                  'HM104' => 'homestay4'
+              ];
+              $target_folder = $id_map[$homestayID] ?? 'homestay1';
               $status = strtolower($booking['bill_status'] ?? 'pending');
               $status_class = ($status === 'paid' || $status === 'confirmed') ? 'confirmed' : 'pending';
               $isDepositSettled = in_array($status, ['paid', 'confirmed'], true);
@@ -1376,7 +1382,9 @@ if (!$conn) {
             ?>
             <div class="booking-card">
               <div class="booking-image">
-                <img src="../../images/<?php echo $img_folder; ?>/<?php echo $img_folder; ?>.jpg" alt="<?php echo htmlspecialchars($booking['homestay_name']); ?>">
+                <img src="../../images/<?php echo $target_folder; ?>/<?php echo $target_folder; ?>.jpg" 
+                     onerror="this.onerror=null; this.src='../../images/homestay1/homestay1.jpg';"
+                     alt="<?php echo htmlspecialchars($booking['homestay_name']); ?>">
               </div>
               <div class="booking-info">
                 <h3><?php echo htmlspecialchars($booking['homestay_name']); ?></h3>
