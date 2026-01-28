@@ -345,8 +345,7 @@ oci_free_statement($stmt);
           <label for="updateType">Type</label>
           <select id="updateType" name="type" required>
             <option value="Regular">Regular</option>
-            <option value="VIP">VIP</option>
-            <option value="Corporate">Corporate</option>
+            <option value="Member">Member</option>
           </select>
         </div>
         <div class="form-actions">
