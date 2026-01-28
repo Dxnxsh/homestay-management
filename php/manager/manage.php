@@ -64,6 +64,10 @@ $recentGuestsStmt = oci_parse($conn, $recentGuestsSql);
 oci_execute($recentGuestsStmt);
 $recentGuests = [];
 while ($row = oci_fetch_array($recentGuestsStmt, OCI_ASSOC)) {
+  $type = $row['GUEST_TYPE'] ?? '';
+  if (empty($type) || strtolower($type) === 'null') {
+    $row['GUEST_TYPE'] = 'Regular';
+  }
   $recentGuests[] = $row;
 }
 oci_free_statement($recentGuestsStmt);

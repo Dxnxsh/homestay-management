@@ -25,76 +25,81 @@ $lastYearRevenue = array_fill(0, 12, 0);
 $conn = getDBConnection();
 
 // SQL queries for dashboard stats (used in UI info tooltips)
-$sqlCurrentGuests   = "SELECT COUNT(*) as total FROM GUEST";
-$sqlNewGuests      = "SELECT COUNT(*) as total FROM (\n                SELECT guestID FROM GUEST ORDER BY guestID DESC\n            ) WHERE ROWNUM <= 30";
-$sqlTotalStaff     = "SELECT COUNT(*) as total FROM STAFF";
+$sqlCurrentGuests = "SELECT COUNT(*) as total FROM GUEST";
+$sqlNewGuests = "SELECT COUNT(*) as total FROM (\n                SELECT guestID FROM GUEST ORDER BY guestID DESC\n            ) WHERE ROWNUM <= 30";
+$sqlTotalStaff = "SELECT COUNT(*) as total FROM STAFF";
 $sqlPendingBookings = "SELECT COUNT(*) as total \n            FROM BOOKING b\n            LEFT JOIN BILL bl ON b.billNo = bl.billNo\n            WHERE b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID'";
 $sqlTotalHomestays = "SELECT COUNT(*) as total FROM HOMESTAY";
 
 if ($conn) {
-    // Get total guests
-    $stmt = oci_parse($conn, $sqlCurrentGuests);
-    if (oci_execute($stmt)) {
-        $row = oci_fetch_array($stmt, OCI_ASSOC);
-        $totalGuests = $row['TOTAL'] ?? 0;
-    }
-    oci_free_statement($stmt);
+  // Get total guests
+  $stmt = oci_parse($conn, $sqlCurrentGuests);
+  if (oci_execute($stmt)) {
+    $row = oci_fetch_array($stmt, OCI_ASSOC);
+    $totalGuests = $row['TOTAL'] ?? 0;
+  }
+  oci_free_statement($stmt);
 
-    // Get new guests (last 30 guest IDs as proxy for recent registrations)
-    $stmt = oci_parse($conn, $sqlNewGuests);
-    if (oci_execute($stmt)) {
-        $row = oci_fetch_array($stmt, OCI_ASSOC);
-        $newGuests = $row['TOTAL'] ?? 0;
-    }
-    oci_free_statement($stmt);
+  // Get new guests (last 30 guest IDs as proxy for recent registrations)
+  $stmt = oci_parse($conn, $sqlNewGuests);
+  if (oci_execute($stmt)) {
+    $row = oci_fetch_array($stmt, OCI_ASSOC);
+    $newGuests = $row['TOTAL'] ?? 0;
+  }
+  oci_free_statement($stmt);
 
-    // Get total staff
-    $stmt = oci_parse($conn, $sqlTotalStaff);
-    if (oci_execute($stmt)) {
-        $row = oci_fetch_array($stmt, OCI_ASSOC);
-        $totalStaff = $row['TOTAL'] ?? 0;
-    }
-    oci_free_statement($stmt);
+  // Get total staff
+  $stmt = oci_parse($conn, $sqlTotalStaff);
+  if (oci_execute($stmt)) {
+    $row = oci_fetch_array($stmt, OCI_ASSOC);
+    $totalStaff = $row['TOTAL'] ?? 0;
+  }
+  oci_free_statement($stmt);
 
-    // Get pending bookings (bills not paid)
-    $stmt = oci_parse($conn, $sqlPendingBookings);
-    if (oci_execute($stmt)) {
-        $row = oci_fetch_array($stmt, OCI_ASSOC);
-        $pendingBookings = $row['TOTAL'] ?? 0;
-    }
-    oci_free_statement($stmt);
+  // Get pending bookings (bills not paid)
+  $stmt = oci_parse($conn, $sqlPendingBookings);
+  if (oci_execute($stmt)) {
+    $row = oci_fetch_array($stmt, OCI_ASSOC);
+    $pendingBookings = $row['TOTAL'] ?? 0;
+  }
+  oci_free_statement($stmt);
 
-    // Get total homestays
-    $stmt = oci_parse($conn, $sqlTotalHomestays);
-    if (oci_execute($stmt)) {
-        $row = oci_fetch_array($stmt, OCI_ASSOC);
-        $totalHomestays = $row['TOTAL'] ?? 0;
-    }
-    oci_free_statement($stmt);
+  // Get total homestays
+  $stmt = oci_parse($conn, $sqlTotalHomestays);
+  if (oci_execute($stmt)) {
+    $row = oci_fetch_array($stmt, OCI_ASSOC);
+    $totalHomestays = $row['TOTAL'] ?? 0;
+  }
+  oci_free_statement($stmt);
 
-    // Get recent 5 guests (newest first)
-    $sql = "SELECT * FROM (
+  // Get recent 5 guests (newest first)
+  $sql = "SELECT * FROM (
                 SELECT guestID, guest_name, guest_phoneNo, guest_gender, guest_email, guest_type
                 FROM GUEST
                 ORDER BY guestID DESC
             ) WHERE ROWNUM <= 5";
-    $stmt = oci_parse($conn, $sql);
-    if (oci_execute($stmt)) {
-        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-            $recentGuests[] = [
-                'id' => $row['GUESTID'],
-                'name' => $row['GUEST_NAME'],
-                'phone' => $row['GUEST_PHONENO'] ?? 'N/A',
-                'gender' => $row['GUEST_GENDER'] ?? 'N/A',
-                'email' => $row['GUEST_EMAIL'],
-                'type' => $row['GUEST_TYPE'] ?? 'Regular'
-            ];
-        }
-    }
-    oci_free_statement($stmt);
+  $stmt = oci_parse($conn, $sql);
+  if (oci_execute($stmt)) {
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+      $type = $row['GUEST_TYPE'] ?? '';
+      if (empty($type) || strtolower($type) === 'null') {
+        $type = 'Regular';
+      }
 
-    // Get homestay occupancy for current month
-    $sql = "SELECT h.homestayID, h.homestay_name, 
+      $recentGuests[] = [
+        'id' => $row['GUESTID'],
+        'name' => $row['GUEST_NAME'],
+        'phone' => $row['GUEST_PHONENO'] ?? 'N/A',
+        'gender' => $row['GUEST_GENDER'] ?? 'N/A',
+        'email' => $row['GUEST_EMAIL'],
+        'type' => $type
+      ];
+    }
+  }
+  oci_free_statement($stmt);
+
+  // Get homestay occupancy for current month
+  $sql = "SELECT h.homestayID, h.homestay_name, 
                    COUNT(DISTINCT b.bookingID) as current_bookings
             FROM HOMESTAY h
             LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
@@ -102,154 +107,156 @@ if ($conn) {
                 AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE)
             GROUP BY h.homestayID, h.homestay_name
             ORDER BY h.homestayID";
-    $stmt = oci_parse($conn, $sql);
-    if (oci_execute($stmt)) {
-        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-            $homestayOccupancy[] = [
-                'id' => $row['HOMESTAYID'],
-                'name' => $row['HOMESTAY_NAME'],
-                'current' => $row['CURRENT_BOOKINGS'] ?? 0
-            ];
-        }
+  $stmt = oci_parse($conn, $sql);
+  if (oci_execute($stmt)) {
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+      $homestayOccupancy[] = [
+        'id' => $row['HOMESTAYID'],
+        'name' => $row['HOMESTAY_NAME'],
+        'current' => $row['CURRENT_BOOKINGS'] ?? 0
+      ];
     }
-    oci_free_statement($stmt);
+  }
+  oci_free_statement($stmt);
 
-    // Get last month occupancy for comparison
-    $sql = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings
+  // Get last month occupancy for comparison
+  $sql = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings
             FROM HOMESTAY h
             LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
                 AND EXTRACT(MONTH FROM b.checkin_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
                 AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
             GROUP BY h.homestayID
             ORDER BY h.homestayID";
-    $stmt = oci_parse($conn, $sql);
-    if (oci_execute($stmt)) {
-        $i = 0;
-        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-            if (isset($homestayOccupancy[$i])) {
-                $homestayOccupancy[$i]['last'] = $row['LAST_BOOKINGS'] ?? 0;
-            }
-            $i++;
-        }
+  $stmt = oci_parse($conn, $sql);
+  if (oci_execute($stmt)) {
+    $i = 0;
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+      if (isset($homestayOccupancy[$i])) {
+        $homestayOccupancy[$i]['last'] = $row['LAST_BOOKINGS'] ?? 0;
+      }
+      $i++;
     }
-    oci_free_statement($stmt);
+  }
+  oci_free_statement($stmt);
 
-    // Get current month revenue
-    $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
+  // Get current month revenue
+  $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
             FROM BILL
             WHERE EXTRACT(MONTH FROM bill_date) = EXTRACT(MONTH FROM SYSDATE)
             AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM SYSDATE)
             AND UPPER(bill_status) = 'PAID'";
-    $stmt = oci_parse($conn, $sql);
-    if (oci_execute($stmt)) {
-        $row = oci_fetch_array($stmt, OCI_ASSOC);
-        $monthlyRevenue = $row['REVENUE'] ?? 0;
-    }
-    oci_free_statement($stmt);
+  $stmt = oci_parse($conn, $sql);
+  if (oci_execute($stmt)) {
+    $row = oci_fetch_array($stmt, OCI_ASSOC);
+    $monthlyRevenue = $row['REVENUE'] ?? 0;
+  }
+  oci_free_statement($stmt);
 
-    // Get last month revenue
-    $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
+  // Get last month revenue
+  $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
             FROM BILL
             WHERE EXTRACT(MONTH FROM bill_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
             AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
             AND UPPER(bill_status) = 'PAID'";
-    $stmt = oci_parse($conn, $sql);
-    if (oci_execute($stmt)) {
-        $row = oci_fetch_array($stmt, OCI_ASSOC);
-        $lastMonthRevenue = $row['REVENUE'] ?? 0;
-    }
-    oci_free_statement($stmt);
+  $stmt = oci_parse($conn, $sql);
+  if (oci_execute($stmt)) {
+    $row = oci_fetch_array($stmt, OCI_ASSOC);
+    $lastMonthRevenue = $row['REVENUE'] ?? 0;
+  }
+  oci_free_statement($stmt);
 
-    // Get highest month bookings data
-    $highestMonthBookings = 0;
-    $highestMonthIndex = 0;
-    $highestYear = date('Y');
-    $bookingsByMonth = [];
-    
-    // Get bookings count by month for all available years
-    $sql = "SELECT EXTRACT(YEAR FROM checkin_date) as year,
+  // Get highest month bookings data
+  $highestMonthBookings = 0;
+  $highestMonthIndex = 0;
+  $highestYear = date('Y');
+  $bookingsByMonth = [];
+
+  // Get bookings count by month for all available years
+  $sql = "SELECT EXTRACT(YEAR FROM checkin_date) as year,
                    EXTRACT(MONTH FROM checkin_date) as month,
                    COUNT(*) as booking_count
             FROM BOOKING
             GROUP BY EXTRACT(YEAR FROM checkin_date), EXTRACT(MONTH FROM checkin_date)
             ORDER BY year DESC, month DESC";
-    $stmt = oci_parse($conn, $sql);
-    if (oci_execute($stmt)) {
-        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-            $year = (int)$row['YEAR'];
-            $month = (int)$row['MONTH'] - 1; // JavaScript months are 0-indexed
-            $count = (int)$row['BOOKING_COUNT'];
-            
-            if (!isset($bookingsByMonth[$year])) {
-                $bookingsByMonth[$year] = [];
-            }
-            $bookingsByMonth[$year][$month] = $count;
-            
-            // Track highest month
-            if ($count > $highestMonthBookings) {
-                $highestMonthBookings = $count;
-                $highestMonthIndex = $month;
-                $highestYear = $year;
-            }
-        }
-    }
-    oci_free_statement($stmt);
+  $stmt = oci_parse($conn, $sql);
+  if (oci_execute($stmt)) {
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+      $year = (int) $row['YEAR'];
+      $month = (int) $row['MONTH'] - 1; // JavaScript months are 0-indexed
+      $count = (int) $row['BOOKING_COUNT'];
 
-    // Get monthly revenue data for current year and last year
-    $currentYear = (int)date('Y');
-    $lastYear = $currentYear - 1;
-    $currentYearRevenue = array_fill(0, 12, 0);
-    $lastYearRevenue = array_fill(0, 12, 0);
-    
-    // Get current year revenue by month
-    $sql = "SELECT EXTRACT(MONTH FROM bill_date) as month,
+      if (!isset($bookingsByMonth[$year])) {
+        $bookingsByMonth[$year] = [];
+      }
+      $bookingsByMonth[$year][$month] = $count;
+
+      // Track highest month
+      if ($count > $highestMonthBookings) {
+        $highestMonthBookings = $count;
+        $highestMonthIndex = $month;
+        $highestYear = $year;
+      }
+    }
+  }
+  oci_free_statement($stmt);
+
+  // Get monthly revenue data for current year and last year
+  $currentYear = (int) date('Y');
+  $lastYear = $currentYear - 1;
+  $currentYearRevenue = array_fill(0, 12, 0);
+  $lastYearRevenue = array_fill(0, 12, 0);
+
+  // Get current year revenue by month
+  $sql = "SELECT EXTRACT(MONTH FROM bill_date) as month,
                    NVL(SUM(total_amount), 0) as revenue
             FROM BILL
             WHERE EXTRACT(YEAR FROM bill_date) = :currentYear
             AND UPPER(bill_status) = 'PAID'
             GROUP BY EXTRACT(MONTH FROM bill_date)
             ORDER BY month";
-    $stmt = oci_parse($conn, $sql);
-    oci_bind_by_name($stmt, ':currentYear', $currentYear);
-    if (oci_execute($stmt)) {
-        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-            $month = (int)$row['MONTH'] - 1; // JavaScript months are 0-indexed
-            $currentYearRevenue[$month] = (float)$row['REVENUE'];
-        }
+  $stmt = oci_parse($conn, $sql);
+  oci_bind_by_name($stmt, ':currentYear', $currentYear);
+  if (oci_execute($stmt)) {
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+      $month = (int) $row['MONTH'] - 1; // JavaScript months are 0-indexed
+      $currentYearRevenue[$month] = (float) $row['REVENUE'];
     }
-    oci_free_statement($stmt);
-    
-    // Get last year revenue by month
-    $sql = "SELECT EXTRACT(MONTH FROM bill_date) as month,
+  }
+  oci_free_statement($stmt);
+
+  // Get last year revenue by month
+  $sql = "SELECT EXTRACT(MONTH FROM bill_date) as month,
                    NVL(SUM(total_amount), 0) as revenue
             FROM BILL
             WHERE EXTRACT(YEAR FROM bill_date) = :lastYear
             AND UPPER(bill_status) = 'PAID'
             GROUP BY EXTRACT(MONTH FROM bill_date)
             ORDER BY month";
-    $stmt = oci_parse($conn, $sql);
-    oci_bind_by_name($stmt, ':lastYear', $lastYear);
-    if (oci_execute($stmt)) {
-        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-            $month = (int)$row['MONTH'] - 1; // JavaScript months are 0-indexed
-            $lastYearRevenue[$month] = (float)$row['REVENUE'];
-        }
+  $stmt = oci_parse($conn, $sql);
+  oci_bind_by_name($stmt, ':lastYear', $lastYear);
+  if (oci_execute($stmt)) {
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+      $month = (int) $row['MONTH'] - 1; // JavaScript months are 0-indexed
+      $lastYearRevenue[$month] = (float) $row['REVENUE'];
     }
-    oci_free_statement($stmt);
+  }
+  oci_free_statement($stmt);
 
-    closeDBConnection($conn);
+  closeDBConnection($conn);
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/dashboardStyle.css">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/dashboardStyle.css">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
 <body>
   <!-- Sidebar -->
   <div class="sidebar close">
@@ -260,7 +267,7 @@ if ($conn) {
     <ul class="nav-links">
       <li>
         <a href="dashboard.php">
-          <i class='bxr  bx-dashboard'></i> 
+          <i class='bxr  bx-dashboard'></i>
           <span class="link_name">Dashboard</span>
         </a>
         <ul class="sub-menu blank">
@@ -273,13 +280,13 @@ if ($conn) {
             <i class='bxr  bx-list-square'></i>
             <span class="link_name">Manage</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
           <?php if (isManager()): ?>
-          <li><a href="staff.php">Staff</a></li>
+            <li><a href="staff.php">Staff</a></li>
           <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
@@ -313,7 +320,7 @@ if ($conn) {
       </li>
       <li>
         <a href="calendar.php">
-          <i class='bxr  bx-calendar-alt'></i> 
+          <i class='bxr  bx-calendar-alt'></i>
           <span class="link_name">Calendar</span>
         </a>
         <ul class="sub-menu blank">
@@ -323,10 +330,10 @@ if ($conn) {
       <li>
         <div class="icon-link">
           <a href="reports.php">
-            <i class='bxr  bx-file-report'></i> 
+            <i class='bxr  bx-file-report'></i>
             <span class="link_name">Reports</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="reports.php">Reports</a></li>
@@ -337,7 +344,8 @@ if ($conn) {
       </li>
       <li>
         <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+          <a href="../logout.php" class="profile-content"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
             <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
@@ -348,7 +356,7 @@ if ($conn) {
   <section class="home-section">
     <!-- Header -->
     <div class="home-content">
-      <i class='bx bx-menu' ></i>
+      <i class='bx bx-menu'></i>
       <span class="text">Serena Sanctuary</span>
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
@@ -376,8 +384,12 @@ if ($conn) {
             <div class="subcard-text-line">
               <span class="subcard-text">Current Guests</span>
               <span class="info-icon-wrap">
-                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
-                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlCurrentGuests); ?></pre></span>
+                <button type="button" class="info-icon" aria-label="Show SQL query"
+                  onclick="event.preventDefault(); event.stopPropagation();"><i
+                    class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip">
+                  <pre><?php echo htmlspecialchars($sqlCurrentGuests); ?></pre>
+                </span>
               </span>
             </div>
           </div>
@@ -391,14 +403,18 @@ if ($conn) {
             <div class="subcard-text-line">
               <span class="subcard-text">New Guests</span>
               <span class="info-icon-wrap">
-                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
-                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlNewGuests); ?></pre></span>
+                <button type="button" class="info-icon" aria-label="Show SQL query"
+                  onclick="event.preventDefault(); event.stopPropagation();"><i
+                    class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip">
+                  <pre><?php echo htmlspecialchars($sqlNewGuests); ?></pre>
+                </span>
               </span>
             </div>
           </div>
-          <i class='bxr  bxs-user-plus'></i> 
+          <i class='bxr  bxs-user-plus'></i>
         </a>
-        <a href="staff.php" class="sub-content1"> 
+        <a href="staff.php" class="sub-content1">
           <div class="subcard">
             <div class="subcard-number">
               <?php echo $totalStaff; ?>
@@ -406,8 +422,12 @@ if ($conn) {
             <div class="subcard-text-line">
               <span class="subcard-text">Total Staff</span>
               <span class="info-icon-wrap">
-                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
-                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlTotalStaff); ?></pre></span>
+                <button type="button" class="info-icon" aria-label="Show SQL query"
+                  onclick="event.preventDefault(); event.stopPropagation();"><i
+                    class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip">
+                  <pre><?php echo htmlspecialchars($sqlTotalStaff); ?></pre>
+                </span>
               </span>
             </div>
           </div>
@@ -421,12 +441,16 @@ if ($conn) {
             <div class="subcard-text-line">
               <span class="subcard-text">Pending Bookings</span>
               <span class="info-icon-wrap">
-                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
-                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlPendingBookings); ?></pre></span>
+                <button type="button" class="info-icon" aria-label="Show SQL query"
+                  onclick="event.preventDefault(); event.stopPropagation();"><i
+                    class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip">
+                  <pre><?php echo htmlspecialchars($sqlPendingBookings); ?></pre>
+                </span>
               </span>
             </div>
           </div>
-          <i class='bxr  bxs-calendar-heart'></i> 
+          <i class='bxr  bxs-calendar-heart'></i>
         </a>
         <a href="homestay.php" class="sub-content1">
           <div class="subcard">
@@ -436,12 +460,16 @@ if ($conn) {
             <div class="subcard-text-line">
               <span class="subcard-text">Total Homestay</span>
               <span class="info-icon-wrap">
-                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
-                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlTotalHomestays); ?></pre></span>
+                <button type="button" class="info-icon" aria-label="Show SQL query"
+                  onclick="event.preventDefault(); event.stopPropagation();"><i
+                    class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip">
+                  <pre><?php echo htmlspecialchars($sqlTotalHomestays); ?></pre>
+                </span>
               </span>
             </div>
           </div>
-          <i class='bxr  bxs-home-circle'></i> 
+          <i class='bxr  bxs-home-circle'></i>
         </a>
       </div>
       <div class="content2">
@@ -506,19 +534,19 @@ if ($conn) {
             </thead>
             <tbody>
               <?php if (empty($recentGuests)): ?>
-              <tr>
-                <td colspan="6" style="text-align: center; padding: 20px;">No guests found</td>
-              </tr>
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 20px;">No guests found</td>
+                </tr>
               <?php else: ?>
                 <?php foreach ($recentGuests as $guest): ?>
-              <tr>
-                <td>G<?php echo str_pad($guest['id'], 3, '0', STR_PAD_LEFT); ?></td>
-                <td><?php echo htmlspecialchars($guest['name']); ?></td>
-                <td><?php echo htmlspecialchars($guest['phone']); ?></td>
-                <td><?php echo htmlspecialchars($guest['gender']); ?></td>
-                <td><?php echo htmlspecialchars($guest['email']); ?></td>
-                <td><?php echo htmlspecialchars($guest['type']); ?></td>
-              </tr>
+                  <tr>
+                    <td>G<?php echo str_pad($guest['id'], 3, '0', STR_PAD_LEFT); ?></td>
+                    <td><?php echo htmlspecialchars($guest['name']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['phone']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['gender']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['email']); ?></td>
+                    <td><?php echo htmlspecialchars($guest['type']); ?></td>
+                  </tr>
                 <?php endforeach; ?>
               <?php endif; ?>
             </tbody>
@@ -536,122 +564,122 @@ if ($conn) {
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-  // PHP data to JavaScript
-  const homestayOccupancy = <?php echo json_encode($homestayOccupancy); ?>;
-  const currentMonthRevenue = <?php echo $monthlyRevenue; ?>;
-  const lastMonthRevenue = <?php echo $lastMonthRevenue; ?>;
-  const highestMonthIndex = <?php echo $highestMonthIndex; ?>;
-  const highestMonthBookings = <?php echo $highestMonthBookings; ?>;
-  const highestYear = <?php echo $highestYear; ?>;
-  const currentYearRevenue = <?php echo json_encode($currentYearRevenue); ?>;
-  const lastYearRevenue = <?php echo json_encode($lastYearRevenue); ?>;
+    // PHP data to JavaScript
+    const homestayOccupancy = <?php echo json_encode($homestayOccupancy); ?>;
+    const currentMonthRevenue = <?php echo $monthlyRevenue; ?>;
+    const lastMonthRevenue = <?php echo $lastMonthRevenue; ?>;
+    const highestMonthIndex = <?php echo $highestMonthIndex; ?>;
+    const highestMonthBookings = <?php echo $highestMonthBookings; ?>;
+    const highestYear = <?php echo $highestYear; ?>;
+    const currentYearRevenue = <?php echo json_encode($currentYearRevenue); ?>;
+    const lastYearRevenue = <?php echo json_encode($lastYearRevenue); ?>;
 
-  let arrow = document.querySelectorAll(".arrow");
-  for (var i = 0; i < arrow.length; i++) {
-    arrow[i].addEventListener("click", (e)=>{
-   let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
-   arrowParent.classList.toggle("showMenu");
-    });
-  }
-  let sidebar = document.querySelector(".sidebar");
-  let sidebarBtn = document.querySelector(".bx-menu");
-  console.log(sidebarBtn);
-  sidebarBtn.addEventListener("click", ()=>{
-    sidebar.classList.toggle("close");
-  });
-
-  const dateLine = document.querySelector(".date-line");
-  if (dateLine) {
-    const now = new Date();
-    const format = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
-  }
-
-  const chartCanvas = document.getElementById("houseComparisonChart");
-  if (chartCanvas) {
-    const houseLabels = homestayOccupancy.map(h => h.name);
-    const currentMonthValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
-    const lastMonthValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
-    const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];
-
-    new Chart(chartCanvas, {
-      type: "bar",
-      data: {
-        labels: houseLabels,
-        datasets: [
-          {
-            label: "Current Month",
-            data: currentMonthValues,
-            backgroundColor: "#00bf63",
-            barThickness: 24,
-          },
-          {
-            label: "Last Month",
-            data: lastMonthValues,
-            backgroundColor: "#d9d9d9",
-            barThickness: 24,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "top",
-            labels: {
-              boxWidth: 12,
-              usePointStyle: true,
-            },
-          },
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false,
-            },
-          },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: "rgba(0,0,0,0.05)",
-            },
-          },
-        },
-      },
+    let arrow = document.querySelectorAll(".arrow");
+    for (var i = 0; i < arrow.length; i++) {
+      arrow[i].addEventListener("click", (e) => {
+        let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+        arrowParent.classList.toggle("showMenu");
+      });
+    }
+    let sidebar = document.querySelector(".sidebar");
+    let sidebarBtn = document.querySelector(".bx-menu");
+    console.log(sidebarBtn);
+    sidebarBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("close");
     });
 
-    const pieCanvas = document.getElementById("housePieChart");
-    const pieLegend = document.getElementById("housePieLegend");
+    const dateLine = document.querySelector(".date-line");
+    if (dateLine) {
+      const now = new Date();
+      const format = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
+    }
 
-    if (pieCanvas && currentMonthValues.some(v => v > 0)) {
-      new Chart(pieCanvas, {
-        type: "pie",
+    const chartCanvas = document.getElementById("houseComparisonChart");
+    if (chartCanvas) {
+      const houseLabels = homestayOccupancy.map(h => h.name);
+      const currentMonthValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
+      const lastMonthValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
+      const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];
+
+      new Chart(chartCanvas, {
+        type: "bar",
         data: {
           labels: houseLabels,
-          datasets: [{
-            data: currentMonthValues,
-            backgroundColor: pieColors.slice(0, houseLabels.length),
-            borderColor: "#ffffff",
-            borderWidth: 2,
-          }],
+          datasets: [
+            {
+              label: "Current Month",
+              data: currentMonthValues,
+              backgroundColor: "#00bf63",
+              barThickness: 24,
+            },
+            {
+              label: "Last Month",
+              data: lastMonthValues,
+              backgroundColor: "#d9d9d9",
+              barThickness: 24,
+            },
+          ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              display: false,
+              position: "top",
+              labels: {
+                boxWidth: 12,
+                usePointStyle: true,
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false,
+              },
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(0,0,0,0.05)",
+              },
             },
           },
         },
       });
-    }
 
-    if (pieLegend) {
-      pieLegend.innerHTML = houseLabels.map((label, index) => `
+      const pieCanvas = document.getElementById("housePieChart");
+      const pieLegend = document.getElementById("housePieLegend");
+
+      if (pieCanvas && currentMonthValues.some(v => v > 0)) {
+        new Chart(pieCanvas, {
+          type: "pie",
+          data: {
+            labels: houseLabels,
+            datasets: [{
+              data: currentMonthValues,
+              backgroundColor: pieColors.slice(0, houseLabels.length),
+              borderColor: "#ffffff",
+              borderWidth: 2,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+          },
+        });
+      }
+
+      if (pieLegend) {
+        pieLegend.innerHTML = houseLabels.map((label, index) => `
         <li>
           <span class="legend-dot" style="background-color:${pieColors[index]}"></span>
           <div class="legend-info">
@@ -660,220 +688,221 @@ if ($conn) {
           </div>
         </li>
       `).join("");
-    }
-  }
-
-  // Monthly Revenue Double Circle Chart
-  const monthlyRevenueOuterCanvas = document.getElementById("monthlyRevenueChartOuter");
-  const monthlyRevenueInnerCanvas = document.getElementById("monthlyRevenueChartInner");
-  const totalRevenueSpan = document.getElementById("totalRevenue");
-  
-  if (monthlyRevenueOuterCanvas && monthlyRevenueInnerCanvas) {
-    // Update the center text with current month revenue
-    if (totalRevenueSpan) {
-      totalRevenueSpan.textContent = currentMonthRevenue.toLocaleString();
+      }
     }
 
-    // Calculate max value for scaling (use the larger value)
-    const maxValue = Math.max(currentMonthRevenue, lastMonthRevenue) * 1.2;
-    
-    // Outer ring - Current Month
-    new Chart(monthlyRevenueOuterCanvas, {
-      type: 'doughnut',
-      data: {
-        datasets: [{
-          label: 'Current Month',
-          data: [currentMonthRevenue, Math.max(0, maxValue - currentMonthRevenue)],
-          backgroundColor: ['#00bf63', 'rgba(0, 191, 99, 0.15)'],
-          borderWidth: 0,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            enabled: true,
-            callbacks: {
-              label: function(context) {
-                if (context.dataIndex === 0) {
-                  return 'Current Month: RM ' + currentMonthRevenue.toLocaleString();
-                }
-                return '';
-              },
-              filter: function(tooltipItem) {
-                return tooltipItem.dataIndex === 0;
-              }
-            }
-          }
-        },
-        cutout: '75%',
-      }
-    });
-    
-    // Inner ring - Last Month (scaled smaller to appear inside)
-    new Chart(monthlyRevenueInnerCanvas, {
-      type: 'doughnut',
-      data: {
-        datasets: [{
-          label: 'Last Month',
-          data: [lastMonthRevenue, Math.max(0, maxValue - lastMonthRevenue)],
-          backgroundColor: ['#38b6ff', 'rgba(217, 217, 217, 0.15)'],
-          borderWidth: 0,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            enabled: true,
-            callbacks: {
-              label: function(context) {
-                if (context.dataIndex === 0) {
-                  return 'Last Month: RM ' + lastMonthRevenue.toLocaleString();
-                }
-                return '';
-              },
-              filter: function(tooltipItem) {
-                return tooltipItem.dataIndex === 0;
-              }
-            }
-          }
-        },
-        cutout: '80%',
-      }
-    });
-  }
+    // Monthly Revenue Double Circle Chart
+    const monthlyRevenueOuterCanvas = document.getElementById("monthlyRevenueChartOuter");
+    const monthlyRevenueInnerCanvas = document.getElementById("monthlyRevenueChartInner");
+    const totalRevenueSpan = document.getElementById("totalRevenue");
 
-  // Highest Month Bookings
-  const highestMonthName = document.getElementById("highestMonthName");
-  const highestBookingsCount = document.getElementById("highestBookingsCount");
-  
-  if (highestMonthName && highestBookingsCount) {
-    // Format month name
-    const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    
-    const highestMonthNameText = monthNames[highestMonthIndex] || "N/A";
-    
-    // Update the display
-    highestMonthName.textContent = highestMonthNameText;
-    highestBookingsCount.textContent = highestMonthBookings || 0;
-  }
+    if (monthlyRevenueOuterCanvas && monthlyRevenueInnerCanvas) {
+      // Update the center text with current month revenue
+      if (totalRevenueSpan) {
+        totalRevenueSpan.textContent = currentMonthRevenue.toLocaleString();
+      }
 
-  // Revenue-Month Line Chart
-  const revenueLineChartCanvas = document.getElementById("revenueLineChart");
-  
-  if (revenueLineChartCanvas) {
-    const currentYear = new Date().getFullYear();
-    const lastYear = currentYear - 1;
-    
-    // Month labels
-    const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
-    new Chart(revenueLineChartCanvas, {
-      type: "line",
-      data: {
-        labels: monthLabels,
-        datasets: [
-          {
-            label: currentYear.toString(),
-            data: currentYearRevenue,
-            borderColor: "#00bf63",
-            backgroundColor: "rgba(0, 191, 99, 0.1)",
-            borderWidth: 3,
-            fill: false,
-            tension: 0,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: "#00bf63",
-            pointBorderColor: "#fff",
-            pointBorderWidth: 2,
-          },
-          {
-            label: lastYear.toString(),
-            data: lastYearRevenue,
-            borderColor: "#ff3131",
-            backgroundColor: "rgba(255, 49, 49, 0.1)",
-            borderWidth: 3,
-            fill: false,
-            tension: 0,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: "#ff3131",
-            pointBorderColor: "#fff",
-            pointBorderWidth: 2,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "top",
-            labels: {
-              boxWidth: 12,
-              usePointStyle: true,
-              padding: 15,
-              font: {
-                size: 12,
-              },
-            },
-          },
-          tooltip: {
-            mode: "index",
-            intersect: false,
-            callbacks: {
-              label: function(context) {
-                return context.dataset.label + ": RM " + context.parsed.y.toLocaleString();
-              },
-            },
-          },
+      // Calculate max value for scaling (use the larger value)
+      const maxValue = Math.max(currentMonthRevenue, lastMonthRevenue) * 1.2;
+
+      // Outer ring - Current Month
+      new Chart(monthlyRevenueOuterCanvas, {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            label: 'Current Month',
+            data: [currentMonthRevenue, Math.max(0, maxValue - currentMonthRevenue)],
+            backgroundColor: ['#00bf63', 'rgba(0, 191, 99, 0.15)'],
+            borderWidth: 0,
+          }]
         },
-        scales: {
-          x: {
-            grid: {
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
               display: false,
             },
-            ticks: {
-              font: {
-                size: 11,
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                label: function (context) {
+                  if (context.dataIndex === 0) {
+                    return 'Current Month: RM ' + currentMonthRevenue.toLocaleString();
+                  }
+                  return '';
+                },
+                filter: function (tooltipItem) {
+                  return tooltipItem.dataIndex === 0;
+                }
+              }
+            }
+          },
+          cutout: '75%',
+        }
+      });
+
+      // Inner ring - Last Month (scaled smaller to appear inside)
+      new Chart(monthlyRevenueInnerCanvas, {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            label: 'Last Month',
+            data: [lastMonthRevenue, Math.max(0, maxValue - lastMonthRevenue)],
+            backgroundColor: ['#38b6ff', 'rgba(217, 217, 217, 0.15)'],
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                label: function (context) {
+                  if (context.dataIndex === 0) {
+                    return 'Last Month: RM ' + lastMonthRevenue.toLocaleString();
+                  }
+                  return '';
+                },
+                filter: function (tooltipItem) {
+                  return tooltipItem.dataIndex === 0;
+                }
+              }
+            }
+          },
+          cutout: '80%',
+        }
+      });
+    }
+
+    // Highest Month Bookings
+    const highestMonthName = document.getElementById("highestMonthName");
+    const highestBookingsCount = document.getElementById("highestBookingsCount");
+
+    if (highestMonthName && highestBookingsCount) {
+      // Format month name
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+
+      const highestMonthNameText = monthNames[highestMonthIndex] || "N/A";
+
+      // Update the display
+      highestMonthName.textContent = highestMonthNameText;
+      highestBookingsCount.textContent = highestMonthBookings || 0;
+    }
+
+    // Revenue-Month Line Chart
+    const revenueLineChartCanvas = document.getElementById("revenueLineChart");
+
+    if (revenueLineChartCanvas) {
+      const currentYear = new Date().getFullYear();
+      const lastYear = currentYear - 1;
+
+      // Month labels
+      const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      new Chart(revenueLineChartCanvas, {
+        type: "line",
+        data: {
+          labels: monthLabels,
+          datasets: [
+            {
+              label: currentYear.toString(),
+              data: currentYearRevenue,
+              borderColor: "#00bf63",
+              backgroundColor: "rgba(0, 191, 99, 0.1)",
+              borderWidth: 3,
+              fill: false,
+              tension: 0,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: "#00bf63",
+              pointBorderColor: "#fff",
+              pointBorderWidth: 2,
+            },
+            {
+              label: lastYear.toString(),
+              data: lastYearRevenue,
+              borderColor: "#ff3131",
+              backgroundColor: "rgba(255, 49, 49, 0.1)",
+              borderWidth: 3,
+              fill: false,
+              tension: 0,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: "#ff3131",
+              pointBorderColor: "#fff",
+              pointBorderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "top",
+              labels: {
+                boxWidth: 12,
+                usePointStyle: true,
+                padding: 15,
+                font: {
+                  size: 12,
+                },
+              },
+            },
+            tooltip: {
+              mode: "index",
+              intersect: false,
+              callbacks: {
+                label: function (context) {
+                  return context.dataset.label + ": RM " + context.parsed.y.toLocaleString();
+                },
               },
             },
           },
-          y: {
-            beginAtZero: false,
-            grid: {
-              color: "rgba(0,0,0,0.05)",
-            },
-            ticks: {
-              callback: function(value) {
-                return "RM " + (value / 1000) + "k";
+          scales: {
+            x: {
+              grid: {
+                display: false,
               },
-              font: {
-                size: 11,
+              ticks: {
+                font: {
+                  size: 11,
+                },
+              },
+            },
+            y: {
+              beginAtZero: false,
+              grid: {
+                color: "rgba(0,0,0,0.05)",
+              },
+              ticks: {
+                callback: function (value) {
+                  return "RM " + (value / 1000) + "k";
+                },
+                font: {
+                  size: 11,
+                },
               },
             },
           },
+          interaction: {
+            mode: "nearest",
+            axis: "x",
+            intersect: false,
+          },
         },
-        interaction: {
-          mode: "nearest",
-          axis: "x",
-          intersect: false,
-        },
-      },
-    });
-  }
+      });
+    }
   </script>
 </body>
+
 </html>
