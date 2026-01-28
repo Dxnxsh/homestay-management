@@ -415,9 +415,9 @@ oci_free_statement($staffStmt);
           <select id="addStaffId" name="staffId" required>
             <option value="">Select Staff</option>
             <?php foreach ($staff as $s): ?>
-            <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>">
-              <?php echo htmlspecialchars($s['STAFFID']); ?> - <?php echo htmlspecialchars($s['STAFF_NAME']); ?>
-            </option>
+              <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>">
+                <?php echo htmlspecialchars($s['STAFFID']); ?> - <?php echo htmlspecialchars($s['STAFF_NAME']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -552,7 +552,7 @@ oci_free_statement($staffStmt);
         name: cells[1].textContent.trim(),
         address: cells[2].textContent.trim(),
         officePhone: cells[3].textContent.trim(),
-        rentPrice: cells[4].textContent.trim().replace('RM ', '').trim(),
+        rentPrice: targetRow.getAttribute('data-rent-price'),
         staffId: cells[5].textContent.trim()
       };
 
