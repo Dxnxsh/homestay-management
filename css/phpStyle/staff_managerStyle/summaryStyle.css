@@ -253,7 +253,7 @@ body {
   padding-bottom: 120px;
 }
 
-.sidebar.close ~ .home-section {
+.sidebar.close~.home-section {
   left: 78px;
   width: calc(100% - 78px);
 }
@@ -324,6 +324,7 @@ body {
   .home-section .home-content .header-profile .header-profile-info {
     display: none;
   }
+
   .home-section .home-content .header-profile i {
     font-size: 24px;
   }
@@ -550,7 +551,7 @@ body {
   align-items: center;
 }
 
-.chart-card .data-row + .data-row {
+.chart-card .data-row+.data-row {
   border-top: 1px solid #f4e1d1;
   padding-top: 8px;
 }
@@ -627,7 +628,7 @@ body {
   gap: 10px;
 }
 
-.panel .data-row + .data-row {
+.panel .data-row+.data-row {
   border-top: 1px solid #f4e1d1;
   padding-top: 8px;
 }
@@ -671,7 +672,7 @@ body {
 
 .bar-chart {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   justify-content: space-around;
   gap: 8px;
   height: 200px;
@@ -684,8 +685,26 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   flex: 1;
+  height: 100%;
+  position: relative;
+  /* Ensure relative positioning for absolute children if needed, though flex handles order here */
+}
+
+.bar-value {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+}
+
+.bar-item:hover .bar-value {
+  opacity: 1;
 }
 
 .bar-item .bar {
@@ -813,7 +832,7 @@ body {
   transition: all 0.5s ease;
 }
 
-.sidebar.close ~ .home-section .footer {
+.sidebar.close~.home-section .footer {
   left: 78px;
   width: calc(100% - 78px);
 }
@@ -837,9 +856,11 @@ body {
   .chart-grid {
     grid-template-columns: 1fr;
   }
+
   .rank-item {
     grid-template-columns: 24px 1fr;
   }
+
   .rank-bar {
     display: none;
   }
@@ -849,14 +870,17 @@ body {
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .chart-grid,
   .status-grid {
     padding: 12px;
     gap: 12px;
   }
+
   .bar-chart {
     height: 150px;
   }
+
   .rank-item {
     grid-template-columns: 20px 1fr;
     font-size: 12px;

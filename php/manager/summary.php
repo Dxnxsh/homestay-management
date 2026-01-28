@@ -68,7 +68,7 @@ oci_close($conn);
 <head>
   <meta charset="UTF-8">
   <title>Summary</title>
-  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/summaryStyle.css?v=3">
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/summaryStyle.css?v=5">
   <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -214,13 +214,31 @@ oci_close($conn);
       <div class="chart-card">
         <h3>Monthly Revenue</h3>
         <div class="bar-chart" id="revenueChart">
-          <?php foreach ($monthlyRevenue as $month): ?>
-            <div class="bar-item">
-              <div class="bar" style="height: <?php echo min(100, max(1, ($month['AMT'] / 50000) * 100)); ?>%;"
-                title="$<?php echo number_format($month['AMT'], 0); ?>"></div>
-              <span><?php echo substr(trim($month['MONTH_NAME']), 0, 3); ?></span>
-            </div>
-          <?php endforeach; ?>
+          <?php
+          $maxRevenue = 0;
+          foreach ($monthlyRevenue as $month) {
+            if ($month['AMT'] > $maxRevenue) {
+              $maxRevenue = $month['AMT'];
+            }
+          }
+          ?>
+          <?php if (!empty($monthlyRevenue)): ?>
+            <?php foreach ($monthlyRevenue as $month): ?>
+              <?php
+              // Cap at 85% to leave room for the label
+              $heightPct = $maxRevenue > 0 ? ($month['AMT'] / $maxRevenue) * 85 : 0;
+              // Min height for visibility
+              $heightPct = max(1, $heightPct);
+              ?>
+              <div class="bar-item">
+                <span class="bar-value">RM <?php echo number_format($month['AMT'], 0); ?></span>
+                <div class="bar" style="height: <?php echo $heightPct; ?>%;"></div>
+                <span><?php echo substr(trim($month['MONTH_NAME']), 0, 3); ?></span>
+              </div>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <p class="no-data">No revenue data available for this year.</p>
+          <?php endif; ?>
         </div>
       </div>
 
