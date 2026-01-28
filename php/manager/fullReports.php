@@ -29,12 +29,23 @@ while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
 }
 oci_free_statement($stmt);
 
-// Fetch all guests
+// Fetch all guests with contact details and total bookings
 $guestsData = [];
-$guestSql = "SELECT g.guestID, g.guest_name, COUNT(b.bookingID) AS total_bookings
+$guestSql = "SELECT g.guestID,
+                    g.guest_name,
+                    g.guest_phoneNo,
+                    g.guest_gender,
+                    g.guest_email,
+                    g.guest_type,
+                    COUNT(b.bookingID) AS total_bookings
              FROM GUEST g
              LEFT JOIN BOOKING b ON g.guestID = b.guestID
-             GROUP BY g.guestID, g.guest_name
+             GROUP BY g.guestID,
+                      g.guest_name,
+                      g.guest_phoneNo,
+                      g.guest_gender,
+                      g.guest_email,
+                      g.guest_type
              ORDER BY g.guest_name ASC";
 $stmt = oci_parse($conn, $guestSql);
 oci_execute($stmt);
@@ -388,6 +399,10 @@ oci_free_statement($stmt);
             <tr>
               <th>Guest ID</th>
               <th>Name</th>
+              <th>Phone No.</th>
+              <th>Gender</th>
+              <th>Email</th>
+              <th>Type</th>
               <th>Total Bookings</th>
             </tr>
           </thead>
@@ -397,6 +412,19 @@ oci_free_statement($stmt);
                 <tr>
                   <td><?php echo htmlspecialchars($g['GUESTID']); ?></td>
                   <td><?php echo htmlspecialchars($g['GUEST_NAME']); ?></td>
+                  <td><?php echo htmlspecialchars($g['GUEST_PHONENO'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($g['GUEST_GENDER'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($g['GUEST_EMAIL'] ?? 'N/A'); ?></td>
+                  <td>
+                    <?php
+                      $type = $g['GUEST_TYPE'] ?? '';
+                      if (empty($type) || strtolower($type) === 'null') {
+                        echo 'Regular';
+                      } else {
+                        echo htmlspecialchars($type);
+                      }
+                    ?>
+                  </td>
                   <td><?php echo (int) $g['TOTAL_BOOKINGS']; ?></td>
                 </tr>
               <?php endforeach; ?>
@@ -619,6 +647,20 @@ oci_free_statement($stmt);
       // Add some specific print styles to the clone if needed
       clone.style.padding = '20px';
       clone.style.background = '#fff';
+
+      // Tweak the wider Guests table for PDF so all columns fit nicely
+      const guestSection = clone.querySelector('.report-section[data-report="guests"]');
+      if (guestSection) {
+        const guestTable = guestSection.querySelector('.report-table');
+        if (guestTable) {
+          guestTable.style.fontSize = '11px';
+          const guestCells = guestTable.querySelectorAll('th, td');
+          guestCells.forEach(function (cell) {
+            cell.style.padding = '6px 8px';
+            cell.style.wordBreak = 'break-word';
+          });
+        }
+      }
 
       const opt = {
         margin: [0.5, 0.5],
