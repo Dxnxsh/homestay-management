@@ -123,12 +123,18 @@ if (!$conn) {
             $totalAmount = max(0, $subtotal - $discountAmount + $taxAmount + $lateCharges);
 
             // billNo will be auto-generated
+            // Use RETURNING clause to get the generated billNo directly
             $bill_insert_sql = "INSERT INTO BILL (bill_date, bill_subtotal, disc_amount, tax_amount,
                                                       total_amount, late_charges, bill_status, payment_date,
                                                       payment_method, guestID, staffID)
                                   VALUES (SYSDATE, :subtotal, :disc_amount, :tax_amount, :total_amount,
-                                          :late_charges, 'Pending', SYSDATE, :payment_method, :guestID, NULL)";
+                                          :late_charges, 'Pending', SYSDATE, :payment_method, :guestID, NULL)
+                                  RETURNING billNo INTO :billNo";
             $bill_insert_stmt = oci_parse($conn, $bill_insert_sql);
+            
+            // Define variable for returned billNo
+            $nextBillNo = '';
+            
             oci_bind_by_name($bill_insert_stmt, ':subtotal', $subtotal);
             oci_bind_by_name($bill_insert_stmt, ':disc_amount', $discountAmount);
             oci_bind_by_name($bill_insert_stmt, ':tax_amount', $taxAmount);
@@ -136,23 +142,11 @@ if (!$conn) {
             oci_bind_by_name($bill_insert_stmt, ':late_charges', $lateCharges);
             oci_bind_by_name($bill_insert_stmt, ':payment_method', $paymentMethod);
             oci_bind_by_name($bill_insert_stmt, ':guestID', $guestID);
+            // Bind the output variable for billNo (make sure to allocate enough size)
+            oci_bind_by_name($bill_insert_stmt, ':billNo', $nextBillNo, 20, SQLT_CHR);
 
             // Execute bill insert FIRST (must exist before booking can reference it)
             $bill_insert_result = oci_execute($bill_insert_stmt, OCI_NO_AUTO_COMMIT);
-            
-            // Get the auto-generated billNo
-            $nextBillNo = null;
-            if ($bill_insert_result) {
-              // For Oracle, get the last inserted ID using RETURNING clause
-              // If RETURNING is not working, we can query the max billNo
-              $nextBillNo_sql = "SELECT MAX(billNo) AS billNo FROM BILL";
-              $nextBillNo_stmt = oci_parse($conn, $nextBillNo_sql);
-              if (oci_execute($nextBillNo_stmt)) {
-                $billNo_row = oci_fetch_array($nextBillNo_stmt, OCI_ASSOC);
-                $nextBillNo = isset($billNo_row['BILLNO']) ? (int) $billNo_row['BILLNO'] : null;
-              }
-              oci_free_statement($nextBillNo_stmt);
-            }
             
             // New Booking ID container
             $createdBookingID = null;
@@ -186,7 +180,9 @@ if (!$conn) {
                 oci_bind_by_name($insert_booking_stmt, ':homestayID', $pendingBooking['homestayID']);
                 oci_bind_by_name($insert_booking_stmt, ':guestID', $pendingBooking['guestID']);
                 oci_bind_by_name($insert_booking_stmt, ':billNo', $nextBillNo);
-                oci_bind_by_name($insert_booking_stmt, ':bookingID', $createdBookingID, -1, SQLT_INT);
+                // Initialize createdBookingID string
+                $createdBookingID = '          '; // Allocate space
+                oci_bind_by_name($insert_booking_stmt, ':bookingID', $createdBookingID, 10, SQLT_CHR);
                 $booking_insert_result = oci_execute($insert_booking_stmt, OCI_NO_AUTO_COMMIT);
               } elseif ($bill_insert_result && !$pendingBooking) {
                 // For existing bookings (if any), update billNo
