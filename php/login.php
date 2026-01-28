@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="form-group">
                     <label for="password" class="form-label">
-                        <i class='bx bx-lock-alt'></i>
+                        <i class='bx bx-key-alt'></i>
                         Password <span class="required">*</span>
                     </label>
                     <input type="password" id="password" name="password" class="form-input"
