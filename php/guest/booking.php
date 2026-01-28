@@ -20,11 +20,11 @@ $membershipFlash = $_SESSION['membership_flash'] ?? '';
 $membershipFlashType = $_SESSION['membership_flash_type'] ?? '';
 unset($_SESSION['membership_flash'], $_SESSION['membership_flash_type']);
 $outstandingBookings = [];
-$selectedHomestayID = isset($_GET['homestay']) ? (int) $_GET['homestay'] : null;
+$selectedHomestayID = isset($_GET['homestay']) ? $_GET['homestay'] : null;
 $selectedPaymentBookingID = null;
 $shouldPromptPayment = false;
 $paymentMethodInput = '';
-$queryPaymentBooking = isset($_GET['booking']) ? (int) $_GET['booking'] : null;
+$queryPaymentBooking = isset($_GET['booking']) ? $_GET['booking'] : null;
 if ($queryPaymentBooking && $queryPaymentBooking != 0) {
   $selectedPaymentBookingID = $queryPaymentBooking;
   $shouldPromptPayment = true;
@@ -61,7 +61,7 @@ if (!$conn) {
   if (oci_execute($homestay_stmt)) {
     while ($row = oci_fetch_array($homestay_stmt, OCI_ASSOC)) {
       $stay = [
-        'homestayID' => (int) $row['HOMESTAYID'],
+        'homestayID' => $row['HOMESTAYID'],
         'homestay_name' => $row['HOMESTAY_NAME'],
         'homestay_address' => $row['HOMESTAY_ADDRESS'],
         'rent_price' => (float) $row['RENT_PRICE']
@@ -76,7 +76,7 @@ if (!$conn) {
     $formAction = $_POST['form_action'] ?? 'create_booking';
 
     if ($formAction === 'pay_deposit') {
-      $selectedPaymentBookingID = isset($_POST['bookingID']) ? (int) $_POST['bookingID'] : null;
+      $selectedPaymentBookingID = isset($_POST['bookingID']) ? $_POST['bookingID'] : null;
       $paymentMethod = trim($_POST['payment_method'] ?? '');
       $paymentMethodInput = $paymentMethod;
       $addMembership = !$hasMembership && isset($_POST['add_membership']) && $_POST['add_membership'] === '1';
@@ -270,7 +270,7 @@ if (!$conn) {
         }
       }
     } else {
-      $selectedHomestayID = isset($_POST['homestayID']) ? (int) $_POST['homestayID'] : null;
+      $selectedHomestayID = isset($_POST['homestayID']) ? $_POST['homestayID'] : null;
       $checkinInput = trim($_POST['checkin_date'] ?? '');
       $checkoutInput = trim($_POST['checkout_date'] ?? '');
       $numAdultsInput = max(1, (int) ($_POST['num_adults'] ?? 1));

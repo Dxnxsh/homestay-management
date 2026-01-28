@@ -25,45 +25,45 @@ if (!isset($_GET['homestayID'])) {
     exit;
 }
 
-$homestayID = (int) $_GET['homestayID'];
+$homestayID = $_GET['homestayID'];
 
 try {
     $conn = getDBConnection();
-    
+
     if (!$conn) {
         throw new Exception('Unable to connect to the database');
     }
-    
+
     // Get all booked dates for this homestay
     // We'll get dates that are either currently booked or pending
     $sql = "SELECT checkin_date, checkout_date
             FROM BOOKING
             WHERE homestayID = :homestayID
             ORDER BY checkin_date ASC";
-    
+
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':homestayID', $homestayID);
-    
+
     $bookedDates = [];
-    
+
     if (oci_execute($stmt)) {
         while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
             $checkinDate = $row['CHECKIN_DATE'];
             $checkoutDate = $row['CHECKOUT_DATE'];
-            
+
             // Handle both string and date formats
             if (is_string($checkinDate)) {
                 $checkinDate = new DateTime($checkinDate);
             } else {
                 $checkinDate = DateTime::createFromFormat('d-M-y', $checkinDate);
             }
-            
+
             if (is_string($checkoutDate)) {
                 $checkoutDate = new DateTime($checkoutDate);
             } else {
                 $checkoutDate = DateTime::createFromFormat('d-M-y', $checkoutDate);
             }
-            
+
             // Add all dates between checkin and checkout (inclusive of both)
             $currentDate = clone $checkinDate;
             while ($currentDate <= $checkoutDate) {
@@ -72,19 +72,19 @@ try {
             }
         }
     }
-    
+
     oci_free_statement($stmt);
-    
+
     // Return unique sorted dates
     $bookedDates = array_unique($bookedDates);
     sort($bookedDates);
-    
+
     ob_end_clean();
     echo json_encode([
         'success' => true,
         'bookedDates' => $bookedDates
     ]);
-    
+
 } catch (Exception $e) {
     http_response_code(500);
     ob_end_clean();
