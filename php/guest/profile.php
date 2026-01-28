@@ -309,7 +309,7 @@ if ($conn) {
                     <label>Guest Type</label>
                     <select name="guest_type" class="form-input" disabled>
                       <option value="Regular" <?php echo strtoupper($guest['type'] ?? '') === 'REGULAR' ? 'selected' : ''; ?>>Regular</option>
-                      <option value="Membership" <?php echo strtoupper($guest['type'] ?? '') === 'MEMBERSHIP' ? 'selected' : ''; ?>>Membership</option>
+                      <option value="Membership" <?php echo strtoupper($guest['type'] ?? '') === 'Member' ? 'selected' : ''; ?>>Membership</option>
                     </select>
                   </div>
                 </div>
