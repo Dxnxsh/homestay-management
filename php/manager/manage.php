@@ -12,24 +12,24 @@ if (!$conn) {
 
 // Fetch statistics
 // Total Guests
-$guestCountSql = "SELECT COUNT(*) as total FROM GUEST";
-$guestStmt = oci_parse($conn, $guestCountSql);
+$sqlTotalGuests = "SELECT COUNT(*) as total FROM GUEST";
+$guestStmt = oci_parse($conn, $sqlTotalGuests);
 oci_execute($guestStmt);
 $guestRow = oci_fetch_array($guestStmt, OCI_ASSOC);
 $totalGuests = $guestRow['TOTAL'];
 oci_free_statement($guestStmt);
 
 // Total Staff
-$staffCountSql = "SELECT COUNT(*) as total FROM STAFF";
-$staffStmt = oci_parse($conn, $staffCountSql);
+$sqlTotalStaff = "SELECT COUNT(*) as total FROM STAFF";
+$staffStmt = oci_parse($conn, $sqlTotalStaff);
 oci_execute($staffStmt);
 $staffRow = oci_fetch_array($staffStmt, OCI_ASSOC);
 $totalStaff = $staffRow['TOTAL'];
 oci_free_statement($staffStmt);
 
 // Total Homestays
-$homestayCountSql = "SELECT COUNT(*) as total FROM HOMESTAY";
-$homestayStmt = oci_parse($conn, $homestayCountSql);
+$sqlTotalHomestays = "SELECT COUNT(*) as total FROM HOMESTAY";
+$homestayStmt = oci_parse($conn, $sqlTotalHomestays);
 oci_execute($homestayStmt);
 $homestayRow = oci_fetch_array($homestayStmt, OCI_ASSOC);
 $totalHomestays = $homestayRow['TOTAL'];
@@ -267,7 +267,13 @@ foreach ($homestays as $homestay) {
         <a href="guests.php" class="sub-content1">
           <div class="subcard">
             <div class="subcard-number"><?php echo $totalGuests; ?></div>
-            <div class="subcard-text">Total Guests</div>
+            <div class="subcard-text-line">
+              <span class="subcard-text">Total Guests</span>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlTotalGuests); ?></pre></span>
+              </span>
+            </div>
           </div>
           <i class='bxr  bxs-user'></i>
         </a>
@@ -275,7 +281,13 @@ foreach ($homestays as $homestay) {
           <a href="staff.php" class="sub-content1">
             <div class="subcard">
               <div class="subcard-number"><?php echo $totalStaff; ?></div>
-              <div class="subcard-text">Total Staff</div>
+              <div class="subcard-text-line">
+                <span class="subcard-text">Total Staff</span>
+                <span class="info-icon-wrap">
+                  <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                  <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlTotalStaff); ?></pre></span>
+                </span>
+              </div>
             </div>
             <i class='bxr  bxs-community'></i>
           </a>
@@ -283,7 +295,13 @@ foreach ($homestays as $homestay) {
         <a href="homestay.php" class="sub-content1">
           <div class="subcard">
             <div class="subcard-number"><?php echo $totalHomestays; ?></div>
-            <div class="subcard-text">Total Homestay</div>
+            <div class="subcard-text-line">
+              <span class="subcard-text">Total Homestay</span>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlTotalHomestays); ?></pre></span>
+              </span>
+            </div>
           </div>
           <i class='bxr  bxs-home-circle'></i>
         </a>
