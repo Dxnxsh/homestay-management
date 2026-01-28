@@ -315,7 +315,13 @@ foreach ($homestays as $homestay) {
             <a href="staff.php" class="sub-content2-card">
               <div class="subcard">
                 <div class="subcard-number"><?php echo $fullTimeStaff; ?></div>
-                <div class="subcard-text">Full Time Staff</div>
+                <div class="subcard-text-line">
+                  <span class="subcard-text">Full Time Staff</span>
+                  <span class="info-icon-wrap">
+                    <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                    <span class="sql-tooltip"><pre><?php echo htmlspecialchars($fullTimeSql); ?></pre></span>
+                  </span>
+                </div>
               </div>
               <div class="mini-chart-container">
                 <canvas id="miniChart2"></canvas>
@@ -324,7 +330,13 @@ foreach ($homestays as $homestay) {
             <a href="staff.php" class="sub-content2-card">
               <div class="subcard">
                 <div class="subcard-number"><?php echo $partTimeStaff; ?></div>
-                <div class="subcard-text">Part Time Staff</div>
+                <div class="subcard-text-line">
+                  <span class="subcard-text">Part Time Staff</span>
+                  <span class="info-icon-wrap">
+                    <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                    <span class="sql-tooltip"><pre><?php echo htmlspecialchars($partTimeSql); ?></pre></span>
+                  </span>
+                </div>
               </div>
               <div class="mini-chart-container">
                 <canvas id="miniChart3"></canvas>
