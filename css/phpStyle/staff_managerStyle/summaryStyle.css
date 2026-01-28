@@ -296,13 +296,15 @@ body {
 .home-section .home-content .header-profile i {
   font-size: 28px;
   color: #C5814B;
-  order: -1;
+  order: 1;
+  margin-left: auto;
 }
 
 .home-section .home-content .header-profile .header-profile-info {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  order: 0;
 }
 
 .home-section .home-content .header-profile .header-profile-name {
