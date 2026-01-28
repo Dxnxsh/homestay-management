@@ -591,10 +591,16 @@ body {
 
 .content2 .sub-content2-1 {
   flex: 3 1 480px;
-  min-height: 320px;
+  min-height: 240px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Staff (not manager): only chart – take full width */
+.content2.content2-staff .sub-content2-1 {
+  flex: 1 1 100%;
+  max-width: 100%;
 }
 
 .content2 .sub-content2-2 {
@@ -708,6 +714,7 @@ body {
 .content2 .sub-content2-1 .chart-container {
   flex: 1;
   min-height: 0;
+  max-height: 200px;
   position: relative;
   width: 100%;
 }
@@ -1478,7 +1485,7 @@ body {
   .content2 .sub-content2-1,
   .content2 .sub-content2-2 {
     flex: 1 1 100%;
-    min-height: 260px;
+    min-height: 220px;
   }
   
   .content2 .sub-content2-card {

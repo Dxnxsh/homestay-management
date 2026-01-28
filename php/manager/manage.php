@@ -331,11 +331,10 @@ oci_free_statement($monthlyGuestsStmt);
         </a>
       </div>
 
-      <!-- Guests Section -->
-      <div class="content2">
+      <!-- Guests Section (staff: chart only; manager: staff cards + chart) -->
+      <div class="content2<?php echo isManager() ? '' : ' content2-staff'; ?>">
+        <?php if (isManager()): ?>
         <div class="sub-content2-2">
-
-          <?php if (isManager()): ?>
             <a href="staff.php" class="sub-content2-card">
               <div class="subcard">
                 <div class="subcard-number"><?php echo $fullTimeStaff; ?></div>
@@ -366,8 +365,8 @@ oci_free_statement($monthlyGuestsStmt);
                 <canvas id="miniChart3"></canvas>
               </div>
             </a>
-          <?php endif; ?>
         </div>
+        <?php endif; ?>
         <div class="sub-content2-1">
           <div class="chart-header">
             <p>Total Monthly Guests</p>
@@ -377,7 +376,7 @@ oci_free_statement($monthlyGuestsStmt);
             </span>
           </div>
           <div class="chart-container">
-            <canvas id="guestsChart" aria-label="Guests distribution chart"></canvas>
+            <canvas id="guestsChart" aria-label="Total monthly guests line chart"></canvas>
           </div>
         </div>
       </div>
@@ -566,21 +565,26 @@ oci_free_statement($monthlyGuestsStmt);
       dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
     }
 
-    // Guests Chart - Bar Chart (Current Year Monthly Guests)
+    // Guests Chart - Line Chart (Current Year Monthly Guests)
     const guestsChartCanvas = document.getElementById("guestsChart");
     if (guestsChartCanvas) {
       const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const monthlyGuests = <?php echo json_encode($monthlyGuests); ?>;
 
       new Chart(guestsChartCanvas, {
-        type: "bar",
+        type: "line",
         data: {
           labels: monthLabels,
           datasets: [{
             label: "Guests (Current Year)",
             data: monthlyGuests,
-            backgroundColor: "#00bf63",
-            barThickness: 24,
+            borderColor: "#00bf63",
+            backgroundColor: "rgba(0, 191, 99, 0.1)",
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: "#00bf63",
           }],
         },
         options: {
