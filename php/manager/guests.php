@@ -240,10 +240,6 @@ oci_free_statement($stmt);
     </div>
     <div class="page-heading">
       <h1>Guests</h1>
-      <div class="date-card">
-        <i class='bxr  bx-calendar-alt'></i>
-        <div class="date-line" aria-live="polite">Loading date…</div>
-      </div>
     </div>
     <!-- Content -->
     <div class="content">
@@ -387,16 +383,6 @@ oci_free_statement($stmt);
     sidebarBtn.addEventListener("click", () => {
       sidebar.classList.toggle("close");
     });
-
-    // Date display (match dashboard header)
-    const dateLine = document.querySelector(".date-line");
-    if (dateLine) {
-      const now = new Date();
-      const format = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
-    }
 
     // Sorting functionality
     const sortOrderSelect = document.getElementById('sortOrder');
