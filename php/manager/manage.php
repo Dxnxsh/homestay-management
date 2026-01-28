@@ -35,13 +35,7 @@ $homestayRow = oci_fetch_array($homestayStmt, OCI_ASSOC);
 $totalHomestays = $homestayRow['TOTAL'];
 oci_free_statement($homestayStmt);
 
-// New Guests (last 30 days approximation - get recent 30 guests)
-$newGuestsSql = "SELECT COUNT(*) as total FROM (SELECT guestID FROM GUEST ORDER BY guestID DESC) WHERE ROWNUM <= 30";
-$newGuestsStmt = oci_parse($conn, $newGuestsSql);
-oci_execute($newGuestsStmt);
-$newGuestsRow = oci_fetch_array($newGuestsStmt, OCI_ASSOC);
-$newGuests = $newGuestsRow['TOTAL'];
-oci_free_statement($newGuestsStmt);
+
 
 // Full Time and Part Time Staff counts
 $fullTimeSql = "SELECT COUNT(*) as total FROM FULL_TIME";
@@ -285,15 +279,7 @@ foreach ($homestays as $homestay) {
       <!-- Guests Section -->
       <div class="content2">
         <div class="sub-content2-2">
-          <a href="guests.php" class="sub-content2-card">
-            <div class="subcard">
-              <div class="subcard-number"><?php echo $newGuests; ?></div>
-              <div class="subcard-text">New Guests</div>
-            </div>
-            <div class="mini-chart-container">
-              <canvas id="miniChart1"></canvas>
-            </div>
-          </a>
+
           <?php if (isManager()): ?>
             <a href="staff.php" class="sub-content2-card">
               <div class="subcard">
@@ -572,37 +558,7 @@ foreach ($homestays as $homestay) {
       });
     }
 
-    // Mini Charts for Subcards
-    const miniChart1 = document.getElementById("miniChart1");
-    if (miniChart1) {
-      new Chart(miniChart1, {
-        type: "line",
-        data: {
-          labels: ["", "", "", "", "", "", ""],
-          datasets: [{
-            data: [1, 4, 2, 5, 3, 6, 9],
-            borderColor: "#00bf63",
-            backgroundColor: "rgba(0, 191, 99, 0.1)",
-            borderWidth: 2,
-            fill: true,
-            tension: 0,
-            pointRadius: 0,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { enabled: false },
-          },
-          scales: {
-            x: { display: false },
-            y: { display: false },
-          },
-        },
-      });
-    }
+
 
     const miniChart2 = document.getElementById("miniChart2");
     if (miniChart2) {
