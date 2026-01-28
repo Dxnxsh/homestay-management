@@ -220,13 +220,30 @@ oci_free_statement($stmt);
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
         <div class="header-profile-info">
-          <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Manager'); ?></div>
-          <div class="header-profile-job">Manager</div>
+          <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Staff'); ?></div>
+          <div class="header-profile-job"><?php
+            if (isManager()) {
+              echo 'Manager';
+            } else {
+              $st = $_SESSION['staff_type'] ?? '';
+              if (stripos($st, 'part') !== false) {
+                echo 'Part-time';
+              } elseif (stripos($st, 'full') !== false) {
+                echo 'Full-time';
+              } else {
+                echo htmlspecialchars($st ?: 'Staff');
+              }
+            }
+          ?></div>
         </div>
       </div>
     </div>
     <div class="page-heading">
       <h1>Guests</h1>
+      <div class="date-card">
+        <i class='bxr  bx-calendar-alt'></i>
+        <div class="date-line" aria-live="polite">Loading date…</div>
+      </div>
     </div>
     <!-- Content -->
     <div class="content">
@@ -370,6 +387,16 @@ oci_free_statement($stmt);
     sidebarBtn.addEventListener("click", () => {
       sidebar.classList.toggle("close");
     });
+
+    // Date display (match dashboard header)
+    const dateLine = document.querySelector(".date-line");
+    if (dateLine) {
+      const now = new Date();
+      const format = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
+    }
 
     // Sorting functionality
     const sortOrderSelect = document.getElementById('sortOrder');
