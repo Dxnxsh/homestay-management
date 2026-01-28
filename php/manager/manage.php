@@ -87,13 +87,13 @@ while ($row = oci_fetch_array($homestaysStmt, OCI_ASSOC)) {
 oci_free_statement($homestaysStmt);
 
 // Homestay Revenue (total from bills per homestay)
+$homestayRevenueSql = "SELECT NVL(SUM(b.total_amount), 0) as revenue 
+                       FROM BILL b 
+                       JOIN BOOKING bk ON b.guestID = bk.guestID 
+                       WHERE bk.homestayID = :homestayID";
 $homestayRevenue = [];
 foreach ($homestays as $homestay) {
-  $revenueSql = "SELECT NVL(SUM(b.total_amount), 0) as revenue 
-                   FROM BILL b 
-                   JOIN BOOKING bk ON b.guestID = bk.guestID 
-                   WHERE bk.homestayID = :homestayID";
-  $revenueStmt = oci_parse($conn, $revenueSql);
+  $revenueStmt = oci_parse($conn, $homestayRevenueSql);
   $hId = $homestay['HOMESTAYID'];
   oci_bind_by_name($revenueStmt, ':homestayID', $hId);
   oci_execute($revenueStmt);
@@ -103,13 +103,13 @@ foreach ($homestays as $homestay) {
 }
 
 // Homestay total guests this year
+$homestayGuestCountSql = "SELECT COUNT(*) as total 
+                          FROM BOOKING 
+                          WHERE homestayID = :homestayID 
+                          AND EXTRACT(YEAR FROM checkin_date) = EXTRACT(YEAR FROM SYSDATE)";
 $homestayGuestCount = [];
 foreach ($homestays as $homestay) {
-  $guestCountSql = "SELECT COUNT(*) as total 
-                      FROM BOOKING 
-                      WHERE homestayID = :homestayID 
-                      AND EXTRACT(YEAR FROM checkin_date) = EXTRACT(YEAR FROM SYSDATE)";
-  $guestCountStmt = oci_parse($conn, $guestCountSql);
+  $guestCountStmt = oci_parse($conn, $homestayGuestCountSql);
   $hId = $homestay['HOMESTAYID'];
   oci_bind_by_name($guestCountStmt, ':homestayID', $hId);
   oci_execute($guestCountStmt);
@@ -117,6 +117,11 @@ foreach ($homestays as $homestay) {
   $homestayGuestCount[$homestay['HOMESTAYID']] = $guestCountRow['TOTAL'];
   oci_free_statement($guestCountStmt);
 }
+
+// Chart data: labels and values in homestay order
+$homestayChartLabels = array_map(function ($h) { return $h['HOMESTAY_NAME']; }, $homestays);
+$homestayChartRevenue = array_map(function ($h) use ($homestayRevenue) { return (float)($homestayRevenue[$h['HOMESTAYID']] ?? 0); }, $homestays);
+$homestayChartGuests = array_map(function ($h) use ($homestayGuestCount) { return (int)($homestayGuestCount[$h['HOMESTAYID']] ?? 0); }, $homestays);
 
 // Monthly guests for current year (for Total Monthly Guests chart)
 $monthlyGuests = array_fill(0, 12, 0);
@@ -377,53 +382,30 @@ oci_free_statement($monthlyGuestsStmt);
         </div>
       </div>
 
-      <!-- Staff & Homestay Section -->
-      <div class="content3">
-        <div class="sub-content3-1">
-          <p>Staff Distribution</p>
-          <div class="revenue-chart-container">
-            <canvas id="staffChart" aria-label="Staff distribution chart"></canvas>
-            <div class="revenue-center-text">
-              <div class="revenue-amount"><span id="totalStaff"><?php echo $totalStaff; ?></span></div>
-              <div class="revenue-label">Total Staff</div>
-            </div>
+      <!-- Staff & Homestay Section: two bar charts side by side -->
+      <div class="content3 content3-charts">
+        <div class="content3-chart-card">
+          <div class="chart-header">
+            <p>Homestay Total Revenue</p>
+            <span class="info-icon-wrap">
+              <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+              <span class="sql-tooltip"><pre><?php echo htmlspecialchars($homestayRevenueSql); ?></pre></span>
+            </span>
+          </div>
+          <div class="chart-container">
+            <canvas id="homestayRevenueChart" aria-label="Homestay total revenue bar chart"></canvas>
           </div>
         </div>
-        <div class="sub-content3-3-wrapper">
-          <div class="sub-content3-3">
-            <p>Homestay Revenue</p>
-            <div class="revenue-cards-container">
-              <?php foreach ($homestays as $homestay): ?>
-                <div class="revenue-card">
-                  <div class="revenue-card-content">
-                    <div class="revenue-image-container">
-                      <img src="../../images/houseIcon.png" alt="House Icon" class="revenue-house-icon">
-                      <div class="revenue-overlay">
-                        <div class="revenue-card-amount">RM <span class="revenue-value"
-                            data-target="<?php echo number_format($homestayRevenue[$homestay['HOMESTAYID']], 0, '', ''); ?>">0</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="revenue-card-label"><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></div>
-                  </div>
-                </div>
-              <?php endforeach; ?>
-            </div>
+        <div class="content3-chart-card">
+          <div class="chart-header">
+            <p>Homestay Total Guests</p>
+            <span class="info-icon-wrap">
+              <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+              <span class="sql-tooltip"><pre><?php echo htmlspecialchars($homestayGuestCountSql); ?></pre></span>
+            </span>
           </div>
-          <div class="sub-content3-4">
-            <p>Total Guests (This Year)</p>
-            <div class="guests-cards-container">
-              <?php foreach ($homestays as $homestay): ?>
-                <div class="guests-card">
-                  <div class="guests-card-content">
-                    <i class='bx bx-group guests-icon'></i>
-                    <div class="guests-card-amount"><span class="guests-value"
-                        data-target="<?php echo $homestayGuestCount[$homestay['HOMESTAYID']]; ?>">0</span></div>
-                    <div class="guests-card-label"><?php echo htmlspecialchars($homestay['HOMESTAY_NAME']); ?></div>
-                  </div>
-                </div>
-              <?php endforeach; ?>
-            </div>
+          <div class="chart-container">
+            <canvas id="homestayGuestsChart" aria-label="Homestay total guests bar chart"></canvas>
           </div>
         </div>
       </div>
@@ -626,7 +608,85 @@ oci_free_statement($monthlyGuestsStmt);
       });
     }
 
+    // Dashboard pie chart colors (match Dashboard)
+    const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];
 
+    // Content3: Homestay Total Revenue bar chart
+    const homestayRevenueCanvas = document.getElementById("homestayRevenueChart");
+    if (homestayRevenueCanvas) {
+      const revenueLabels = <?php echo json_encode($homestayChartLabels); ?>;
+      const revenueData = <?php echo json_encode($homestayChartRevenue); ?>;
+      const revenueBarColors = revenueLabels.map((_, i) => pieColors[i % pieColors.length]);
+      new Chart(homestayRevenueCanvas, {
+        type: "bar",
+        data: {
+          labels: revenueLabels,
+          datasets: [{
+            label: "Revenue (RM)",
+            data: revenueData,
+            backgroundColor: revenueBarColors,
+            barThickness: 28,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) { return "RM " + Number(ctx.raw).toLocaleString(undefined, { minimumFractionDigits: 2 }); }
+              },
+            },
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: {
+              beginAtZero: true,
+              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: {
+                callback: function(v) { return "RM " + v.toLocaleString(); }
+              },
+            },
+          },
+        },
+      });
+    }
+
+    // Content3: Homestay Total Guests bar chart (this year)
+    const homestayGuestsCanvas = document.getElementById("homestayGuestsChart");
+    if (homestayGuestsCanvas) {
+      const guestsLabels = <?php echo json_encode($homestayChartLabels); ?>;
+      const guestsData = <?php echo json_encode($homestayChartGuests); ?>;
+      const guestsBarColors = guestsLabels.map((_, i) => pieColors[i % pieColors.length]);
+      new Chart(homestayGuestsCanvas, {
+        type: "bar",
+        data: {
+          labels: guestsLabels,
+          datasets: [{
+            label: "Guests (This Year)",
+            data: guestsData,
+            backgroundColor: guestsBarColors,
+            barThickness: 28,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: {
+              beginAtZero: true,
+              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: { stepSize: 1 },
+            },
+          },
+        },
+      });
+    }
 
     const miniChart2 = document.getElementById("miniChart2");
     if (miniChart2) {

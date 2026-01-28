@@ -875,6 +875,138 @@ body {
   flex-wrap: wrap;
 }
 
+/* Content3: two bar charts side by side */
+.content3-charts {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.content3-charts .content3-chart-card {
+  flex: 1 1 340px;
+  min-width: 0;
+  min-height: 280px;
+  background: #fff;
+  box-shadow: -2px 4px 10px rgba(0,0,0,0.08);
+  border: 1px solid #f0d5be;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.content3-charts .content3-chart-card .chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.content3-charts .content3-chart-card .chart-header p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #4b4b4b;
+}
+
+.content3-charts .content3-chart-card .info-icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.content3-charts .content3-chart-card .info-icon {
+  font-size: 14px;
+  font-weight: 600;
+  color: #707070;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: help;
+  line-height: 1;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+
+.content3-charts .content3-chart-card .info-icon:hover {
+  color: #707070;
+  background: rgba(112, 112, 112, 0.15);
+}
+
+.content3-charts .content3-chart-card .info-icon i {
+  font-size: 1em;
+  color: inherit;
+  pointer-events: none;
+}
+
+.content3-charts .content3-chart-card .sql-tooltip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 8px);
+  background: #fff;
+  color: #333;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  white-space: pre-wrap;
+  width: max-content;
+  max-width: min(90vw, 520px);
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 1px solid #f0d5be;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 100;
+  pointer-events: auto;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  user-select: text;
+}
+
+.content3-charts .content3-chart-card .sql-tooltip pre {
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+
+.content3-charts .content3-chart-card .info-icon-wrap:hover .sql-tooltip,
+.content3-charts .content3-chart-card .info-icon-wrap:focus-within .sql-tooltip,
+.content3-charts .content3-chart-card .sql-tooltip:hover {
+  opacity: 1;
+  visibility: visible;
+}
+
+.content3-charts .content3-chart-card .info-icon:focus {
+  outline: 2px solid #C5814B;
+  outline-offset: 2px;
+}
+
+.content3-charts .content3-chart-card .chart-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  width: 100%;
+}
+
+.content3-charts .content3-chart-card .chart-container canvas {
+  width: 100%;
+  height: 100%;
+}
+
 .content3 .sub-content3-1,
 .content3 .sub-content3-2 {
   background: #fff;
