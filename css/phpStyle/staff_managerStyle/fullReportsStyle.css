@@ -6,9 +6,9 @@
   box-sizing: border-box;
   font-family: 'Poppins', sans-serif;
 }
-/* Body css*/
+/* Body css – match home-section so no color change at bottom */
 body {
-    background: linear-gradient(to right, rgb(255, 255, 255), rgb(254, 215, 173));
+    background: linear-gradient(to right, rgb(255, 255, 255), rgb(255, 235, 213));
     min-height: 100vh;
     background-attachment: fixed;
 }
@@ -450,6 +450,61 @@ body {
 }
 
 .content-reports .spinner-select-wrapper::after {
+  content: "";
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-color: #888 transparent transparent transparent;
+  border-width: 4px;
+  pointer-events: none;
+}
+
+/* Filter + Search row – same gap as Select Order / Sort By (12px) */
+.content-reports .filter-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.content-reports .filter-block {
+  display: flex;
+  align-items: center;
+}
+
+.content-reports .filter-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  height: 45px;
+  min-width: 160px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+}
+
+.content-reports .filter-select {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  padding: 10px 35px 10px 20px;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  color: #555;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.content-reports .filter-container::after {
   content: "";
   position: absolute;
   right: 15px;

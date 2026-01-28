@@ -134,6 +134,7 @@ oci_free_statement($stmt);
     .report-wrapper {
       width: 100%;
       padding: 0 24px 32px 24px;
+      margin-bottom: 80px;
       box-sizing: border-box;
     }
 
@@ -295,15 +296,24 @@ oci_free_statement($stmt);
             </select>
           </div>
         </div>
-        <form class="search-form" onsubmit="return false;">
-          <div class="search-container">
+        <div class="filter-search-row">
+          <div class="filter-block">
+            <div class="filter-container">
+              <select id="reportFilter" name="report-filter" class="filter-select">
+                <option value="all">All Reports</option>
+                <option value="bookings">Bookings</option>
+                <option value="guests">Guests</option>
+                <option value="bills">Bills</option>
+                <option value="properties">Properties</option>
+              </select>
+            </div>
+          </div>
+          <form class="search-form" onsubmit="return false;">
+            <div class="search-container">
             <div class="search-by">
               <select id="searchType" name="search-type">
-                <option value="all">All</option>
                 <option value="id">ID</option>
                 <option value="name">Name</option>
-                <option value="guest">Guest</option>
-                <option value="property">Property</option>
               </select>
             </div>
             <div class="search-input">
@@ -312,14 +322,15 @@ oci_free_statement($stmt);
             <div class="search-button">
               <button class="btn-search" type="button" aria-label="Search"></button>
             </div>
-          </div>
-        </form>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
     <div class="report-wrapper">
       <!-- Bookings Report -->
-      <div class="report-section">
+      <div class="report-section" data-report="bookings">
         <h2>All Bookings</h2>
         <table class="report-table">
           <thead>
@@ -358,7 +369,7 @@ oci_free_statement($stmt);
       </div>
 
       <!-- Guests Report -->
-      <div class="report-section">
+      <div class="report-section" data-report="guests">
         <h2>All Guests</h2>
         <table class="report-table">
           <thead>
@@ -387,7 +398,7 @@ oci_free_statement($stmt);
       </div>
 
       <!-- Billing Report -->
-      <div class="report-section">
+      <div class="report-section" data-report="bills">
         <h2>All Bills</h2>
         <table class="report-table">
           <thead>
@@ -424,7 +435,7 @@ oci_free_statement($stmt);
       </div>
 
       <!-- Properties Report -->
-      <div class="report-section">
+      <div class="report-section" data-report="properties">
         <h2>All Properties</h2>
         <table class="report-table">
           <thead>
@@ -481,9 +492,28 @@ oci_free_statement($stmt);
     // Filter and sort report tables (like guests page)
     const sortOrderSelect = document.getElementById("sortOrder");
     const sortBySelect = document.getElementById("sortBy");
+    const reportFilterSelect = document.getElementById("reportFilter");
     const searchTypeSelect = document.getElementById("searchType");
     const searchInput = document.getElementById("searchReports");
     const searchBtn = document.querySelector(".content-reports .btn-search");
+
+    function getFilteredReportSections() {
+      const selected = (reportFilterSelect && reportFilterSelect.value) ? reportFilterSelect.value : "all";
+      const sections = Array.from(document.querySelectorAll(".report-wrapper .report-section"));
+      if (selected === "all") return sections;
+      return sections.filter(function (sec) { return (sec.dataset && sec.dataset.report) === selected; });
+    }
+
+    function applyReportFilter() {
+      const selected = (reportFilterSelect && reportFilterSelect.value) ? reportFilterSelect.value : "all";
+      document.querySelectorAll(".report-wrapper .report-section").forEach(function (sec) {
+        const key = (sec.dataset && sec.dataset.report) || "";
+        sec.style.display = (selected === "all" || key === selected) ? "" : "none";
+      });
+      // Re-apply search and sort to the currently visible section(s)
+      applySearch();
+      applySort();
+    }
 
     function getSortColumnIndex(sortBy, thCount) {
       if (sortBy === "id") return 0;
@@ -500,7 +530,10 @@ oci_free_statement($stmt);
       const order = sortOrderSelect.value;
       const sortBy = sortBySelect.value;
       if (!order || !sortBy) return;
-      document.querySelectorAll(".report-wrapper .report-table").forEach(function (table) {
+      getFilteredReportSections().forEach(function (section) {
+        if (section.style.display === "none") return;
+        const table = section.querySelector(".report-table");
+        if (!table) return;
         const tbody = table.tbody || table.querySelector("tbody");
         if (!tbody) return;
         const rows = Array.from(tbody.querySelectorAll("tr")).filter(function (tr) {
@@ -522,7 +555,11 @@ oci_free_statement($stmt);
     function applySearch() {
       const term = (searchInput.value || "").toLowerCase().trim();
       const searchBy = searchTypeSelect.value;
-      document.querySelectorAll(".report-wrapper .report-table tbody tr").forEach(function (tr) {
+      getFilteredReportSections().forEach(function (section) {
+        if (section.style.display === "none") return;
+        const tbody = section.querySelector(".report-table tbody");
+        if (!tbody) return;
+        Array.from(tbody.querySelectorAll("tr")).forEach(function (tr) {
         if (tr.cells.length === 0 || (tr.cells.length === 1 && tr.cells[0].colSpan > 1)) {
           tr.style.display = term ? "none" : "";
           return;
@@ -544,11 +581,13 @@ oci_free_statement($stmt);
           if (tr.cells[colIndex] && tr.cells[colIndex].textContent.toLowerCase().indexOf(term) !== -1) match = true;
         }
         tr.style.display = match ? "" : "none";
+        });
       });
     }
 
     if (sortOrderSelect) sortOrderSelect.addEventListener("change", applySort);
     if (sortBySelect) sortBySelect.addEventListener("change", applySort);
+    if (reportFilterSelect) reportFilterSelect.addEventListener("change", applyReportFilter);
     if (searchInput) searchInput.addEventListener("input", applySearch);
     if (searchInput) searchInput.addEventListener("keyup", function (e) { if (e.key === "Enter") applySearch(); });
     if (searchBtn) searchBtn.addEventListener("click", applySearch);
