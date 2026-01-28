@@ -25,30 +25,110 @@ function fetchOne($conn, $sql)
 $totalRevenue = fetchOne($conn, "SELECT NVL(SUM(total_amount), 0) AS TOTAL FROM BILL WHERE bill_status = 'Paid'");
 $totalBookings = fetchOne($conn, "SELECT COUNT(*) AS CNT FROM BOOKING");
 $totalGuests = fetchOne($conn, "SELECT COUNT(*) AS CNT FROM GUEST");
+$totalStaff = fetchOne($conn, "SELECT COUNT(*) AS CNT FROM STAFF");
 $totalHomestays = fetchOne($conn, "SELECT COUNT(*) AS CNT FROM HOMESTAY");
 $avgOccupancy = fetchOne($conn, "SELECT ROUND(NVL(AVG(num_adults + num_children), 0), 2) AS AVG_OCC FROM BOOKING");
 
-$monthlyRevenue = [];
-$monthSql = "SELECT TO_CHAR(bill_date, 'YYYY-MM') AS MONTH, TO_CHAR(bill_date, 'Month') AS MONTH_NAME, NVL(SUM(total_amount), 0) AS AMT 
-  FROM BILL 
-  WHERE bill_date >= TRUNC(SYSDATE, 'YEAR') AND bill_status = 'Paid'
-  GROUP BY TO_CHAR(bill_date, 'YYYY-MM'), TO_CHAR(bill_date, 'Month')
-  ORDER BY TO_CHAR(bill_date, 'YYYY-MM')";
-$stmt = oci_parse($conn, $monthSql);
+// Detail breakdowns for mini KPI container
+// Guests: treat NULL/empty as Regular; Member includes MEMBER or MEMBERSHIP (case-insensitive)
+$guestTypeCounts = fetchOne($conn, "
+  SELECT
+    SUM(CASE
+          WHEN guest_type IS NULL OR TRIM(guest_type) IS NULL OR UPPER(TRIM(guest_type)) IN ('REGULAR','NULL')
+            THEN 1
+          ELSE 0
+        END) AS REGULAR_CNT,
+    SUM(CASE
+          WHEN UPPER(TRIM(guest_type)) IN ('MEMBER','MEMBERSHIP')
+            THEN 1
+          ELSE 0
+        END) AS MEMBER_CNT
+  FROM GUEST
+");
+
+// Staff: inheritance tables
+$staffTypeCounts = fetchOne($conn, "SELECT (SELECT COUNT(*) FROM FULL_TIME) AS FULL_CNT, (SELECT COUNT(*) FROM PART_TIME) AS PART_CNT FROM DUAL");
+
+// Homestay: with / without bookings (all time)
+$homestayBookingCounts = fetchOne($conn, "
+  SELECT
+    COUNT(DISTINCT CASE WHEN b.bookingID IS NOT NULL THEN h.homestayID END) AS WITH_BOOKINGS,
+    COUNT(DISTINCT CASE WHEN b.bookingID IS NULL THEN h.homestayID END) AS WITHOUT_BOOKINGS
+  FROM HOMESTAY h
+  LEFT JOIN BOOKING b ON h.homestayID = b.homestayID
+");
+
+// Top 4 homestays by total bookings (all time)
+$topHomestays = [];
+$topHomestaySql = "
+  SELECT h.homestay_name, COUNT(b.bookingID) AS booking_count
+  FROM HOMESTAY h
+  LEFT JOIN BOOKING b ON h.homestayID = b.homestayID
+  GROUP BY h.homestayID, h.homestay_name
+  ORDER BY booking_count DESC
+  FETCH NEXT 4 ROWS ONLY
+";
+$stmt = oci_parse($conn, $topHomestaySql);
 oci_execute($stmt);
 while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-  $monthlyRevenue[] = $row;
+  $topHomestays[] = $row;
 }
 oci_free_statement($stmt);
 
-$occupancyByHomestay = [];
-$homestySql = "SELECT h.homestay_name, COUNT(b.bookingID) AS booking_count FROM HOMESTAY h LEFT JOIN BOOKING b ON h.homestayID = b.homestayID GROUP BY h.homestayID, h.homestay_name ORDER BY booking_count DESC FETCH NEXT 8 ROWS ONLY";
-$stmt = oci_parse($conn, $homestySql);
+// Revenue: paid / pending / total (all time)
+$revenueBreakdown = fetchOne($conn, "
+  SELECT
+    NVL(SUM(total_amount), 0) AS TOTAL_ALL,
+    NVL(SUM(CASE WHEN bill_status = 'Paid' THEN total_amount ELSE 0 END), 0) AS PAID_AMT,
+    NVL(SUM(CASE WHEN bill_status = 'Pending' THEN total_amount ELSE 0 END), 0) AS PENDING_AMT
+  FROM BILL
+");
+
+// Monthly summary table: bookings by month (all time, grouped by month-of-year)
+// Counts ALL bookings (including pending/unpaid), grouped by booking check-in month
+$monthlySummary = [];
+$monthlySummaryTotalBookings = 0;
+$monthlySummarySql = "
+  SELECT
+    TO_CHAR(b.checkin_date, 'MM') AS MONTH_KEY,
+    TO_CHAR(b.checkin_date, 'Mon') AS MONTH_LABEL,
+    COUNT(*) AS TOTAL_BOOKINGS
+  FROM BOOKING b
+  GROUP BY TO_CHAR(b.checkin_date, 'MM'), TO_CHAR(b.checkin_date, 'Mon')
+  ORDER BY MONTH_KEY
+";
+$stmt = oci_parse($conn, $monthlySummarySql);
 oci_execute($stmt);
 while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-  $occupancyByHomestay[] = $row;
+  $monthlySummary[] = $row;
+  $monthlySummaryTotalBookings += (int)($row['TOTAL_BOOKINGS'] ?? 0);
 }
 oci_free_statement($stmt);
+
+// Ensure we always have all 12 months, even if zero
+$filledMonthlySummary = [];
+for ($m = 1; $m <= 12; $m++) {
+  $key = str_pad((string)$m, 2, '0', STR_PAD_LEFT);
+  $label = date('M', mktime(0, 0, 0, $m, 1));
+  $filledMonthlySummary[$key] = [
+    'MONTH_KEY' => $key,
+    'MONTH_LABEL' => $label,
+    'TOTAL_BOOKINGS' => 0,
+  ];
+}
+foreach ($monthlySummary as $row) {
+  $key = $row['MONTH_KEY'];
+  if (isset($filledMonthlySummary[$key])) {
+    $filledMonthlySummary[$key]['TOTAL_BOOKINGS'] = (int)($row['TOTAL_BOOKINGS'] ?? 0);
+    $filledMonthlySummary[$key]['TOTAL_REVENUE'] = (float)($row['TOTAL_REVENUE'] ?? 0);
+  }
+}
+$monthlySummary = array_values($filledMonthlySummary);
+// Recompute total bookings to include all 12 months explicitly
+$monthlySummaryTotalBookings = 0;
+foreach ($monthlySummary as $row) {
+  $monthlySummaryTotalBookings += (int)$row['TOTAL_BOOKINGS'];
+}
 
 $bookingStatus = [];
 $statusSql = "SELECT 'Completed' as status_name, COUNT(*) AS CNT FROM BOOKING WHERE checkout_date < TRUNC(SYSDATE) 
@@ -62,6 +142,15 @@ while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
   $bookingStatus[] = $row;
 }
 oci_free_statement($stmt);
+
+// Booking status map for mini KPI details
+$bookingCounts = ['Completed' => 0, 'Active' => 0, 'Upcoming' => 0];
+foreach ($bookingStatus as $bs) {
+  $k = $bs['STATUS_NAME'] ?? '';
+  if (isset($bookingCounts[$k])) {
+    $bookingCounts[$k] = (int)($bs['CNT'] ?? 0);
+  }
+}
 
 oci_close($conn);
 ?>
@@ -204,95 +293,136 @@ oci_close($conn);
       </div>
     </div>
 
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <p class="kpi-label">Total Revenue</p>
-        <p class="kpi-value">RM <?php echo number_format($totalRevenue['TOTAL'] ?? 0, 0); ?></p>
-      </div>
-      <div class="kpi-card">
-        <p class="kpi-label">Total Bookings</p>
-        <p class="kpi-value"><?php echo (int) ($totalBookings['CNT'] ?? 0); ?></p>
-      </div>
-      <div class="kpi-card">
-        <p class="kpi-label">Registered Guests</p>
-        <p class="kpi-value"><?php echo (int) ($totalGuests['CNT'] ?? 0); ?></p>
-      </div>
-      <div class="kpi-card">
-        <p class="kpi-label">Properties</p>
-        <p class="kpi-value"><?php echo (int) ($totalHomestays['CNT'] ?? 0); ?></p>
-      </div>
-      <div class="kpi-card">
-        <p class="kpi-label">Avg. Guest Count/Booking</p>
-        <p class="kpi-value"><?php echo (float) ($avgOccupancy['AVG_OCC'] ?? 0); ?></p>
-      </div>
-    </div>
-
-    <div class="chart-grid">
-      <div class="chart-card">
-        <h3>Monthly Revenue</h3>
-        <div class="bar-chart" id="revenueChart">
-          <?php
-          $maxRevenue = 0;
-          foreach ($monthlyRevenue as $month) {
-            if ($month['AMT'] > $maxRevenue) {
-              $maxRevenue = $month['AMT'];
-            }
-          }
-          ?>
-          <?php if (!empty($monthlyRevenue)): ?>
-            <?php foreach ($monthlyRevenue as $month): ?>
-              <?php
-              // Cap at 85% to leave room for the label
-              $heightPct = $maxRevenue > 0 ? ($month['AMT'] / $maxRevenue) * 85 : 0;
-              // Min height for visibility
-              $heightPct = max(1, $heightPct);
-              ?>
-              <div class="bar-item">
-                <span class="bar-value">RM <?php echo number_format($month['AMT'], 0); ?></span>
-                <div class="bar" style="height: <?php echo $heightPct; ?>%;"></div>
-                <span><?php echo substr(trim($month['MONTH_NAME']), 0, 3); ?></span>
-              </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <p class="no-data">No revenue data available for this year.</p>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <h3>Top Properties by Bookings</h3>
-        <p class="chart-subtitle">All time</p>
-        <div class="revenue-list compact">
-          <?php $maxBookings = !empty($occupancyByHomestay) ? max(array_column($occupancyByHomestay, 'BOOKING_COUNT')) : 0; ?>
-          <?php if (!empty($occupancyByHomestay)): ?>
-            <?php foreach ($occupancyByHomestay as $idx => $h): ?>
-              <?php $pct = $maxBookings > 0 ? ($h['BOOKING_COUNT'] / $maxBookings) * 100 : 0; ?>
-              <div class="revenue-item">
-                <div class="revenue-rank"><?php echo $idx + 1; ?></div>
-                <div class="revenue-name"><?php echo htmlspecialchars($h['HOMESTAY_NAME']); ?></div>
-                <div class="revenue-bar-container">
-                  <div class="revenue-bar" style="width: <?php echo max(6, $pct); ?>%;"></div>
-                </div>
-                <div class="revenue-amount"><?php echo (int) $h['BOOKING_COUNT']; ?> bookings</div>
-              </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <p class="no-data">No booking data available</p>
-          <?php endif; ?>
-        </div>
-      </div>
-    </div>
-
-    <div class="status-grid">
-      <div class="status-card">
-        <h3>Booking Status Distribution</h3>
-        <div class="status-list">
-          <?php foreach ($bookingStatus as $bs): ?>
-            <div class="status-row">
-              <span class="status-label"><?php echo htmlspecialchars($bs['STATUS_NAME']); ?></span>
-              <span class="status-count"><?php echo (int) $bs['CNT']; ?></span>
+    <div class="mini-kpi-wrap">
+      <div class="mini-kpi-panel">
+        <div class="mini-kpi-grid">
+          <div class="mini-kpi-item">
+            <div class="mini-kpi-main">
+              <div class="mini-kpi-label">Total Guests</div>
+              <div class="mini-kpi-value"><?php echo (int) ($totalGuests['CNT'] ?? 0); ?></div>
             </div>
-          <?php endforeach; ?>
+            <div class="mini-kpi-detail">
+              <div class="mini-kpi-detail-row">
+                <span>Total Regular</span>
+                <span><?php echo (int)($guestTypeCounts['REGULAR_CNT'] ?? 0); ?></span>
+              </div>
+              <div class="mini-kpi-detail-row">
+                <span>Total Member</span>
+                <span><?php echo (int)($guestTypeCounts['MEMBER_CNT'] ?? 0); ?></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-kpi-item">
+            <div class="mini-kpi-main">
+              <div class="mini-kpi-label">Total Staff</div>
+              <div class="mini-kpi-value"><?php echo (int) ($totalStaff['CNT'] ?? 0); ?></div>
+            </div>
+            <div class="mini-kpi-detail">
+              <div class="mini-kpi-detail-row">
+                <span>Total Full-time</span>
+                <span><?php echo (int)($staffTypeCounts['FULL_CNT'] ?? 0); ?></span>
+              </div>
+              <div class="mini-kpi-detail-row">
+                <span>Total Part-time</span>
+                <span><?php echo (int)($staffTypeCounts['PART_CNT'] ?? 0); ?></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-kpi-item">
+            <div class="mini-kpi-main">
+              <div class="mini-kpi-label">Homestay</div>
+              <div class="mini-kpi-value"><?php echo (int) ($totalHomestays['CNT'] ?? 0); ?></div>
+            </div>
+            <div class="mini-kpi-detail">
+              <?php if (!empty($topHomestays)): ?>
+                <?php foreach ($topHomestays as $h): ?>
+                  <div class="mini-kpi-detail-row mini-kpi-subrow">
+                    <span><?php echo htmlspecialchars($h['HOMESTAY_NAME']); ?></span>
+                    <span><?php echo (int)($h['BOOKING_COUNT'] ?? 0); ?> bookings</span>
+                  </div>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </div>
+          </div>
+
+          <div class="mini-kpi-item">
+            <div class="mini-kpi-main">
+              <div class="mini-kpi-label">Revenue</div>
+              <div class="mini-kpi-value">RM <?php echo number_format($totalRevenue['TOTAL'] ?? 0, 0); ?></div>
+            </div>
+            <div class="mini-kpi-detail">
+              <div class="mini-kpi-detail-row">
+                <span>Paid</span>
+                <span>RM <?php echo number_format((float)($revenueBreakdown['PAID_AMT'] ?? 0), 0); ?></span>
+              </div>
+              <div class="mini-kpi-detail-row">
+                <span>Pending</span>
+                <span>RM <?php echo number_format((float)($revenueBreakdown['PENDING_AMT'] ?? 0), 0); ?></span>
+              </div>
+              <div class="mini-kpi-detail-row">
+                <span>Total</span>
+                <span>RM <?php echo number_format((float)($revenueBreakdown['TOTAL_ALL'] ?? 0), 0); ?></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-kpi-item">
+            <div class="mini-kpi-main">
+              <div class="mini-kpi-label">Bookings</div>
+              <div class="mini-kpi-value"><?php echo (int) ($totalBookings['CNT'] ?? 0); ?></div>
+            </div>
+            <div class="mini-kpi-detail">
+              <div class="mini-kpi-detail-row">
+                <span>Completed</span>
+                <span><?php echo (int)($bookingCounts['Completed'] ?? 0); ?></span>
+              </div>
+              <div class="mini-kpi-detail-row">
+                <span>Active</span>
+                <span><?php echo (int)($bookingCounts['Active'] ?? 0); ?></span>
+              </div>
+              <div class="mini-kpi-detail-row">
+                <span>Upcoming</span>
+                <span><?php echo (int)($bookingCounts['Upcoming'] ?? 0); ?></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mini-kpi-table-panel">
+        <h3 class="mini-kpi-table-title">Monthly Bookings (All Time)</h3>
+        <div class="mini-kpi-table-wrap">
+          <table class="mini-kpi-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Total Bookings</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($monthlySummary)): ?>
+                <tr>
+                  <td colspan="2">No data available.</td>
+                </tr>
+              <?php else: ?>
+                <?php foreach ($monthlySummary as $m): ?>
+                  <tr>
+                    <td><?php echo htmlspecialchars($m['MONTH_LABEL']); ?></td>
+                    <td><?php echo (int)($m['TOTAL_BOOKINGS'] ?? 0); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+            <?php if (!empty($monthlySummary)): ?>
+              <tfoot>
+                <tr>
+                  <td>Total Bookings</td>
+                  <td><?php echo (int)$monthlySummaryTotalBookings; ?></td>
+                </tr>
+              </tfoot>
+            <?php endif; ?>
+          </table>
         </div>
       </div>
     </div>
