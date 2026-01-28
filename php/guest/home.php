@@ -17,60 +17,66 @@ $discount_rate = 0;
 $pending_bookings = [];
 $has_membership = false;
 
+// Update membership tier before fetching data
+require_once '../config/membership_helper.php';
 if ($conn) {
-    // Get guest data for profile completion modal
-    if ($profile_incomplete) {
-        $sql = "SELECT guest_name, guest_email, guest_phoneNo, guest_gender, guest_address 
+  updateMembershipTier($conn, $guestID);
+}
+
+if ($conn) {
+  // Get guest data for profile completion modal
+  if ($profile_incomplete) {
+    $sql = "SELECT guest_name, guest_email, guest_phoneNo, guest_gender, guest_address 
                 FROM GUEST 
                 WHERE guestID = :guestID";
-        $stmt = oci_parse($conn, $sql);
-        oci_bind_by_name($stmt, ':guestID', $guestID);
-        if (oci_execute($stmt)) {
-            $row = oci_fetch_array($stmt, OCI_ASSOC);
-            if ($row) {
-                $guest_data = [
-                    'name' => $row['GUEST_NAME'] ?? '',
-                    'email' => $row['GUEST_EMAIL'] ?? '',
-                    'phoneNo' => $row['GUEST_PHONENO'] ?? '',
-                    'gender' => $row['GUEST_GENDER'] ?? '',
-                    'address' => $row['GUEST_ADDRESS'] ?? ''
-                ];
-            }
-        }
-        oci_free_statement($stmt);
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':guestID', $guestID);
+    if (oci_execute($stmt)) {
+      $row = oci_fetch_array($stmt, OCI_ASSOC);
+      if ($row) {
+        $guest_data = [
+          'name' => $row['GUEST_NAME'] ?? '',
+          'email' => $row['GUEST_EMAIL'] ?? '',
+          'phoneNo' => $row['GUEST_PHONENO'] ?? '',
+          'gender' => $row['GUEST_GENDER'] ?? '',
+          'address' => $row['GUEST_ADDRESS'] ?? ''
+        ];
+      }
     }
-    
-    // Get booking counts
-    $pending_sql = "SELECT COUNT(*) as count FROM BOOKING b
+    oci_free_statement($stmt);
+  }
+
+  // Get booking counts
+  $pending_sql = "SELECT COUNT(*) as count FROM BOOKING b
                     LEFT JOIN BILL bl ON b.billNo = bl.billNo
                     WHERE b.guestID = :guestID
                       AND b.checkout_date >= SYSDATE
                       AND (b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID')";
-    $pending_stmt = oci_parse($conn, $pending_sql);
-    oci_bind_by_name($pending_stmt, ':guestID', $guestID);
-    if (oci_execute($pending_stmt)) {
-        $row = oci_fetch_array($pending_stmt, OCI_ASSOC);
-        $pending_bookings_count = $row['COUNT'] ?? 0;
-    }
-    oci_free_statement($pending_stmt);
-    
-    // Completed = past checkout date and fully paid bill
-    // Completed = any booking with a paid bill (date-agnostic per request)
-    $completed_sql = "SELECT COUNT(*) as count
+  $pending_stmt = oci_parse($conn, $pending_sql);
+  oci_bind_by_name($pending_stmt, ':guestID', $guestID);
+  if (oci_execute($pending_stmt)) {
+    $row = oci_fetch_array($pending_stmt, OCI_ASSOC);
+    $pending_bookings_count = $row['COUNT'] ?? 0;
+  }
+  oci_free_statement($pending_stmt);
+
+  // Completed = past checkout date and fully paid bill
+  // Completed = any booking with a paid bill (date-agnostic per request)
+  $completed_sql = "SELECT COUNT(*) as count
                       FROM BOOKING b
                       JOIN BILL bl ON b.billNo = bl.billNo
                       WHERE b.guestID = :guestID
                         AND UPPER(bl.bill_status) = 'PAID'";
-    $completed_stmt = oci_parse($conn, $completed_sql);
-    oci_bind_by_name($completed_stmt, ':guestID', $guestID);
-    if (oci_execute($completed_stmt)) {
-      $row = oci_fetch_array($completed_stmt, OCI_ASSOC);
-      $completed_bookings_count = $row['COUNT'] ?? 0;
-    }
-    oci_free_statement($completed_stmt);
-    
-    // Get pending bookings with homestay details
-    $bookings_sql = "SELECT b.bookingID, b.checkin_date, b.checkout_date, h.homestay_name, h.homestayID, bl.bill_status
+  $completed_stmt = oci_parse($conn, $completed_sql);
+  oci_bind_by_name($completed_stmt, ':guestID', $guestID);
+  if (oci_execute($completed_stmt)) {
+    $row = oci_fetch_array($completed_stmt, OCI_ASSOC);
+    $completed_bookings_count = $row['COUNT'] ?? 0;
+  }
+  oci_free_statement($completed_stmt);
+
+  // Get pending bookings with homestay details
+  $bookings_sql = "SELECT b.bookingID, b.checkin_date, b.checkout_date, h.homestay_name, h.homestayID, bl.bill_status
              FROM BOOKING b
              JOIN HOMESTAY h ON b.homestayID = h.homestayID
              LEFT JOIN BILL bl ON b.billNo = bl.billNo
@@ -78,65 +84,68 @@ if ($conn) {
                AND b.checkout_date >= SYSDATE
                AND (b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID')
              ORDER BY b.checkin_date ASC";
-    $bookings_stmt = oci_parse($conn, $bookings_sql);
-    oci_bind_by_name($bookings_stmt, ':guestID', $guestID);
-    if (oci_execute($bookings_stmt)) {
-        while ($row = oci_fetch_array($bookings_stmt, OCI_ASSOC)) {
-        $status = strtolower($row['BILL_STATUS'] ?? 'pending');
-        $status_class = ($status === 'paid' || $status === 'confirmed') ? 'confirmed' : 'pending';
-            $pending_bookings[] = [
-                'bookingID' => $row['BOOKINGID'],
-                'homestay_name' => $row['HOMESTAY_NAME'],
-                'homestayID' => $row['HOMESTAYID'],
-                'checkin_date' => $row['CHECKIN_DATE'],
-          'checkout_date' => $row['CHECKOUT_DATE'],
-          'status' => $status,
-          'status_class' => $status_class
-            ];
-        }
+  $bookings_stmt = oci_parse($conn, $bookings_sql);
+  oci_bind_by_name($bookings_stmt, ':guestID', $guestID);
+  if (oci_execute($bookings_stmt)) {
+    while ($row = oci_fetch_array($bookings_stmt, OCI_ASSOC)) {
+      $status = strtolower($row['BILL_STATUS'] ?? 'pending');
+      $status_class = ($status === 'paid' || $status === 'confirmed') ? 'confirmed' : 'pending';
+      $pending_bookings[] = [
+        'bookingID' => $row['BOOKINGID'],
+        'homestay_name' => $row['HOMESTAY_NAME'],
+        'homestayID' => $row['HOMESTAYID'],
+        'checkin_date' => $row['CHECKIN_DATE'],
+        'checkout_date' => $row['CHECKOUT_DATE'],
+        'status' => $status,
+        'status_class' => $status_class
+      ];
     }
-    oci_free_statement($bookings_stmt);
-    
-    
-    // Get membership info
-    $membership_sql = "SELECT m.disc_rate 
+  }
+  oci_free_statement($bookings_stmt);
+
+
+  // Get membership info
+  $membership_sql = "SELECT m.disc_rate 
                        FROM MEMBERSHIP m 
                        WHERE m.guestID = :guestID";
-    $membership_stmt = oci_parse($conn, $membership_sql);
-    oci_bind_by_name($membership_stmt, ':guestID', $guestID);
-    if (oci_execute($membership_stmt)) {
-        $row = oci_fetch_array($membership_stmt, OCI_ASSOC);
-        if ($row) {
-            $has_membership = true;
-            $discount_rate = $row['DISC_RATE'] ?? 0;
-            // Determine tier based on discount rate
-            if ($discount_rate >= 30) {
-                $membership_tier = 'Gold';
-            } elseif ($discount_rate >= 20) {
-                $membership_tier = 'Silver';
-            } else {
-                $membership_tier = 'Bronze';
-            }
-        }
+  $membership_stmt = oci_parse($conn, $membership_sql);
+  oci_bind_by_name($membership_stmt, ':guestID', $guestID);
+  if (oci_execute($membership_stmt)) {
+    $row = oci_fetch_array($membership_stmt, OCI_ASSOC);
+    if ($row) {
+      $has_membership = true;
+      $discount_rate = $row['DISC_RATE'] ?? 0;
+      // Determine tier based on discount rate
+      if ($discount_rate >= 30) {
+        $membership_tier = 'Gold';
+      } elseif ($discount_rate >= 20) {
+        $membership_tier = 'Silver';
+      } else {
+        $membership_tier = 'Bronze';
+      }
     }
-    oci_free_statement($membership_stmt);
-    
-    closeDBConnection($conn);
+  }
+  oci_free_statement($membership_stmt);
+
+  closeDBConnection($conn);
 }
 ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Home - Serena Sanctuary</title>
-    <link rel="stylesheet" href="../../css/phpStyle/guestStyle/homeStyle.css">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="../../images/logoNbg.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Home - Serena Sanctuary</title>
+  <link rel="stylesheet" href="../../css/phpStyle/guestStyle/homeStyle.css">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/png" href="../../images/logoNbg.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
 <body>
   <!-- Navigation -->
   <nav class="navbar">
@@ -194,7 +203,7 @@ if ($conn) {
         <div class="stats-section">
           <div class="stat-item">
             <div class="stat-icon">
-                <i class='bxr  bx-bookmark-heart'></i> 
+              <i class='bxr  bx-bookmark-heart'></i>
             </div>
             <div class="stat-content">
               <h4>Pending Booking</h4>
@@ -203,7 +212,7 @@ if ($conn) {
           </div>
           <div class="stat-item">
             <div class="stat-icon">
-                <i class='bxr  bx-bookmark-star'></i> 
+              <i class='bxr  bx-bookmark-star'></i>
             </div>
             <div class="stat-content">
               <h4>Completed Booking</h4>
@@ -236,32 +245,35 @@ if ($conn) {
     <section class="pending-booking-section">
       <div class="container">
         <h2 class="section-title">Pending Bookings</h2>
-        <p class="section-description">Track your upcoming reservations and manage your stay details. View booking information, check-in dates, and booking status all in one place.</p>
+        <p class="section-description">Track your upcoming reservations and manage your stay details. View booking
+          information, check-in dates, and booking status all in one place.</p>
         <div class="bookings-list">
           <?php if (empty($pending_bookings)): ?>
             <p style="text-align: center; color: #666; padding: 40px;">No pending bookings found.</p>
           <?php else: ?>
-            <?php foreach ($pending_bookings as $booking): 
+            <?php foreach ($pending_bookings as $booking):
               $checkin = date('d M Y', strtotime($booking['checkin_date']));
               $checkout = date('d M Y', strtotime($booking['checkout_date']));
               $image_map = [1 => 'homestay1', 2 => 'homestay2', 3 => 'homestay3', 4 => 'homestay4'];
               $img_folder = $image_map[$booking['homestayID']] ?? 'homestay1';
-            ?>
-          <div class="booking-card">
-            <div class="booking-image">
-                <img src="../../images/<?php echo $img_folder; ?>/<?php echo $img_folder; ?>.jpg" alt="<?php echo htmlspecialchars($booking['homestay_name']); ?>">
-            </div>
-            <div class="booking-info">
-                <h3><?php echo htmlspecialchars($booking['homestay_name']); ?></h3>
-                <p class="booking-dates"><i class='bx bx-calendar'></i> Check-in: <?php echo $checkin; ?> | Check-out: <?php echo $checkout; ?></p>
-                <p class="booking-status <?php echo htmlspecialchars($booking['status_class']); ?>">
-                  <?php echo ucfirst(htmlspecialchars($booking['status'])); ?>
-                </p>
-            </div>
-            <div class="booking-actions">
-                <a href="booking.php" class="btn btn-secondary">View Details</a>
+              ?>
+              <div class="booking-card">
+                <div class="booking-image">
+                  <img src="../../images/<?php echo $img_folder; ?>/<?php echo $img_folder; ?>.jpg"
+                    alt="<?php echo htmlspecialchars($booking['homestay_name']); ?>">
+                </div>
+                <div class="booking-info">
+                  <h3><?php echo htmlspecialchars($booking['homestay_name']); ?></h3>
+                  <p class="booking-dates"><i class='bx bx-calendar'></i> Check-in: <?php echo $checkin; ?> | Check-out:
+                    <?php echo $checkout; ?></p>
+                  <p class="booking-status <?php echo htmlspecialchars($booking['status_class']); ?>">
+                    <?php echo ucfirst(htmlspecialchars($booking['status'])); ?>
+                  </p>
+                </div>
+                <div class="booking-actions">
+                  <a href="booking.php" class="btn btn-secondary">View Details</a>
+                </div>
               </div>
-            </div>
             <?php endforeach; ?>
           <?php endif; ?>
         </div>
@@ -357,7 +369,9 @@ if ($conn) {
     <section class="membership-discount-section">
       <div class="container">
         <h2 class="section-title white">Membership Benefits</h2>
-        <p class="section-description white">Unlock exclusive rewards with our membership program! The more you book and stay with us, the higher your discount rate becomes. Start earning bigger savings today with every reservation you make.</p>
+        <p class="section-description white">Unlock exclusive rewards with our membership program! The more you book and
+          stay with us, the higher your discount rate becomes. Start earning bigger savings today with every reservation
+          you make.</p>
         <div class="membership-stats">
           <div class="membership-stat-card">
             <div class="stat-icon">
@@ -420,39 +434,41 @@ if ($conn) {
 
   <!-- Profile Completion Modal -->
   <?php if ($profile_incomplete): ?>
-  <div id="profileModal" class="profile-modal-overlay">
-    <div class="profile-modal">
-      <div class="profile-modal-header">
-        <h2>Complete Your Profile</h2>
-        <p>Please provide your details to continue using our services</p>
+    <div id="profileModal" class="profile-modal-overlay">
+      <div class="profile-modal">
+        <div class="profile-modal-header">
+          <h2>Complete Your Profile</h2>
+          <p>Please provide your details to continue using our services</p>
+        </div>
+        <form id="profileForm" class="profile-modal-form">
+          <div class="form-group">
+            <label for="modal_phoneNo">Phone Number <span class="required">*</span></label>
+            <input type="tel" id="modal_phoneNo" name="guest_phoneNo" class="form-input"
+              placeholder="e.g., +60 12-345 6789" value="<?php echo htmlspecialchars($guest_data['phoneNo'] ?? ''); ?>"
+              required>
+          </div>
+          <div class="form-group">
+            <label for="modal_gender">Gender <span class="required">*</span></label>
+            <select id="modal_gender" name="guest_gender" class="form-input" required>
+              <option value="">Select Gender</option>
+              <option value="Male" <?php echo ($guest_data['gender'] ?? '') === 'Male' ? 'selected' : ''; ?>>Male</option>
+              <option value="Female" <?php echo ($guest_data['gender'] ?? '') === 'Female' ? 'selected' : ''; ?>>Female
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="modal_address">Address <span class="required">*</span></label>
+            <textarea id="modal_address" name="guest_address" class="form-input" rows="3"
+              placeholder="Enter your full address"
+              required><?php echo htmlspecialchars($guest_data['address'] ?? ''); ?></textarea>
+          </div>
+          <div id="profileError" class="alert alert-error" style="display: none;"></div>
+          <div class="profile-modal-actions">
+            <button type="submit" class="btn btn-primary">Save & Continue</button>
+          </div>
+        </form>
       </div>
-      <form id="profileForm" class="profile-modal-form">
-        <div class="form-group">
-          <label for="modal_phoneNo">Phone Number <span class="required">*</span></label>
-          <input type="tel" id="modal_phoneNo" name="guest_phoneNo" class="form-input" 
-                 placeholder="e.g., +60 12-345 6789" 
-                 value="<?php echo htmlspecialchars($guest_data['phoneNo'] ?? ''); ?>" required>
-        </div>
-        <div class="form-group">
-          <label for="modal_gender">Gender <span class="required">*</span></label>
-          <select id="modal_gender" name="guest_gender" class="form-input" required>
-            <option value="">Select Gender</option>
-            <option value="Male" <?php echo ($guest_data['gender'] ?? '') === 'Male' ? 'selected' : ''; ?>>Male</option>
-            <option value="Female" <?php echo ($guest_data['gender'] ?? '') === 'Female' ? 'selected' : ''; ?>>Female</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="modal_address">Address <span class="required">*</span></label>
-          <textarea id="modal_address" name="guest_address" class="form-input" rows="3" 
-                    placeholder="Enter your full address" required><?php echo htmlspecialchars($guest_data['address'] ?? ''); ?></textarea>
-        </div>
-        <div id="profileError" class="alert alert-error" style="display: none;"></div>
-        <div class="profile-modal-actions">
-          <button type="submit" class="btn btn-primary">Save & Continue</button>
-        </div>
-      </form>
     </div>
-  </div>
   <?php endif; ?>
 
   <script>
@@ -506,47 +522,49 @@ if ($conn) {
 
     // Profile Completion Modal
     <?php if ($profile_incomplete): ?>
-    const profileModal = document.getElementById('profileModal');
-    const profileForm = document.getElementById('profileForm');
-    const profileError = document.getElementById('profileError');
+      const profileModal = document.getElementById('profileModal');
+      const profileForm = document.getElementById('profileForm');
+      const profileError = document.getElementById('profileError');
 
-    // Show modal on page load
-    if (profileModal) {
-      profileModal.style.display = 'flex';
-    }
+      // Show modal on page load
+      if (profileModal) {
+        profileModal.style.display = 'flex';
+      }
 
-    // Handle form submission
-    profileForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const formData = new FormData(profileForm);
-      profileError.style.display = 'none';
-      
-      try {
-        const response = await fetch('update_profile.php', {
-          method: 'POST',
-          body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          // Close modal and reload page
-          profileModal.style.display = 'none';
-          window.location.reload();
-        } else {
-          profileError.textContent = result.message || 'An error occurred. Please try again.';
+      // Handle form submission
+      profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(profileForm);
+        profileError.style.display = 'none';
+
+        try {
+          const response = await fetch('update_profile.php', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Close modal and reload page
+            profileModal.style.display = 'none';
+            window.location.reload();
+          } else {
+            profileError.textContent = result.message || 'An error occurred. Please try again.';
+            profileError.style.display = 'block';
+          }
+        } catch (error) {
+          profileError.textContent = 'Network error. Please try again.';
           profileError.style.display = 'block';
         }
-      } catch (error) {
-        profileError.textContent = 'Network error. Please try again.';
-        profileError.style.display = 'block';
-      }
-    });
+      });
     <?php endif; ?>
   </script>
 
   <!-- WhatsApp Chat Widget -->
-  <script src="https://sofowfweidqzxgaojsdq.supabase.co/storage/v1/object/public/widget-scripts/widget.js" data-widget-id="wa_d4nbxppub" async></script>
+  <script src="https://sofowfweidqzxgaojsdq.supabase.co/storage/v1/object/public/widget-scripts/widget.js"
+    data-widget-id="wa_d4nbxppub" async></script>
 </body>
+
 </html>
