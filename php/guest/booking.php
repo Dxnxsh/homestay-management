@@ -209,7 +209,7 @@ if (!$conn) {
                   oci_bind_by_name($insert_membership_stmt, ':guestID', $guestID);
                   oci_bind_by_name($insert_membership_stmt, ':disc_rate', $disc_rate);
                   if (oci_execute($insert_membership_stmt, OCI_NO_AUTO_COMMIT)) {
-                    $guest_type = 'MEMBERSHIP';
+                    $guest_type = 'Member';
                     $update_guest_sql = "UPDATE GUEST SET guest_type = :guest_type WHERE guestID = :guestID";
                     $update_guest_stmt = oci_parse($conn, $update_guest_sql);
                     oci_bind_by_name($update_guest_stmt, ':guest_type', $guest_type);
