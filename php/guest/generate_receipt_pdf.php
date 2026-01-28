@@ -164,14 +164,15 @@ if (file_exists($tcpdfPath)) {
     $pdf->SetFont('helvetica', '', 10);
 
     // Header
-    $pdf->SetFont('helvetica', 'B', 20);
-    $pdf->SetTextColor(138, 83, 40);
-    $pdf->Cell(0, 10, 'SERENA SANCTUARY', 0, 1, 'L');
+    // Header
+    $logoPath = __DIR__ . '/../../images/logoTitle.png';
+    if (file_exists($logoPath)) {
+        // Image($file, $x, $y, $w, $h, $type, $link, $align, $resize, $dpi, $palign, $ismask, $imgmask, $border, $fitbox, $hidden, $fitonpage)
+        $pdf->Image($logoPath, 15, 10, 0, 22, 'PNG');
+    }
 
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->SetTextColor(42, 28, 18);
-    $pdf->Cell(0, 5, 'Booking Receipt', 0, 1, 'L');
-    $pdf->Ln(3);
+    // Ensure we move past the logo height (10 + 22 = 32)
+    $pdf->SetY(35);
 
     // Horizontal line
     $pdf->SetDrawColor(197, 129, 75);

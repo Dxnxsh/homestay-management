@@ -1099,7 +1099,7 @@ if (!$conn) {
               <a href="booking_details.php?bookingID=<?php echo htmlspecialchars($paymentSummary['bookingID']); ?>" class="btn btn-primary">
                 <i class='bx bx-receipt'></i> View Booking Details
               </a>
-              <a href="booking.php" class="btn btn-secondary">Make Another Booking</a>
+              <a href="booking.php" class="btn btn-secondary"><i class='bx bx-calendar-alt'></i> Make Another Booking</a>
             </div>
 
             <div class="next-steps">
