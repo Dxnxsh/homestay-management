@@ -382,7 +382,7 @@ oci_free_statement($monthlyGuestsStmt);
         </div>
       </div>
 
-      <!-- Staff & Homestay Section: two bar charts side by side -->
+      <!--Homestay Section: two bar charts side by side -->
       <div class="content3 content3-charts">
         <div class="content3-chart-card">
           <div class="chart-header">
