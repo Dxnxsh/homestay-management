@@ -127,6 +127,72 @@ if ($conn) {
   }
   oci_free_statement($membership_stmt);
 
+  // Get Homestay Data for Home Page
+  $homestays = [];
+  $metadata = [
+    'HM101' => [
+      'folder' => 'homestay1',
+      'address' => 'Hulu Langat, Selangor',
+      'features' => [
+        ['icon' => 'bx-bed', 'text' => '11 Bedrooms'],
+        ['icon' => 'bx-bath', 'text' => '8 Bathrooms'],
+        ['icon' => 'bx-group', 'text' => 'Up to 30 Guests']
+      ],
+      'images' => ['homestay1.jpg']
+    ],
+    'HM102' => [
+      'folder' => 'homestay2',
+      'address' => 'Hulu Langat, Selangor',
+      'features' => [
+        ['icon' => 'bx-bed', 'text' => '4 Bedrooms'],
+        ['icon' => 'bx-bath', 'text' => '4 Bathrooms'],
+        ['icon' => 'bx-group', 'text' => 'Up to 20 Guests']
+      ],
+      'images' => ['homestay2.jpg']
+    ],
+    'HM103' => [
+      'folder' => 'homestay3',
+      'address' => 'Gopeng, Perak',
+      'features' => [
+        ['icon' => 'bx-bed', 'text' => '8 Bedrooms'],
+        ['icon' => 'bx-bath', 'text' => '6 Bathrooms'],
+        ['icon' => 'bx-group', 'text' => 'Up to 36 Guests']
+      ],
+      'images' => ['homestay3.jpg']
+    ],
+    'HM104' => [
+      'folder' => 'homestay4',
+      'address' => 'Gopeng, Perak',
+      'features' => [
+        ['icon' => 'bx-bed', 'text' => '5 Bedrooms'],
+        ['icon' => 'bx-bath', 'text' => '5 Bathrooms'],
+        ['icon' => 'bx-group', 'text' => 'Up to 10 Guests']
+      ],
+      'images' => ['homestay4.jpg']
+    ]
+  ];
+
+  $homestay_sql = "SELECT homestayID, homestay_name, homestay_address, rent_price FROM HOMESTAY ORDER BY homestayID ASC";
+  $homestay_stmt = oci_parse($conn, $homestay_sql);
+  if (oci_execute($homestay_stmt)) {
+    while ($row = oci_fetch_array($homestay_stmt, OCI_ASSOC)) {
+      $id = $row['HOMESTAYID'];
+      $homestays[$id] = [
+        'id' => $id,
+        'name' => $row['HOMESTAY_NAME'],
+        'address' => $metadata[$id]['address'] ?? $row['HOMESTAY_ADDRESS'],
+        'price' => (float) $row['RENT_PRICE'],
+        'meta' => $metadata[$id] ?? [
+          'folder' => 'homestay1',
+          'address' => 'Address unavailable',
+          'features' => [],
+          'images' => ['homestay1.jpg']
+        ]
+      ];
+    }
+  }
+  oci_free_statement($homestay_stmt);
+
   closeDBConnection($conn);
 }
 ?>
@@ -293,82 +359,30 @@ if ($conn) {
       <div class="container">
         <h2 class="section-title">Available Homestays</h2>
         <div class="homestays-grid">
-          <div class="homestay-card">
-            <div class="homestay-image">
-              <img src="../../images/homestay1/homestay1.jpg" alt="Serene Villa">
-            </div>
-            <div class="homestay-details">
-              <h3>The Grand Haven</h3>
-              <p class="homestay-location"><i class='bx bx-map'></i> Hulu Langat, Selangor</p>
-              <div class="homestay-features">
-                <span><i class='bx bx-bed'></i> 11 Bedrooms</span>
-                <span><i class='bx bx-bath'></i> 8 Bathrooms</span>
-                <span><i class='bx bx-group'></i> 16-30 Guests</span>
+          <?php foreach ($homestays as $hs): ?>
+            <div class="homestay-card">
+              <div class="homestay-image">
+                <img
+                  src="../../images/<?php echo htmlspecialchars($hs['meta']['folder']); ?>/<?php echo htmlspecialchars($hs['meta']['images'][0] ?? 'homestay1.jpg'); ?>"
+                  alt="<?php echo htmlspecialchars($hs['name']); ?>">
               </div>
-              <div class="homestay-price">
-                <span class="price">RM 500</span>
-                <span class="period">/ night</span>
+              <div class="homestay-details">
+                <h3><?php echo htmlspecialchars($hs['name']); ?></h3>
+                <p class="homestay-location"><i class='bx bx-map'></i> <?php echo htmlspecialchars($hs['address']); ?></p>
+                <div class="homestay-features">
+                  <?php foreach ($hs['meta']['features'] as $feature): ?>
+                    <span><i class='bx <?php echo htmlspecialchars($feature['icon']); ?>'></i>
+                      <?php echo htmlspecialchars($feature['text']); ?></span>
+                  <?php endforeach; ?>
+                </div>
+                <div class="homestay-price">
+                  <span class="price">RM <?php echo number_format($hs['price'], 0); ?></span>
+                  <span class="period">/ night</span>
+                </div>
+                <a href="homestay.php" class="btn btn-primary">View Details</a>
               </div>
-              <a href="homestay.php" class="btn btn-primary">View Details</a>
             </div>
-          </div>
-          <div class="homestay-card">
-            <div class="homestay-image">
-              <img src="../../images/homestay2/homestay2.jpg" alt="Twin Haven">
-            </div>
-            <div class="homestay-details">
-              <h3>Twin Haven</h3>
-              <p class="homestay-location"><i class='bx bx-map'></i> Hulu Langat, Selangor</p>
-              <div class="homestay-features">
-                <span><i class='bx bx-bed'></i> 4 Bedrooms</span>
-                <span><i class='bx bx-bath'></i> 4 Bathrooms</span>
-                <span><i class='bx bx-group'></i> 10-20 Guests</span>
-              </div>
-              <div class="homestay-price">
-                <span class="price">RM 450</span>
-                <span class="period">/ night</span>
-              </div>
-              <a href="homestay.php" class="btn btn-primary">View Details</a>
-            </div>
-          </div>
-          <div class="homestay-card">
-            <div class="homestay-image">
-              <img src="../../images/homestay3/homestay3.jpg" alt="The Riverside Retreat">
-            </div>
-            <div class="homestay-details">
-              <h3>The Riverside Retreat</h3>
-              <p class="homestay-location"><i class='bx bx-map'></i> Gopeng, Perak</p>
-              <div class="homestay-features">
-                <span><i class='bx bx-bed'></i> 8 Bedrooms</span>
-                <span><i class='bx bx-bath'></i> 6 Bathrooms</span>
-                <span><i class='bx bx-group'></i> 20-36 Guests</span>
-              </div>
-              <div class="homestay-price">
-                <span class="price">RM 400</span>
-                <span class="period">/ night</span>
-              </div>
-              <a href="homestay.php" class="btn btn-primary">View Details</a>
-            </div>
-          </div>
-          <div class="homestay-card">
-            <div class="homestay-image">
-              <img src="../../images/homestay4/homestay4.jpg" alt="Hilltop Haven">
-            </div>
-            <div class="homestay-details">
-              <h3>Hilltop Haven</h3>
-              <p class="homestay-location"><i class='bx bx-map'></i> Gopeng, Perak</p>
-              <div class="homestay-features">
-                <span><i class='bx bx-bed'></i> 5 Bedrooms</span>
-                <span><i class='bx bx-bath'></i> 5 Bathrooms</span>
-                <span><i class='bx bx-group'></i> Up to 10 Guests</span>
-              </div>
-              <div class="homestay-price">
-                <span class="price">RM 550</span>
-                <span class="period">/ night</span>
-              </div>
-              <a href="homestay.php" class="btn btn-primary">View Details</a>
-            </div>
-          </div>
+          <?php endforeach; ?>
         </div>
       </div>
     </section>
