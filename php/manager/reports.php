@@ -174,7 +174,6 @@ oci_close($conn);
     <div class="page-heading">
       <div>
         <h1>Reports</h1>
-        <p class="subdued">Overview of occupancy, guests, and billing.</p>
       </div>
     </div>
     <div class="stat-grid">
