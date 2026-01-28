@@ -24,10 +24,16 @@ $lastYearRevenue = array_fill(0, 12, 0);
 // Connect to database
 $conn = getDBConnection();
 
+// SQL queries for dashboard stats (used in UI info tooltips)
+$sqlCurrentGuests   = "SELECT COUNT(*) as total FROM GUEST";
+$sqlNewGuests      = "SELECT COUNT(*) as total FROM (\n                SELECT guestID FROM GUEST ORDER BY guestID DESC\n            ) WHERE ROWNUM <= 30";
+$sqlTotalStaff     = "SELECT COUNT(*) as total FROM STAFF";
+$sqlPendingBookings = "SELECT COUNT(*) as total \n            FROM BOOKING b\n            LEFT JOIN BILL bl ON b.billNo = bl.billNo\n            WHERE b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID'";
+$sqlTotalHomestays = "SELECT COUNT(*) as total FROM HOMESTAY";
+
 if ($conn) {
     // Get total guests
-    $sql = "SELECT COUNT(*) as total FROM GUEST";
-    $stmt = oci_parse($conn, $sql);
+    $stmt = oci_parse($conn, $sqlCurrentGuests);
     if (oci_execute($stmt)) {
         $row = oci_fetch_array($stmt, OCI_ASSOC);
         $totalGuests = $row['TOTAL'] ?? 0;
@@ -35,10 +41,7 @@ if ($conn) {
     oci_free_statement($stmt);
 
     // Get new guests (last 30 guest IDs as proxy for recent registrations)
-    $sql = "SELECT COUNT(*) as total FROM (
-                SELECT guestID FROM GUEST ORDER BY guestID DESC
-            ) WHERE ROWNUM <= 30";
-    $stmt = oci_parse($conn, $sql);
+    $stmt = oci_parse($conn, $sqlNewGuests);
     if (oci_execute($stmt)) {
         $row = oci_fetch_array($stmt, OCI_ASSOC);
         $newGuests = $row['TOTAL'] ?? 0;
@@ -46,8 +49,7 @@ if ($conn) {
     oci_free_statement($stmt);
 
     // Get total staff
-    $sql = "SELECT COUNT(*) as total FROM STAFF";
-    $stmt = oci_parse($conn, $sql);
+    $stmt = oci_parse($conn, $sqlTotalStaff);
     if (oci_execute($stmt)) {
         $row = oci_fetch_array($stmt, OCI_ASSOC);
         $totalStaff = $row['TOTAL'] ?? 0;
@@ -55,11 +57,7 @@ if ($conn) {
     oci_free_statement($stmt);
 
     // Get pending bookings (bills not paid)
-    $sql = "SELECT COUNT(*) as total 
-            FROM BOOKING b
-            LEFT JOIN BILL bl ON b.billNo = bl.billNo
-            WHERE b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID'";
-    $stmt = oci_parse($conn, $sql);
+    $stmt = oci_parse($conn, $sqlPendingBookings);
     if (oci_execute($stmt)) {
         $row = oci_fetch_array($stmt, OCI_ASSOC);
         $pendingBookings = $row['TOTAL'] ?? 0;
@@ -67,8 +65,7 @@ if ($conn) {
     oci_free_statement($stmt);
 
     // Get total homestays
-    $sql = "SELECT COUNT(*) as total FROM HOMESTAY";
-    $stmt = oci_parse($conn, $sql);
+    $stmt = oci_parse($conn, $sqlTotalHomestays);
     if (oci_execute($stmt)) {
         $row = oci_fetch_array($stmt, OCI_ASSOC);
         $totalHomestays = $row['TOTAL'] ?? 0;
@@ -376,8 +373,12 @@ if ($conn) {
             <div class="subcard-number">
               <?php echo $totalGuests; ?>
             </div>
-            <div class="subcard-text">
-              Current Guests
+            <div class="subcard-text-line">
+              <span class="subcard-text">Current Guests</span>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlCurrentGuests); ?></pre></span>
+              </span>
             </div>
           </div>
           <i class='bxr  bxs-user'></i>
@@ -387,8 +388,12 @@ if ($conn) {
             <div class="subcard-number">
               <?php echo $newGuests; ?>
             </div>
-            <div class="subcard-text">
-              New Guests
+            <div class="subcard-text-line">
+              <span class="subcard-text">New Guests</span>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlNewGuests); ?></pre></span>
+              </span>
             </div>
           </div>
           <i class='bxr  bxs-user-plus'></i> 
@@ -398,8 +403,12 @@ if ($conn) {
             <div class="subcard-number">
               <?php echo $totalStaff; ?>
             </div>
-            <div class="subcard-text">
-              Total Staff
+            <div class="subcard-text-line">
+              <span class="subcard-text">Total Staff</span>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlTotalStaff); ?></pre></span>
+              </span>
             </div>
           </div>
           <i class='bxr  bxs-community'></i>
@@ -409,8 +418,12 @@ if ($conn) {
             <div class="subcard-number">
               <?php echo $pendingBookings; ?>
             </div>
-            <div class="subcard-text">
-              Pending Bookings
+            <div class="subcard-text-line">
+              <span class="subcard-text">Pending Bookings</span>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlPendingBookings); ?></pre></span>
+              </span>
             </div>
           </div>
           <i class='bxr  bxs-calendar-heart'></i> 
@@ -420,8 +433,12 @@ if ($conn) {
             <div class="subcard-number">
               <?php echo $totalHomestays; ?>
             </div>
-            <div class="subcard-text">
-              Total Homestay
+            <div class="subcard-text-line">
+              <span class="subcard-text">Total Homestay</span>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlTotalHomestays); ?></pre></span>
+              </span>
             </div>
           </div>
           <i class='bxr  bxs-home-circle'></i> 
