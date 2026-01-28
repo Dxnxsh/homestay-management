@@ -474,7 +474,9 @@ Last year:
       </div>
       <div class="content3">
         <div class="sub-content3-1">
-          <p>Monthly Revenue</p>
+          <div class="chart-header">
+            <p>Monthly Revenue</p>
+          </div>
           <div class="revenue-chart-container">
             <canvas id="monthlyRevenueChartOuter" aria-label="Current month revenue chart"></canvas>
             <canvas id="monthlyRevenueChartInner" aria-label="Last month revenue chart"></canvas>
@@ -485,7 +487,9 @@ Last year:
           </div>
         </div>
         <div class="sub-content3-1">
-          <p>Highest Month Bookings</p>
+          <div class="chart-header">
+            <p>Highest Month Bookings</p>
+          </div>
           <div class="highest-bookings-container">
             <img src="../../images/calendarShape.png" alt="Calendar shape" class="calendar-shape-image">
             <div class="highest-bookings-content">
@@ -496,6 +500,9 @@ Last year:
           </div>
         </div>
         <div class="sub-content3-2">
+          <div class="chart-header">
+            <p>Revenue Trend</p>
+          </div>
           <div class="revenue-line-chart-container">
             <canvas id="revenueLineChart" aria-label="Revenue by month line chart"></canvas>
           </div>

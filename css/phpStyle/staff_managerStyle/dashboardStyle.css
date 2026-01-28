@@ -823,21 +823,38 @@ body {
   border: 1px solid #f0d5be;
   padding: 16px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  flex-direction: column;
+  gap: 12px;
 }
 .content3 .sub-content3-1{
   flex: 1 1 220px;
   min-height: 240px;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+}
+.content3 .sub-content3-1 .revenue-chart-container{
+  margin: auto 0;
 }
 .content3 .sub-content3-2{
   flex: 3 1 540px;
   min-height: 200px;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+}
+.content3 .chart-header{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.content3 .chart-header p{
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #4b4b4b;
+  text-align: center;
 }
 .revenue-line-chart-container{
   flex: 1;
@@ -850,17 +867,12 @@ body {
   width: 100%;
   height: 100%;
 }
-.content3 p{
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-  color: #4b4b4b;
-}
 .revenue-chart-container{
   position: relative;
   width: 240px;
   height: 240px;
-  margin: 0 auto;
+  margin: auto 0;
+  flex-shrink: 0;
 }
 .revenue-chart-container canvas{
   position: absolute;
