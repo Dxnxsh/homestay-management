@@ -7,85 +7,85 @@ requireStaffLogin();
 // Get database connection
 $conn = getDBConnection();
 if (!$conn) {
-    die("Database connection failed. Please try again later.");
+  die("Database connection failed. Please try again later.");
 }
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    header('Content-Type: application/json');
-    
-    if ($_POST['action'] === 'update') {
-        $guestID = $_POST['guestId'];
-        $name = $_POST['guestName'];
-        $phone = $_POST['phone'];
-        $gender = $_POST['gender'];
-        $email = $_POST['email'];
-        $type = $_POST['type'];
-        
-        $sql = "UPDATE GUEST SET 
+  header('Content-Type: application/json');
+
+  if ($_POST['action'] === 'update') {
+    $guestID = $_POST['guestId'];
+    $name = $_POST['guestName'];
+    $phone = $_POST['phone'];
+    $gender = $_POST['gender'];
+    $email = $_POST['email'];
+    $type = $_POST['type'];
+
+    $sql = "UPDATE GUEST SET 
                 guest_name = :name, 
                 guest_phoneNo = :phone, 
                 guest_gender = :gender, 
                 guest_email = :email, 
                 guest_type = :type 
                 WHERE guestID = :id";
-        
-        $stmt = oci_parse($conn, $sql);
-        oci_bind_by_name($stmt, ':name', $name);
-        oci_bind_by_name($stmt, ':phone', $phone);
-        oci_bind_by_name($stmt, ':gender', $gender);
-        oci_bind_by_name($stmt, ':email', $email);
-        oci_bind_by_name($stmt, ':type', $type);
-        oci_bind_by_name($stmt, ':id', $guestID);
-        
-        if (oci_execute($stmt)) {
-            echo json_encode(['success' => true, 'message' => 'Guest updated successfully']);
-        } else {
-            $error = oci_error($stmt);
-            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
-        }
-        oci_free_statement($stmt);
-        exit;
+
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':name', $name);
+    oci_bind_by_name($stmt, ':phone', $phone);
+    oci_bind_by_name($stmt, ':gender', $gender);
+    oci_bind_by_name($stmt, ':email', $email);
+    oci_bind_by_name($stmt, ':type', $type);
+    oci_bind_by_name($stmt, ':id', $guestID);
+
+    if (oci_execute($stmt)) {
+      echo json_encode(['success' => true, 'message' => 'Guest updated successfully']);
+    } else {
+      $error = oci_error($stmt);
+      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
     }
-    
-    if ($_POST['action'] === 'delete') {
-        $guestID = $_POST['guestId'];
-        
-        // Check if guest has bookings
-        $checkSql = "SELECT COUNT(*) as count FROM BOOKING WHERE guestID = :id";
-        $checkStmt = oci_parse($conn, $checkSql);
-        oci_bind_by_name($checkStmt, ':id', $guestID);
-        oci_execute($checkStmt);
-        $row = oci_fetch_array($checkStmt, OCI_ASSOC);
-        
-        if ($row['COUNT'] > 0) {
-            echo json_encode(['success' => false, 'message' => 'Cannot delete guest with existing bookings']);
-            oci_free_statement($checkStmt);
-            exit;
-        }
-        oci_free_statement($checkStmt);
-        
-        // Delete membership first if exists
-        $delMemSql = "DELETE FROM MEMBERSHIP WHERE guestID = :id";
-        $delMemStmt = oci_parse($conn, $delMemSql);
-        oci_bind_by_name($delMemStmt, ':id', $guestID);
-        oci_execute($delMemStmt);
-        oci_free_statement($delMemStmt);
-        
-        // Delete guest
-        $sql = "DELETE FROM GUEST WHERE guestID = :id";
-        $stmt = oci_parse($conn, $sql);
-        oci_bind_by_name($stmt, ':id', $guestID);
-        
-        if (oci_execute($stmt)) {
-            echo json_encode(['success' => true, 'message' => 'Guest deleted successfully']);
-        } else {
-            $error = oci_error($stmt);
-            echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
-        }
-        oci_free_statement($stmt);
-        exit;
+    oci_free_statement($stmt);
+    exit;
+  }
+
+  if ($_POST['action'] === 'delete') {
+    $guestID = $_POST['guestId'];
+
+    // Check if guest has bookings
+    $checkSql = "SELECT COUNT(*) as count FROM BOOKING WHERE guestID = :id";
+    $checkStmt = oci_parse($conn, $checkSql);
+    oci_bind_by_name($checkStmt, ':id', $guestID);
+    oci_execute($checkStmt);
+    $row = oci_fetch_array($checkStmt, OCI_ASSOC);
+
+    if ($row['COUNT'] > 0) {
+      echo json_encode(['success' => false, 'message' => 'Cannot delete guest with existing bookings']);
+      oci_free_statement($checkStmt);
+      exit;
     }
+    oci_free_statement($checkStmt);
+
+    // Delete membership first if exists
+    $delMemSql = "DELETE FROM MEMBERSHIP WHERE guestID = :id";
+    $delMemStmt = oci_parse($conn, $delMemSql);
+    oci_bind_by_name($delMemStmt, ':id', $guestID);
+    oci_execute($delMemStmt);
+    oci_free_statement($delMemStmt);
+
+    // Delete guest
+    $sql = "DELETE FROM GUEST WHERE guestID = :id";
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':id', $guestID);
+
+    if (oci_execute($stmt)) {
+      echo json_encode(['success' => true, 'message' => 'Guest deleted successfully']);
+    } else {
+      $error = oci_error($stmt);
+      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
+    }
+    oci_free_statement($stmt);
+    exit;
+  }
 }
 
 // Fetch all guests
@@ -95,20 +95,27 @@ oci_execute($stmt);
 
 $guests = [];
 while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-    $guests[] = $row;
+  // Sanitize guest type
+  $type = $row['GUEST_TYPE'] ?? '';
+  if (empty($type) || strtolower($type) === 'null') {
+    $row['GUEST_TYPE'] = 'Regular';
+  }
+  $guests[] = $row;
 }
 oci_free_statement($stmt);
 ?>
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Guests</title>
-    <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/guestsStyle.css">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Guests</title>
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/guestsStyle.css">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
 <body>
   <div class="sidebar close">
     <div class="logo-details">
@@ -118,7 +125,7 @@ oci_free_statement($stmt);
     <ul class="nav-links">
       <li>
         <a href="dashboard.php">
-          <i class='bxr  bx-dashboard'></i> 
+          <i class='bxr  bx-dashboard'></i>
           <span class="link_name">Dashboard</span>
         </a>
         <ul class="sub-menu blank">
@@ -131,13 +138,13 @@ oci_free_statement($stmt);
             <i class='bxr  bx-list-square'></i>
             <span class="link_name">Manage</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
           <?php if (isManager()): ?>
-          <li><a href="staff.php">Staff</a></li>
+            <li><a href="staff.php">Staff</a></li>
           <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
@@ -171,7 +178,7 @@ oci_free_statement($stmt);
       </li>
       <li>
         <a href="calendar.php">
-          <i class='bxr  bx-calendar-alt'></i> 
+          <i class='bxr  bx-calendar-alt'></i>
           <span class="link_name">Calendar</span>
         </a>
         <ul class="sub-menu blank">
@@ -181,10 +188,10 @@ oci_free_statement($stmt);
       <li>
         <div class="icon-link">
           <a href="reports.php">
-            <i class='bxr  bx-file-report'></i> 
+            <i class='bxr  bx-file-report'></i>
             <span class="link_name">Reports</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="reports.php">Reports</a></li>
@@ -193,21 +200,22 @@ oci_free_statement($stmt);
           <li><a href="analytics.php">Analytics</a></li>
         </ul>
       </li>
-            <li>
+      <li>
         <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+          <a href="../logout.php" class="profile-content"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
             <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
         </div>
       </li>
-        </ul>
-      </li>
+    </ul>
+    </li>
     </ul>
   </div>
   <section class="home-section">
     <div class="home-content">
-      <i class='bx bx-menu' ></i>
+      <i class='bx bx-menu'></i>
       <span class="text">Serena Sanctuary</span>
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
@@ -275,20 +283,20 @@ oci_free_statement($stmt);
           </thead>
           <tbody id="guestsTableBody">
             <?php foreach ($guests as $guest): ?>
-            <tr data-name="<?php echo htmlspecialchars($guest['GUEST_NAME']); ?>" 
-                data-gender="<?php echo htmlspecialchars($guest['GUEST_GENDER']); ?>" 
+              <tr data-name="<?php echo htmlspecialchars($guest['GUEST_NAME']); ?>"
+                data-gender="<?php echo htmlspecialchars($guest['GUEST_GENDER']); ?>"
                 data-type="<?php echo htmlspecialchars($guest['GUEST_TYPE']); ?>">
-              <td><?php echo htmlspecialchars($guest['GUESTID']); ?></td>
-              <td><?php echo htmlspecialchars($guest['GUEST_NAME']); ?></td>
-              <td><?php echo htmlspecialchars($guest['GUEST_PHONENO']); ?></td>
-              <td><?php echo htmlspecialchars($guest['GUEST_GENDER']); ?></td>
-              <td><?php echo htmlspecialchars($guest['GUEST_EMAIL']); ?></td>
-              <td><?php echo htmlspecialchars($guest['GUEST_TYPE']); ?></td>
-              <td>
-                <button class="btn-update" onclick="updateGuest('<?php echo $guest['GUESTID']; ?>')">Update</button>
-                <button class="btn-delete" onclick="deleteGuest('<?php echo $guest['GUESTID']; ?>')">Delete</button>
-              </td>
-            </tr>
+                <td><?php echo htmlspecialchars($guest['GUESTID']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_NAME']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_PHONENO']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_GENDER']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_EMAIL']); ?></td>
+                <td><?php echo htmlspecialchars($guest['GUEST_TYPE']); ?></td>
+                <td>
+                  <button class="btn-update" onclick="updateGuest('<?php echo $guest['GUESTID']; ?>')">Update</button>
+                  <button class="btn-delete" onclick="deleteGuest('<?php echo $guest['GUESTID']; ?>')">Delete</button>
+                </td>
+              </tr>
             <?php endforeach; ?>
           </tbody>
         </table>
@@ -350,231 +358,232 @@ oci_free_statement($stmt);
   </div>
 
   <script>
-  let arrow = document.querySelectorAll(".arrow");
-  for (var i = 0; i < arrow.length; i++) {
-    arrow[i].addEventListener("click", (e)=>{
-   let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
-   arrowParent.classList.toggle("showMenu");
+    let arrow = document.querySelectorAll(".arrow");
+    for (var i = 0; i < arrow.length; i++) {
+      arrow[i].addEventListener("click", (e) => {
+        let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+        arrowParent.classList.toggle("showMenu");
+      });
+    }
+    let sidebar = document.querySelector(".sidebar");
+    let sidebarBtn = document.querySelector(".bx-menu");
+    console.log(sidebarBtn);
+    sidebarBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("close");
     });
-  }
-  let sidebar = document.querySelector(".sidebar");
-  let sidebarBtn = document.querySelector(".bx-menu");
-  console.log(sidebarBtn);
-  sidebarBtn.addEventListener("click", ()=>{
-    sidebar.classList.toggle("close");
-  });
 
-  // Sorting functionality
-  const sortOrderSelect = document.getElementById('sortOrder');
-  const sortBySelect = document.getElementById('sortBy');
-  const tableBody = document.getElementById('guestsTableBody');
+    // Sorting functionality
+    const sortOrderSelect = document.getElementById('sortOrder');
+    const sortBySelect = document.getElementById('sortBy');
+    const tableBody = document.getElementById('guestsTableBody');
 
-  function sortTable() {
-    const sortBy = sortBySelect.value;
-    const sortOrder = sortOrderSelect.value;
+    function sortTable() {
+      const sortBy = sortBySelect.value;
+      const sortOrder = sortOrderSelect.value;
 
-    if (!sortBy || !sortOrder) {
-      return; // Don't sort if either option is not selected
+      if (!sortBy || !sortOrder) {
+        return; // Don't sort if either option is not selected
+      }
+
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+      rows.sort((a, b) => {
+        let comparison = 0;
+
+        switch (sortBy) {
+          case 'date':
+            const dateA = new Date(a.getAttribute('data-date'));
+            const dateB = new Date(b.getAttribute('data-date'));
+            comparison = dateA - dateB;
+            break;
+          case 'alphabetical':
+            const nameA = a.getAttribute('data-name').toLowerCase();
+            const nameB = b.getAttribute('data-name').toLowerCase();
+            comparison = nameA.localeCompare(nameB);
+            break;
+          case 'gender':
+            const genderA = a.getAttribute('data-gender');
+            const genderB = b.getAttribute('data-gender');
+            comparison = genderA.localeCompare(genderB);
+            break;
+          case 'type':
+            const typeA = a.getAttribute('data-type');
+            const typeB = b.getAttribute('data-type');
+            comparison = typeA.localeCompare(typeB);
+            break;
+        }
+
+        // Apply sort order (ascending or descending)
+        return sortOrder === 'ascending' ? comparison : -comparison;
+      });
+
+      // Clear the table body and append sorted rows
+      tableBody.innerHTML = '';
+      rows.forEach(row => tableBody.appendChild(row));
     }
 
-    const rows = Array.from(tableBody.querySelectorAll('tr'));
-    
-    rows.sort((a, b) => {
-      let comparison = 0;
-      
-      switch(sortBy) {
-        case 'date':
-          const dateA = new Date(a.getAttribute('data-date'));
-          const dateB = new Date(b.getAttribute('data-date'));
-          comparison = dateA - dateB;
-          break;
-        case 'alphabetical':
-          const nameA = a.getAttribute('data-name').toLowerCase();
-          const nameB = b.getAttribute('data-name').toLowerCase();
-          comparison = nameA.localeCompare(nameB);
-          break;
-        case 'gender':
-          const genderA = a.getAttribute('data-gender');
-          const genderB = b.getAttribute('data-gender');
-          comparison = genderA.localeCompare(genderB);
-          break;
-        case 'type':
-          const typeA = a.getAttribute('data-type');
-          const typeB = b.getAttribute('data-type');
-          comparison = typeA.localeCompare(typeB);
-          break;
+    // Add event listeners to both spinners
+    sortOrderSelect.addEventListener('change', sortTable);
+    sortBySelect.addEventListener('change', sortTable);
+
+    // Search functionality
+    const searchInput = document.getElementById('search');
+    const searchButton = document.querySelector('.btn-search');
+    const searchTypeSelect = document.getElementById('searchType');
+    let allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+    function performSearch() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const searchType = searchTypeSelect.value;
+
+      allRows.forEach(row => {
+        let matches = false;
+
+        if (searchType === 'id') {
+          const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+          matches = id.includes(searchTerm);
+        } else if (searchType === 'name') {
+          const name = row.getAttribute('data-name').toLowerCase();
+          matches = name.includes(searchTerm);
+        } else if (searchType === 'phone') {
+          const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+          matches = phone.includes(searchTerm);
+        } else if (searchType === 'email') {
+          const email = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
+          matches = email.includes(searchTerm);
+        }
+
+        row.style.display = matches ? '' : 'none';
+      });
+    }
+
+    searchButton.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
       }
-      
-      // Apply sort order (ascending or descending)
-      return sortOrder === 'ascending' ? comparison : -comparison;
     });
 
-    // Clear the table body and append sorted rows
-    tableBody.innerHTML = '';
-    rows.forEach(row => tableBody.appendChild(row));
-  }
+    // Store original rows for search
+    allRows = Array.from(tableBody.querySelectorAll('tr'));
 
-  // Add event listeners to both spinners
-  sortOrderSelect.addEventListener('change', sortTable);
-  sortBySelect.addEventListener('change', sortTable);
+    // Update and Delete functions
+    function updateGuest(guestId) {
+      // Find the row with the matching guest ID
+      const rows = tableBody.querySelectorAll('tr');
+      let targetRow = null;
 
-  // Search functionality
-  const searchInput = document.getElementById('search');
-  const searchButton = document.querySelector('.btn-search');
-  const searchTypeSelect = document.getElementById('searchType');
-  let allRows = Array.from(tableBody.querySelectorAll('tr'));
+      rows.forEach(row => {
+        const idCell = row.querySelector('td:first-child');
+        if (idCell && idCell.textContent.trim() === guestId) {
+          targetRow = row;
+        }
+      });
 
-  function performSearch() {
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    const searchType = searchTypeSelect.value;
-    
-    allRows.forEach(row => {
-      let matches = false;
-      
-      if (searchType === 'id') {
-        const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-        matches = id.includes(searchTerm);
-      } else if (searchType === 'name') {
-        const name = row.getAttribute('data-name').toLowerCase();
-        matches = name.includes(searchTerm);
-      } else if (searchType === 'phone') {
-        const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-        matches = phone.includes(searchTerm);
-      } else if (searchType === 'email') {
-        const email = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
-        matches = email.includes(searchTerm);
+      if (!targetRow) {
+        alert('Guest not found!');
+        return;
       }
-      
-      row.style.display = matches ? '' : 'none';
-    });
-  }
 
-  searchButton.addEventListener('click', performSearch);
-  searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
+      // Get current values from the row
+      const cells = targetRow.querySelectorAll('td');
+      const currentData = {
+        id: cells[0].textContent.trim(),
+        name: cells[1].textContent.trim(),
+        phone: cells[2].textContent.trim(),
+        gender: cells[3].textContent.trim(),
+        email: cells[4].textContent.trim(),
+        type: cells[5].textContent.trim()
+      };
+
+      // Populate the form with current data
+      document.getElementById('updateGuestId').value = currentData.id;
+      document.getElementById('updateGuestName').value = currentData.name;
+      document.getElementById('updatePhone').value = currentData.phone;
+      // Handle case sensitivity for gender
+      const genderValue = currentData.gender.charAt(0).toUpperCase() + currentData.gender.slice(1).toLowerCase();
+      document.getElementById('updateGender').value = genderValue;
+      document.getElementById('updateEmail').value = currentData.email;
+      document.getElementById('updateType').value = currentData.type;
+
+      // Store the target row for later use
+      document.getElementById('updateModal').setAttribute('data-target-row', guestId);
+
+      // Show the modal
+      document.getElementById('updateModal').style.display = 'block';
+    }
+
+    function closeUpdateModal() {
+      document.getElementById('updateModal').style.display = 'none';
+      document.getElementById('updateGuestForm').reset();
+    }
+
+    // Handle form submission
+    document.getElementById('updateGuestForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      performSearch();
-    }
-  });
 
-  // Store original rows for search
-  allRows = Array.from(tableBody.querySelectorAll('tr'));
-
-  // Update and Delete functions
-  function updateGuest(guestId) {
-    // Find the row with the matching guest ID
-    const rows = tableBody.querySelectorAll('tr');
-    let targetRow = null;
-    
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === guestId) {
-        targetRow = row;
-      }
-    });
-    
-    if (!targetRow) {
-      alert('Guest not found!');
-      return;
-    }
-    
-    // Get current values from the row
-    const cells = targetRow.querySelectorAll('td');
-    const currentData = {
-      id: cells[0].textContent.trim(),
-      name: cells[1].textContent.trim(),
-      phone: cells[2].textContent.trim(),
-      gender: cells[3].textContent.trim(),
-      email: cells[4].textContent.trim(),
-      type: cells[5].textContent.trim()
-    };
-    
-    // Populate the form with current data
-    document.getElementById('updateGuestId').value = currentData.id;
-    document.getElementById('updateGuestName').value = currentData.name;
-    document.getElementById('updatePhone').value = currentData.phone;
-    // Handle case sensitivity for gender
-    const genderValue = currentData.gender.charAt(0).toUpperCase() + currentData.gender.slice(1).toLowerCase();
-    document.getElementById('updateGender').value = genderValue;
-    document.getElementById('updateEmail').value = currentData.email;
-    document.getElementById('updateType').value = currentData.type;
-    
-    // Store the target row for later use
-    document.getElementById('updateModal').setAttribute('data-target-row', guestId);
-    
-    // Show the modal
-    document.getElementById('updateModal').style.display = 'block';
-  }
-
-  function closeUpdateModal() {
-    document.getElementById('updateModal').style.display = 'none';
-    document.getElementById('updateGuestForm').reset();
-  }
-
-  // Handle form submission
-  document.getElementById('updateGuestForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('action', 'update');
-    formData.append('guestId', document.getElementById('updateGuestId').value);
-    formData.append('guestName', document.getElementById('updateGuestName').value.trim());
-    formData.append('phone', document.getElementById('updatePhone').value.trim());
-    formData.append('gender', document.getElementById('updateGender').value);
-    formData.append('email', document.getElementById('updateEmail').value.trim());
-    formData.append('type', document.getElementById('updateType').value);
-    
-    fetch('guests.php', {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message);
-        location.reload(); // Reload page to show updated data
-      } else {
-        alert(data.message);
-      }
-    })
-    .catch(error => {
-      alert('Error updating guest: ' + error);
-    });
-  });
-
-  // Close modal when clicking outside of it
-  window.onclick = function(event) {
-    const modal = document.getElementById('updateModal');
-    if (event.target === modal) {
-      closeUpdateModal();
-    }
-  }
-
-  // Close modal with X button
-  document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
-
-  function deleteGuest(guestId) {
-    if (confirm('Are you sure you want to delete guest ' + guestId + '? This action cannot be undone.')) {
       const formData = new FormData();
-      formData.append('action', 'delete');
-      formData.append('guestId', guestId);
-      
+      formData.append('action', 'update');
+      formData.append('guestId', document.getElementById('updateGuestId').value);
+      formData.append('guestName', document.getElementById('updateGuestName').value.trim());
+      formData.append('phone', document.getElementById('updatePhone').value.trim());
+      formData.append('gender', document.getElementById('updateGender').value);
+      formData.append('email', document.getElementById('updateEmail').value.trim());
+      formData.append('type', document.getElementById('updateType').value);
+
       fetch('guests.php', {
         method: 'POST',
         body: formData
       })
-      .then(response => response.json())
-      .then(data => {
-        alert(data.message);
-        if (data.success) {
-          location.reload(); // Reload page to show updated data
-        }
-      })
-      .catch(error => {
-        alert('Error deleting guest: ' + error);
-      });
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert(data.message);
+            location.reload(); // Reload page to show updated data
+          } else {
+            alert(data.message);
+          }
+        })
+        .catch(error => {
+          alert('Error updating guest: ' + error);
+        });
+    });
+
+    // Close modal when clicking outside of it
+    window.onclick = function (event) {
+      const modal = document.getElementById('updateModal');
+      if (event.target === modal) {
+        closeUpdateModal();
+      }
     }
-  }
+
+    // Close modal with X button
+    document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
+
+    function deleteGuest(guestId) {
+      if (confirm('Are you sure you want to delete guest ' + guestId + '? This action cannot be undone.')) {
+        const formData = new FormData();
+        formData.append('action', 'delete');
+        formData.append('guestId', guestId);
+
+        fetch('guests.php', {
+          method: 'POST',
+          body: formData
+        })
+          .then(response => response.json())
+          .then(data => {
+            alert(data.message);
+            if (data.success) {
+              location.reload(); // Reload page to show updated data
+            }
+          })
+          .catch(error => {
+            alert('Error deleting guest: ' + error);
+          });
+      }
+    }
   </script>
 </body>
+
 </html>
