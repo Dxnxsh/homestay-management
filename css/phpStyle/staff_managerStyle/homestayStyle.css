@@ -310,18 +310,15 @@ body {
 }
 
 .home-section .home-content .text {
-  color: #C5814B;
-}
-
-.home-section .home-content .text {
   font-size: 26px;
   font-weight: 600;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  color: #C5814B;
 }
 
-/* Header Profile Display */
+/* Header Profile Display (match dashboard) */
 .home-section .home-content .header-profile {
   display: flex;
   align-items: center;
@@ -332,13 +329,15 @@ body {
 .home-section .home-content .header-profile i {
   font-size: 28px;
   color: #C5814B;
-  order: -1;
+  order: 1;
+  margin-left: auto;
 }
 
 .home-section .home-content .header-profile .header-profile-info {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  order: 0;
 }
 
 .home-section .home-content .header-profile .header-profile-name {
