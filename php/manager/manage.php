@@ -117,6 +117,25 @@ foreach ($homestays as $homestay) {
   $homestayGuestCount[$homestay['HOMESTAYID']] = $guestCountRow['TOTAL'];
   oci_free_statement($guestCountStmt);
 }
+
+// Monthly guests for current year (for Total Monthly Guests chart)
+$monthlyGuests = array_fill(0, 12, 0);
+$monthlyGuestsSql = "SELECT EXTRACT(MONTH FROM checkin_date) AS month, 
+                            COUNT(*) AS total
+                     FROM BOOKING
+                     WHERE EXTRACT(YEAR FROM checkin_date) = EXTRACT(YEAR FROM SYSDATE)
+                     GROUP BY EXTRACT(MONTH FROM checkin_date)
+                     ORDER BY month";
+$monthlyGuestsStmt = oci_parse($conn, $monthlyGuestsSql);
+if (oci_execute($monthlyGuestsStmt)) {
+  while ($row = oci_fetch_array($monthlyGuestsStmt, OCI_ASSOC)) {
+    $mIndex = (int)$row['MONTH'] - 1; // 0-based index for JS
+    if ($mIndex >= 0 && $mIndex < 12) {
+      $monthlyGuests[$mIndex] = (int)$row['TOTAL'];
+    }
+  }
+}
+oci_free_statement($monthlyGuestsStmt);
 ?>
 
 <!DOCTYPE html>
@@ -345,7 +364,13 @@ foreach ($homestays as $homestay) {
           <?php endif; ?>
         </div>
         <div class="sub-content2-1">
-          <p>Total Monthly Guests</p>
+          <div class="chart-header">
+            <p>Total Monthly Guests</p>
+            <span class="info-icon-wrap">
+              <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+              <span class="sql-tooltip"><pre><?php echo htmlspecialchars($monthlyGuestsSql); ?></pre></span>
+            </span>
+          </div>
           <div class="chart-container">
             <canvas id="guestsChart" aria-label="Guests distribution chart"></canvas>
           </div>
@@ -559,19 +584,19 @@ foreach ($homestays as $homestay) {
       dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
     }
 
-    // Guests Chart - Bar Chart
+    // Guests Chart - Bar Chart (Current Year Monthly Guests)
     const guestsChartCanvas = document.getElementById("guestsChart");
     if (guestsChartCanvas) {
       const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const guestsData = [45, 52, 48, 61, 58, 67, 73, 65, 59, 54, 49, 42];
+      const monthlyGuests = <?php echo json_encode($monthlyGuests); ?>;
 
       new Chart(guestsChartCanvas, {
         type: "bar",
         data: {
           labels: monthLabels,
           datasets: [{
-            label: "New Guests",
-            data: guestsData,
+            label: "Guests (Current Year)",
+            data: monthlyGuests,
             backgroundColor: "#00bf63",
             barThickness: 24,
           }],
