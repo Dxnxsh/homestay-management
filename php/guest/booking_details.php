@@ -193,6 +193,9 @@ if ($conn) {
             <div class="hero-text">
               <div class="hero-actions">
                 <a class="btn btn-secondary" href="booking.php">Back to Bookings</a>
+                <button id="btnEmailReceipt" class="btn btn-secondary" aria-label="Email Receipt" title="Email Receipt">
+                  <i class='bx bx-envelope'></i>
+                </button>
                 <a href="generate_receipt_pdf.php?bookingID=<?php echo htmlspecialchars($booking['id']); ?>"
                   target="_blank" class="btn btn-secondary" aria-label="Download PDF" title="Download PDF">
                   <i class='bx bx-printer'></i>
@@ -454,6 +457,44 @@ if ($conn) {
         navbar.classList.remove('scrolled');
       }
     });
+
+    // Email Receipt Handler
+    const btnEmail = document.getElementById('btnEmailReceipt');
+    if (btnEmail) {
+      btnEmail.addEventListener('click', function () {
+        // Disable button and show loading state
+        const originalContent = btnEmail.innerHTML;
+        btnEmail.disabled = true;
+        btnEmail.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
+
+        fetch('send_receipt_email.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            bookingID: '<?php echo htmlspecialchars($bookingID); ?>'
+          })
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert(data.message);
+            } else {
+              alert('Error: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while sending the email.');
+          })
+          .finally(() => {
+            // Restore button state
+            btnEmail.disabled = false;
+            btnEmail.innerHTML = originalContent;
+          });
+      });
+    }
   </script>
 </body>
 
