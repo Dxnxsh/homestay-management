@@ -18,7 +18,7 @@ $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim(isset($_POST['email']) ? $_POST['email'] : '');
     $password = trim(isset($_POST['password']) ? $_POST['password'] : '');
-    
+
     // Validation
     if (empty($email) || empty($password)) {
         $error_message = 'Please enter both email and password.';
@@ -27,10 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Connect to database
         $conn = getDBConnection();
-        
+
         if ($conn) {
             $user_found = false;
-            
+
             // First, check if email exists in GUEST table with matching password
             $guest_sql = "SELECT guestID, guest_name, guest_email 
                          FROM GUEST 
@@ -41,13 +41,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (oci_execute($guest_stmt)) {
                 $guest_row = oci_fetch_array($guest_stmt, OCI_ASSOC);
-                
+
                 if ($guest_row) {
                     // Guest login successful
                     $_SESSION['guestID'] = $guest_row['GUESTID'];
                     $_SESSION['guest_name'] = $guest_row['GUEST_NAME'];
                     $_SESSION['guest_email'] = $guest_row['GUEST_EMAIL'];
-                    
+
                     // Check if profile is complete
                     require_once 'config/session_check.php';
                     if (!isGuestProfileComplete()) {
@@ -55,26 +55,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         unset($_SESSION['profile_incomplete']);
                     }
-                    
+
                     oci_free_statement($guest_stmt);
                     closeDBConnection($conn);
-                    
+
                     header('Location: guest/home.php');
                     exit();
                 }
             }
             oci_free_statement($guest_stmt);
-            
+
             // If not a guest, check if email exists in STAFF table
-            $staff_sql = "SELECT staffID, staff_name, staff_email, staff_type, staff_password
+            $staff_sql = "SELECT staffID, staff_name, staff_email, staff_type, staff_password, managerID
                          FROM STAFF 
                          WHERE staff_email = :email";
             $staff_stmt = oci_parse($conn, $staff_sql);
             oci_bind_by_name($staff_stmt, ':email', $email);
-            
+
             if (oci_execute($staff_stmt)) {
                 $staff_row = oci_fetch_array($staff_stmt, OCI_ASSOC);
-                
+
                 if ($staff_row) {
                     // Check if password matches staff_password
                     if ($password === $staff_row['STAFF_PASSWORD']) {
@@ -83,10 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['staff_name'] = $staff_row['STAFF_NAME'];
                         $_SESSION['staff_email'] = $staff_row['STAFF_EMAIL'];
                         $_SESSION['staff_type'] = $staff_row['STAFF_TYPE'];
-                        
+                        $_SESSION['managerID'] = $staff_row['MANAGERID'];
+
                         oci_free_statement($staff_stmt);
                         closeDBConnection($conn);
-                        
+
                         // Redirect all staff to manager folder
                         header('Location: manager/dashboard.php');
                         exit();
@@ -100,10 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = oci_error($staff_stmt);
                 $error_message = 'Database error: ' . $error['message'];
             }
-            
+
             oci_free_statement($staff_stmt);
             closeDBConnection($conn);
-            
+
             // If we reach here and no error message is set, credentials are invalid
             if (empty($error_message)) {
                 $error_message = 'Invalid email or password. Please try again.';
@@ -116,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -125,8 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <div class="auth-container">
         <div class="auth-card">
@@ -149,16 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class='bx bx-envelope'></i>
                         Email Address <span class="required">*</span>
                     </label>
-                    <input 
-                        type="email" 
-                        id="email" 
-                        name="email" 
-                        class="form-input" 
+                    <input type="email" id="email" name="email" class="form-input"
                         placeholder="Enter your email address"
-                        value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>"
-                        required
-                        autofocus
-                    >
+                        value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>" required autofocus>
                 </div>
 
                 <div class="form-group">
@@ -166,14 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class='bx bx-lock-alt'></i>
                         Password <span class="required">*</span>
                     </label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        class="form-input" 
-                        placeholder="Enter your password"
-                        required
-                    >
+                    <input type="password" id="password" name="password" class="form-input"
+                        placeholder="Enter your password" required>
                     <small class="form-hint">Use your account password to login.</small>
                 </div>
 
@@ -190,5 +181,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </body>
-</html>
 
+</html>

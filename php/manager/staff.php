@@ -1,23 +1,79 @@
 <?php
 session_start();
 require_once '../config/session_check.php';
-requireStaffLogin();
+require_once '../config/db_connection.php';
+
 // Only managers can access staff management
 if (!isManager()) {
-    header('Location: dashboard.php');
-    exit();
+  header('Location: dashboard.php');
+  exit();
+}
+
+requireStaffLogin();
+
+// Fetch all staff
+$staffMembers = [];
+$conn = getDBConnection();
+
+if ($conn) {
+  // Join with self for Manager Name (Recursive)
+  // Join with FULL_TIME and PART_TIME for specific details (Inheritance)
+  $sql = "SELECT s.STAFFID, s.STAFF_NAME, s.STAFF_PHONENO, s.STAFF_EMAIL, s.STAFF_PASSWORD, s.STAFF_TYPE,
+                   m.STAFF_NAME as MANAGER_NAME, s.MANAGERID,
+                   ft.FULL_TIME_SALARY, ft.VACATION_DAYS, ft.BONUS,
+                   pt.HOURLY_RATE, pt.SHIFT_TIME
+            FROM STAFF s
+            LEFT JOIN STAFF m ON s.MANAGERID = m.STAFFID
+            LEFT JOIN FULL_TIME ft ON s.STAFFID = ft.STAFFID
+            LEFT JOIN PART_TIME pt ON s.STAFFID = pt.STAFFID
+            ORDER BY s.STAFFID ASC";
+
+  $stmt = oci_parse($conn, $sql);
+
+  if (oci_execute($stmt)) {
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC + OCI_RETURN_NULLS)) {
+      $staffMembers[] = $row;
+    }
+  }
+  oci_free_statement($stmt);
+  closeDBConnection($conn);
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Staff</title>
-    <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/staffStyle.css">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Staff</title>
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/staffStyle.css">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Tooltip for extra details */
+    .detail-tooltip {
+      position: relative;
+      cursor: help;
+      border-bottom: 1px dotted #333;
+    }
+
+    .detail-tooltip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 10;
+    }
+  </style>
+</head>
+
 <body>
   <div class="sidebar close">
     <div class="logo-details">
@@ -27,7 +83,7 @@ if (!isManager()) {
     <ul class="nav-links">
       <li>
         <a href="dashboard.php">
-          <i class='bxr  bx-dashboard'></i> 
+          <i class='bxr  bx-dashboard'></i>
           <span class="link_name">Dashboard</span>
         </a>
         <ul class="sub-menu blank">
@@ -40,13 +96,13 @@ if (!isManager()) {
             <i class='bxr  bx-list-square'></i>
             <span class="link_name">Manage</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
           <?php if (isManager()): ?>
-          <li><a href="staff.php">Staff</a></li>
+            <li><a href="staff.php">Staff</a></li>
           <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
@@ -80,7 +136,7 @@ if (!isManager()) {
       </li>
       <li>
         <a href="calendar.php">
-          <i class='bxr  bx-calendar-alt'></i> 
+          <i class='bxr  bx-calendar-alt'></i>
           <span class="link_name">Calendar</span>
         </a>
         <ul class="sub-menu blank">
@@ -90,10 +146,10 @@ if (!isManager()) {
       <li>
         <div class="icon-link">
           <a href="reports.php">
-            <i class='bxr  bx-file-report'></i> 
+            <i class='bxr  bx-file-report'></i>
             <span class="link_name">Reports</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="reports.php">Reports</a></li>
@@ -102,21 +158,22 @@ if (!isManager()) {
           <li><a href="analytics.php">Analytics</a></li>
         </ul>
       </li>
-            <li>
+      <li>
         <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+          <a href="../logout.php" class="profile-content"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
             <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
         </div>
       </li>
-        </ul>
-      </li>
+    </ul>
+    </li>
     </ul>
   </div>
   <section class="home-section">
     <div class="home-content">
-      <i class='bx bx-menu' ></i>
+      <i class='bx bx-menu'></i>
       <span class="text">Serena Sanctuary</span>
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
@@ -127,7 +184,7 @@ if (!isManager()) {
       </div>
     </div>
     <div class="page-heading">
-      <h1>Staff</h1>
+      <h1>Staff Management</h1>
     </div>
     <!-- Content -->
     <div class="content">
@@ -176,78 +233,49 @@ if (!isManager()) {
               <th>Staff Name</th>
               <th>Phone No.</th>
               <th>Email</th>
-              <th>Password</th>
+              <!-- Password hidden for security, but kept in data attributes if needed -->
               <th>Type</th>
-              <th>Manager ID</th>
+              <th>Reports To (Manager)</th>
               <th>Manage</th>
             </tr>
           </thead>
           <tbody id="staffTableBody">
-            <tr data-name="Ahmad Zulkifli bin Hassan" data-type="Full Time">
-              <td>S001</td>
-              <td>Ahmad Zulkifli bin Hassan</td>
-              <td>+6011-234-5678</td>
-              <td>ahmad.zulkifli@serenasanctuary.com</td>
-              <td>••••••••</td>
-              <td>Full Time</td>
-              <td>-</td>
-              <td>
-                <button class="btn-update" onclick="updateStaff('S001')">Update</button>
-                <button class="btn-delete" onclick="deleteStaff('S001')">Delete</button>
-              </td>
-            </tr>
-            <tr data-name="Nurul Aina binti Mohd Ali" data-type="Full Time">
-              <td>S002</td>
-              <td>Nurul Aina binti Mohd Ali</td>
-              <td>+6012-345-6789</td>
-              <td>nurul.aina@serenasanctuary.com</td>
-              <td>••••••••</td>
-              <td>Full Time</td>
-              <td>-</td>
-              <td>
-                <button class="btn-update" onclick="updateStaff('S002')">Update</button>
-                <button class="btn-delete" onclick="deleteStaff('S002')">Delete</button>
-              </td>
-            </tr>
-            <tr data-name="Lim Chee Keong" data-type="Part Time">
-              <td>S003</td>
-              <td>Lim Chee Keong</td>
-              <td>+6013-456-7890</td>
-              <td>lim.cheekeong@serenasanctuary.com</td>
-              <td>••••••••</td>
-              <td>Part Time</td>
-              <td>S001</td>
-              <td>
-                <button class="btn-update" onclick="updateStaff('S003')">Update</button>
-                <button class="btn-delete" onclick="deleteStaff('S003')">Delete</button>
-              </td>
-            </tr>
-            <tr data-name="Siti Fatimah binti Abdullah" data-type="Part Time">
-              <td>S004</td>
-              <td>Siti Fatimah binti Abdullah</td>
-              <td>+6014-567-8901</td>
-              <td>siti.fatimah@serenasanctuary.com</td>
-              <td>••••••••</td>
-              <td>Part Time</td>
-              <td>S001</td>
-              <td>
-                <button class="btn-update" onclick="updateStaff('S004')">Update</button>
-                <button class="btn-delete" onclick="deleteStaff('S004')">Delete</button>
-              </td>
-            </tr>
-            <tr data-name="Muhammad Farhan bin Ismail" data-type="Part Time">
-              <td>S005</td>
-              <td>Muhammad Farhan bin Ismail</td>
-              <td>+6015-678-9012</td>
-              <td>farhan.ismail@serenasanctuary.com</td>
-              <td>••••••••</td>
-              <td>Part Time</td>
-              <td>S002</td>
-              <td>
-                <button class="btn-update" onclick="updateStaff('S005')">Update</button>
-                <button class="btn-delete" onclick="deleteStaff('S005')">Delete</button>
-              </td>
-            </tr>
+            <?php foreach ($staffMembers as $staff): ?>
+              <?php
+              // Prepare tooltip details based on type
+              $details = "";
+              if ($staff['STAFF_TYPE'] === 'Full Time') {
+                $details = "Salary: RM " . $staff['FULL_TIME_SALARY'] . " | Vacation: " . $staff['VACATION_DAYS'] . " days";
+              } elseif ($staff['STAFF_TYPE'] === 'Part Time') {
+                $details = "Hourly: RM " . $staff['HOURLY_RATE'] . "/hr | Shift: " . $staff['SHIFT_TIME'];
+              }
+
+              $managerDisplay = $staff['MANAGERID'] ? htmlspecialchars($staff['MANAGER_NAME'] . " (" . $staff['MANAGERID'] . ")") : "-";
+              ?>
+              <tr data-name="<?php echo htmlspecialchars($staff['STAFF_NAME']); ?>"
+                data-type="<?php echo htmlspecialchars($staff['STAFF_TYPE']); ?>"
+                data-id="<?php echo htmlspecialchars($staff['STAFFID']); ?>">
+                <td><?php echo htmlspecialchars($staff['STAFFID']); ?></td>
+                <td><?php echo htmlspecialchars($staff['STAFF_NAME']); ?></td>
+                <td><?php echo htmlspecialchars($staff['STAFF_PHONENO']); ?></td>
+                <td><?php echo htmlspecialchars($staff['STAFF_EMAIL']); ?></td>
+                <td>
+                  <span class="detail-tooltip" data-tooltip="<?php echo htmlspecialchars($details); ?>">
+                    <?php echo htmlspecialchars($staff['STAFF_TYPE']); ?>
+                  </span>
+                </td>
+                <td><?php echo $managerDisplay; ?></td>
+                <td>
+                  <button class="btn-update" onclick="updateStaff('<?php echo $staff['STAFFID']; ?>')">Update</button>
+                  <button class="btn-delete" onclick="deleteStaff('<?php echo $staff['STAFFID']; ?>')">Delete</button>
+                </td>
+                <!-- Hidden fields for JS use -->
+                <td style="display:none;" class="hidden-password">
+                  <?php echo htmlspecialchars($staff['STAFF_PASSWORD']); ?></td>
+                <td style="display:none;" class="hidden-manager-id">
+                  <?php echo htmlspecialchars($staff['MANAGERID'] ?? '-'); ?></td>
+              </tr>
+            <?php endforeach; ?>
           </tbody>
         </table>
       </div>
@@ -310,262 +338,243 @@ if (!isManager()) {
   </div>
 
   <script>
-  let arrow = document.querySelectorAll(".arrow");
-  for (var i = 0; i < arrow.length; i++) {
-    arrow[i].addEventListener("click", (e)=>{
-   let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
-   arrowParent.classList.toggle("showMenu");
-    });
-  }
-  let sidebar = document.querySelector(".sidebar");
-  let sidebarBtn = document.querySelector(".bx-menu");
-  console.log(sidebarBtn);
-  sidebarBtn.addEventListener("click", ()=>{
-    sidebar.classList.toggle("close");
-  });
-
-  // Sorting functionality
-  const sortOrderSelect = document.getElementById('sortOrder');
-  const sortBySelect = document.getElementById('sortBy');
-  const tableBody = document.getElementById('staffTableBody');
-
-  function sortTable() {
-    const sortBy = sortBySelect.value;
-    const sortOrder = sortOrderSelect.value;
-
-    if (!sortBy || !sortOrder) {
-      return;
-    }
-
-    const rows = Array.from(tableBody.querySelectorAll('tr'));
-    
-    rows.sort((a, b) => {
-      let comparison = 0;
-      
-      switch(sortBy) {
-        case 'alphabetical':
-          const nameA = a.getAttribute('data-name').toLowerCase();
-          const nameB = b.getAttribute('data-name').toLowerCase();
-          comparison = nameA.localeCompare(nameB);
-          break;
-        case 'type':
-          const typeA = a.getAttribute('data-type');
-          const typeB = b.getAttribute('data-type');
-          comparison = typeA.localeCompare(typeB);
-          break;
-      }
-      
-      return sortOrder === 'ascending' ? comparison : -comparison;
-    });
-
-    tableBody.innerHTML = '';
-    rows.forEach(row => tableBody.appendChild(row));
-  }
-
-  sortOrderSelect.addEventListener('change', sortTable);
-  sortBySelect.addEventListener('change', sortTable);
-
-  // Search functionality
-  const searchInput = document.getElementById('search');
-  const searchButton = document.querySelector('.btn-search');
-  const searchTypeSelect = document.getElementById('searchType');
-  let allRows = Array.from(tableBody.querySelectorAll('tr'));
-
-  function performSearch() {
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    const searchType = searchTypeSelect.value;
-    
-    allRows.forEach(row => {
-      let matches = false;
-      
-      if (searchType === 'id') {
-        const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-        matches = id.includes(searchTerm);
-      } else if (searchType === 'name') {
-        const name = row.getAttribute('data-name').toLowerCase();
-        matches = name.includes(searchTerm);
-      } else if (searchType === 'phone') {
-        const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-        matches = phone.includes(searchTerm);
-      } else if (searchType === 'email') {
-        const email = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
-        matches = email.includes(searchTerm);
-      }
-      
-      row.style.display = matches ? '' : 'none';
-    });
-  }
-
-  searchButton.addEventListener('click', performSearch);
-  searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      performSearch();
-    }
-  });
-
-  allRows = Array.from(tableBody.querySelectorAll('tr'));
-
-  // Update and Delete functions
-  function updateStaff(staffId) {
-    const rows = tableBody.querySelectorAll('tr');
-    let targetRow = null;
-    
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === staffId) {
-        targetRow = row;
-      }
-    });
-    
-    if (!targetRow) {
-      alert('Staff not found!');
-      return;
-    }
-    
-    const cells = targetRow.querySelectorAll('td');
-    const currentData = {
-      id: cells[0].textContent.trim(),
-      name: cells[1].textContent.trim(),
-      phone: cells[2].textContent.trim(),
-      email: cells[3].textContent.trim(),
-      password: cells[4].textContent.trim(),
-      type: cells[5].textContent.trim(),
-      managerId: cells[6].textContent.trim() === '-' ? '' : cells[6].textContent.trim()
-    };
-    
-    document.getElementById('updateStaffId').value = currentData.id;
-    document.getElementById('updateStaffName').value = currentData.name;
-    document.getElementById('updatePhone').value = currentData.phone;
-    document.getElementById('updateEmail').value = currentData.email;
-    document.getElementById('updatePassword').value = currentData.password === '••••••••' ? '' : currentData.password;
-    document.getElementById('updateType').value = currentData.type;
-    
-    // Populate manager dropdown first, then set value
-    toggleManagerId();
-    document.getElementById('updateManagerId').value = currentData.managerId;
-    
-    document.getElementById('updateModal').setAttribute('data-target-row', staffId);
-    document.getElementById('updateModal').style.display = 'block';
-  }
-
-  function closeUpdateModal() {
-    document.getElementById('updateModal').style.display = 'none';
-    document.getElementById('updateStaffForm').reset();
-  }
-
-  function toggleManagerId() {
-    const typeSelect = document.getElementById('updateType');
-    const managerIdSelect = document.getElementById('updateManagerId');
-    const currentStaffId = document.getElementById('updateStaffId').value;
-    
-    if (typeSelect.value === 'Full Time') {
-      managerIdSelect.value = '';
-      managerIdSelect.disabled = true;
-      managerIdSelect.required = false;
-    } else {
-      managerIdSelect.disabled = false;
-      managerIdSelect.required = true;
-      
-      // Populate Manager ID dropdown with Full Time staff (excluding current staff)
-      managerIdSelect.innerHTML = '<option value="">-</option>';
-      const rows = tableBody.querySelectorAll('tr');
-      rows.forEach(row => {
-        const idCell = row.querySelector('td:first-child');
-        const typeCell = row.querySelector('td:nth-child(6)');
-        const nameCell = row.querySelector('td:nth-child(2)');
-        
-        if (idCell && typeCell && nameCell) {
-          const staffId = idCell.textContent.trim();
-          const staffType = typeCell.textContent.trim();
-          const staffName = nameCell.textContent.trim();
-          
-          if (staffType === 'Full Time' && staffId !== currentStaffId) {
-            const option = document.createElement('option');
-            option.value = staffId;
-            option.textContent = staffId + ' - ' + staffName;
-            managerIdSelect.appendChild(option);
-          }
-        }
+    let arrow = document.querySelectorAll(".arrow");
+    for (var i = 0; i < arrow.length; i++) {
+      arrow[i].addEventListener("click", (e) => {
+        let arrowParent = e.target.parentElement.parentElement;//selecting main parent of arrow
+        arrowParent.classList.toggle("showMenu");
       });
     }
-  }
+    let sidebar = document.querySelector(".sidebar");
+    let sidebarBtn = document.querySelector(".bx-menu");
+    console.log(sidebarBtn);
+    sidebarBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("close");
+    });
 
-  document.getElementById('updateStaffForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const staffId = document.getElementById('updateStaffId').value;
-    const typeValue = document.getElementById('updateType').value;
-    const managerIdValue = document.getElementById('updateManagerId').value;
-    
-    // Validate: Full Time should have no Manager ID
-    if (typeValue === 'Full Time' && managerIdValue !== '') {
-      alert('Full Time staff cannot have a Manager ID. Please set Manager ID to "-"');
-      return;
-    }
-    
-    // Validate: Part Time must have a Manager ID
-    if (typeValue === 'Part Time' && managerIdValue === '') {
-      alert('Part Time staff must have a Manager ID');
-      return;
-    }
-    
-    const updatedData = {
-      name: document.getElementById('updateStaffName').value.trim(),
-      phone: document.getElementById('updatePhone').value.trim(),
-      email: document.getElementById('updateEmail').value.trim(),
-      password: document.getElementById('updatePassword').value.trim() || '••••••••',
-      type: typeValue,
-      managerId: typeValue === 'Full Time' ? '-' : managerIdValue
-    };
-    
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === staffId) {
-        const cells = row.querySelectorAll('td');
-        cells[1].textContent = updatedData.name;
-        cells[2].textContent = updatedData.phone;
-        cells[3].textContent = updatedData.email;
-        cells[4].textContent = updatedData.password;
-        cells[5].textContent = updatedData.type;
-        cells[6].textContent = updatedData.managerId;
-        
-        row.setAttribute('data-name', updatedData.name);
-        row.setAttribute('data-type', updatedData.type);
-        
-        allRows = Array.from(tableBody.querySelectorAll('tr'));
-        closeUpdateModal();
-        alert('Staff details updated successfully!');
+    // Sorting functionality
+    const sortOrderSelect = document.getElementById('sortOrder');
+    const sortBySelect = document.getElementById('sortBy');
+    const tableBody = document.getElementById('staffTableBody');
+
+    function sortTable() {
+      const sortBy = sortBySelect.value;
+      const sortOrder = sortOrderSelect.value;
+
+      if (!sortBy || !sortOrder) {
         return;
       }
-    });
-  });
 
-  window.onclick = function(event) {
-    const modal = document.getElementById('updateModal');
-    if (event.target === modal) {
-      closeUpdateModal();
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+      rows.sort((a, b) => {
+        let comparison = 0;
+
+        switch (sortBy) {
+          case 'alphabetical':
+            const nameA = a.getAttribute('data-name').toLowerCase();
+            const nameB = b.getAttribute('data-name').toLowerCase();
+            comparison = nameA.localeCompare(nameB);
+            break;
+          case 'type':
+            const typeA = a.getAttribute('data-type');
+            const typeB = b.getAttribute('data-type');
+            comparison = typeA.localeCompare(typeB);
+            break;
+        }
+
+        return sortOrder === 'ascending' ? comparison : -comparison;
+      });
+
+      tableBody.innerHTML = '';
+      rows.forEach(row => tableBody.appendChild(row));
     }
-  }
 
-  document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
+    sortOrderSelect.addEventListener('change', sortTable);
+    sortBySelect.addEventListener('change', sortTable);
 
-  function deleteStaff(staffId) {
-    if (confirm('Are you sure you want to delete staff ' + staffId + '?')) {
+    // Search functionality
+    const searchInput = document.getElementById('search');
+    const searchButton = document.querySelector('.btn-search');
+    const searchTypeSelect = document.getElementById('searchType');
+    let allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+    function performSearch() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const searchType = searchTypeSelect.value;
+
+      allRows.forEach(row => {
+        let matches = false;
+
+        if (searchType === 'id') {
+          const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+          matches = id.includes(searchTerm);
+        } else if (searchType === 'name') {
+          const name = row.getAttribute('data-name').toLowerCase();
+          matches = name.includes(searchTerm);
+        } else if (searchType === 'phone') {
+          const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+          matches = phone.includes(searchTerm);
+        } else if (searchType === 'email') {
+          const email = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+          matches = email.includes(searchTerm);
+        }
+
+        row.style.display = matches ? '' : 'none';
+      });
+    }
+
+    searchButton.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
+      }
+    });
+
+    allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+    // Update and Delete functions
+    function updateStaff(staffId) {
       const rows = tableBody.querySelectorAll('tr');
+      let targetRow = null;
+
       rows.forEach(row => {
         const idCell = row.querySelector('td:first-child');
         if (idCell && idCell.textContent.trim() === staffId) {
-          row.remove();
-          allRows = Array.from(tableBody.querySelectorAll('tr'));
-          alert('Staff deleted successfully!');
-          return;
+          targetRow = row;
         }
       });
+
+      if (!targetRow) {
+        alert('Staff not found!');
+        return;
+      }
+
+      const cells = targetRow.querySelectorAll('td');
+      // Note: Adjust indices because of "Reports To" column and hidden columns
+      // 0: ID, 1: Name, 2: Phone, 3: Email, 4: Type, 5: Reports To, 6: Actions, 7: Password, 8: ManagerID
+      const hiddenPassword = targetRow.querySelector('.hidden-password').textContent.trim();
+      const hiddenManagerId = targetRow.querySelector('.hidden-manager-id').textContent.trim();
+
+      const currentData = {
+        id: cells[0].textContent.trim(),
+        name: cells[1].textContent.trim(),
+        phone: cells[2].textContent.trim(),
+        email: cells[3].textContent.trim(),
+        password: hiddenPassword,
+        type: targetRow.getAttribute('data-type'), // Get raw type from attribute
+        managerId: hiddenManagerId === '-' ? '' : hiddenManagerId
+      };
+
+      document.getElementById('updateStaffId').value = currentData.id;
+      document.getElementById('updateStaffName').value = currentData.name;
+      document.getElementById('updatePhone').value = currentData.phone;
+      document.getElementById('updateEmail').value = currentData.email;
+      document.getElementById('updatePassword').value = currentData.password;
+      document.getElementById('updateType').value = currentData.type;
+
+      // Populate manager dropdown first, then set value
+      toggleManagerId();
+      document.getElementById('updateManagerId').value = currentData.managerId;
+
+      document.getElementById('updateModal').setAttribute('data-target-row', staffId);
+      document.getElementById('updateModal').style.display = 'block';
     }
-  }
+
+    function closeUpdateModal() {
+      document.getElementById('updateModal').style.display = 'none';
+      document.getElementById('updateStaffForm').reset();
+    }
+
+    function toggleManagerId() {
+      const typeSelect = document.getElementById('updateType');
+      const managerIdSelect = document.getElementById('updateManagerId');
+      const currentStaffId = document.getElementById('updateStaffId').value;
+
+      if (typeSelect.value === 'Full Time') {
+        managerIdSelect.value = '';
+        managerIdSelect.disabled = true;
+        managerIdSelect.required = false;
+      } else {
+        managerIdSelect.disabled = false;
+        managerIdSelect.required = true;
+
+        // Populate Manager ID dropdown with Full Time staff (excluding current staff)
+        // Ideally this should come from a separate list of full-time staff
+        managerIdSelect.innerHTML = '<option value="">-</option>';
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+          const idCell = row.querySelector('td:first-child');
+          const typeAttr = row.getAttribute('data-type');
+          const nameCell = row.querySelector('td:nth-child(2)');
+
+          if (idCell && typeAttr && nameCell) {
+            const staffId = idCell.textContent.trim();
+            const staffType = typeAttr;
+            const staffName = nameCell.textContent.trim();
+
+            if (staffType === 'Full Time' && staffId !== currentStaffId) {
+              const option = document.createElement('option');
+              option.value = staffId;
+              option.textContent = staffId + ' - ' + staffName;
+              managerIdSelect.appendChild(option);
+            }
+          }
+        });
+      }
+    }
+
+    document.getElementById('updateStaffForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const staffId = document.getElementById('updateStaffId').value;
+      const typeValue = document.getElementById('updateType').value;
+      const managerIdValue = document.getElementById('updateManagerId').value;
+
+      // Validate: Full Time should have no Manager ID
+      if (typeValue === 'Full Time' && managerIdValue !== '') {
+        alert('Full Time staff cannot have a Manager ID. Please set Manager ID to "-"');
+        return;
+      }
+
+      // Validate: Part Time must have a Manager ID
+      if (typeValue === 'Part Time' && managerIdValue === '') {
+        alert('Part Time staff must have a Manager ID');
+        return;
+      }
+
+      // In a real application, submit to backend here
+      alert('This is a demo. Backend update logic would go here.');
+      closeUpdateModal();
+    });
+
+    window.onclick = function (event) {
+      const modal = document.getElementById('updateModal');
+      if (event.target === modal) {
+        closeUpdateModal();
+      }
+    }
+
+    document.querySelector('.close-modal').addEventListener('click', closeUpdateModal);
+
+    function deleteStaff(staffId) {
+      if (confirm('Are you sure you want to delete staff ' + staffId + '?')) {
+        // In a real application, call backend API here
+        // For now, remove from table
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+          const idCell = row.querySelector('td:first-child');
+          if (idCell && idCell.textContent.trim() === staffId) {
+            row.remove();
+            allRows = Array.from(tableBody.querySelectorAll('tr'));
+            alert('Staff deleted successfully (Frontend only)!');
+            return;
+          }
+        });
+      }
+    }
   </script>
 </body>
-</html>
 
+</html>

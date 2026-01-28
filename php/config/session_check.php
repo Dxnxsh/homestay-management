@@ -12,14 +12,16 @@ if (!isset($_SESSION)) {
  * Check if user is logged in
  * @return bool Returns true if user is logged in, false otherwise
  */
-function isGuestLoggedIn() {
+function isGuestLoggedIn()
+{
     return isset($_SESSION['guestID']) && isset($_SESSION['guest_email']);
 }
 
 /**
  * Require guest login - redirects to login if not authenticated
  */
-function requireGuestLogin() {
+function requireGuestLogin()
+{
     if (!isGuestLoggedIn()) {
         header('Location: ../login.php');
         exit();
@@ -30,7 +32,8 @@ function requireGuestLogin() {
  * Get current guest ID
  * @return int|null Returns guest ID or null if not logged in
  */
-function getCurrentGuestID() {
+function getCurrentGuestID()
+{
     return isset($_SESSION['guestID']) ? $_SESSION['guestID'] : null;
 }
 
@@ -38,7 +41,8 @@ function getCurrentGuestID() {
  * Get current guest name
  * @return string|null Returns guest name or null if not logged in
  */
-function getCurrentGuestName() {
+function getCurrentGuestName()
+{
     return isset($_SESSION['guest_name']) ? $_SESSION['guest_name'] : null;
 }
 
@@ -46,7 +50,8 @@ function getCurrentGuestName() {
  * Get current guest email
  * @return string|null Returns guest email or null if not logged in
  */
-function getCurrentGuestEmail() {
+function getCurrentGuestEmail()
+{
     return isset($_SESSION['guest_email']) ? $_SESSION['guest_email'] : null;
 }
 
@@ -54,37 +59,38 @@ function getCurrentGuestEmail() {
  * Check if guest profile is complete
  * @return bool Returns true if profile is complete, false otherwise
  */
-function isGuestProfileComplete() {
+function isGuestProfileComplete()
+{
     require_once 'db_connection.php';
-    
+
     if (!isGuestLoggedIn()) {
         return false;
     }
-    
+
     $guestID = getCurrentGuestID();
     $conn = getDBConnection();
-    
+
     if (!$conn) {
         return false;
     }
-    
+
     $sql = "SELECT guest_phoneNo, guest_gender, guest_address 
             FROM GUEST 
             WHERE guestID = :guestID";
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':guestID', $guestID);
-    
+
     if (oci_execute($stmt)) {
         $row = oci_fetch_array($stmt, OCI_ASSOC);
         oci_free_statement($stmt);
         closeDBConnection($conn);
-        
+
         if ($row) {
             // Check if required fields are filled
             $phoneNo = trim($row['GUEST_PHONENO'] ?? '');
             $gender = trim($row['GUEST_GENDER'] ?? '');
             $address = trim($row['GUEST_ADDRESS'] ?? '');
-            
+
             // Profile is complete if all three fields are filled
             return !empty($phoneNo) && !empty($gender) && !empty($address);
         }
@@ -92,7 +98,7 @@ function isGuestProfileComplete() {
         oci_free_statement($stmt);
         closeDBConnection($conn);
     }
-    
+
     return false;
 }
 
@@ -100,7 +106,8 @@ function isGuestProfileComplete() {
  * Check if staff/manager is logged in
  * @return bool Returns true if staff/manager is logged in, false otherwise
  */
-function isStaffLoggedIn() {
+function isStaffLoggedIn()
+{
     return isset($_SESSION['staffID']) && isset($_SESSION['staff_email']);
 }
 
@@ -108,14 +115,16 @@ function isStaffLoggedIn() {
  * Check if user is a manager
  * @return bool Returns true if user is a manager, false otherwise
  */
-function isManager() {
-    return isStaffLoggedIn() && isset($_SESSION['staff_type']) && $_SESSION['staff_type'] === 'Manager';
+function isManager()
+{
+    return isStaffLoggedIn() && (!isset($_SESSION['managerID']) || $_SESSION['managerID'] === null);
 }
 
 /**
  * Require staff login (manager or regular staff) - redirects to login if not authenticated
  */
-function requireStaffLogin() {
+function requireStaffLogin()
+{
     if (!isStaffLoggedIn()) {
         header('Location: ../login.php');
         exit();
@@ -126,7 +135,8 @@ function requireStaffLogin() {
  * Get current staff ID
  * @return int|null Returns staff ID or null if not logged in
  */
-function getCurrentStaffID() {
+function getCurrentStaffID()
+{
     return isset($_SESSION['staffID']) ? $_SESSION['staffID'] : null;
 }
 
@@ -134,7 +144,8 @@ function getCurrentStaffID() {
  * Get current staff name
  * @return string|null Returns staff name or null if not logged in
  */
-function getCurrentStaffName() {
+function getCurrentStaffName()
+{
     return isset($_SESSION['staff_name']) ? $_SESSION['staff_name'] : null;
 }
 
@@ -142,6 +153,7 @@ function getCurrentStaffName() {
  * Get current staff email
  * @return string|null Returns staff email or null if not logged in
  */
-function getCurrentStaffEmail() {
+function getCurrentStaffEmail()
+{
     return isset($_SESSION['staff_email']) ? $_SESSION['staff_email'] : null;
 }
