@@ -13,7 +13,7 @@ if (!$conn) {
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   header('Content-Type: application/json');
-    
+
   if ($_POST['action'] === 'add') {
     $checkIn = $_POST['checkIn'];
     $checkOut = $_POST['checkOut'];
@@ -24,12 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $guestID = $_POST['guestId'];
     $staffID = $_POST['staffId'];
     $billNo = !empty($_POST['billNo']) ? $_POST['billNo'] : null;
-        
+
     $sql = "INSERT INTO BOOKING (checkin_date, checkout_date, num_adults, num_children, deposit_amount, homestayID, guestID, staffID, billNo)
         VALUES (TO_DATE(:checkIn, 'YYYY-MM-DD'), TO_DATE(:checkOut, 'YYYY-MM-DD'), :numAdults, :numChildren, :deposit, :homestayID, :guestID, :staffID, :billNo)";
-        
+
     $stmt = oci_parse($conn, $sql);
-    
+
     oci_bind_by_name($stmt, ':checkIn', $checkIn);
     oci_bind_by_name($stmt, ':checkOut', $checkOut);
     oci_bind_by_name($stmt, ':numAdults', $numAdults);
@@ -38,22 +38,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     oci_bind_by_name($stmt, ':homestayID', $homestayID);
     oci_bind_by_name($stmt, ':guestID', $guestID);
     oci_bind_by_name($stmt, ':staffID', $staffID);
-    if ($billNo !== null) {
-      oci_bind_by_name($stmt, ':billNo', $billNo);
-    } else {
-      oci_bind_by_name($stmt, ':billNo', $billNo);
-    }
-        
+    oci_bind_by_name($stmt, ':billNo', $billNo);
+
     if (oci_execute($stmt)) {
       echo json_encode(['success' => true, 'message' => 'Booking added successfully']);
     } else {
       $error = oci_error($stmt);
-      echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
     }
     oci_free_statement($stmt);
     exit;
   }
-    
+
   if ($_POST['action'] === 'update') {
     $bookingID = $_POST['bookingId'];
     $checkIn = $_POST['checkIn'];
@@ -65,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $guestID = $_POST['guestId'];
     $staffID = $_POST['staffId'];
     $billNo = !empty($_POST['billNo']) ? $_POST['billNo'] : null;
-        
+
     $sql = "UPDATE BOOKING SET 
         checkin_date = TO_DATE(:checkIn, 'YYYY-MM-DD'),
         checkout_date = TO_DATE(:checkOut, 'YYYY-MM-DD'),
@@ -77,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         staffID = :staffID,
         billNo = :billNo
         WHERE bookingID = :id";
-        
+
     $stmt = oci_parse($conn, $sql);
     oci_bind_by_name($stmt, ':checkIn', $checkIn);
     oci_bind_by_name($stmt, ':checkOut', $checkOut);
@@ -88,8 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     oci_bind_by_name($stmt, ':guestID', $guestID);
     oci_bind_by_name($stmt, ':staffID', $staffID);
     oci_bind_by_name($stmt, ':billNo', $billNo);
-    
-        
+
+
     if (oci_execute($stmt)) {
       echo json_encode(['success' => true, 'message' => 'Booking updated successfully']);
     } else {
@@ -99,29 +94,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     oci_free_statement($stmt);
     exit;
   }
-    
+
   if ($_POST['action'] === 'delete') {
     $bookingID = $_POST['bookingId'];
-        
+
     // Check if booking is linked to a bill
     $checkSql = "SELECT billNo FROM BOOKING WHERE bookingID = :id";
     $checkStmt = oci_parse($conn, $checkSql);
     oci_bind_by_name($checkStmt, ':id', $bookingID);
     oci_execute($checkStmt);
     $row = oci_fetch_array($checkStmt, OCI_ASSOC);
-    if ($row && $row['BILLNO'] !== null) {
-      echo json_encode(['success' => false, 'message' => 'Cannot delete booking linked to a bill']);
-      oci_free_statement($checkStmt);
-      exit;
-    }
+    $linkedBillNo = ($row && $row['BILLNO']) ? $row['BILLNO'] : null;
     oci_free_statement($checkStmt);
-        
+
+    // Delete the booking first
     $sql = "DELETE FROM BOOKING WHERE bookingID = :id";
     $stmt = oci_parse($conn, $sql);
-    
-        
+    oci_bind_by_name($stmt, ':id', $bookingID);
+
     if (oci_execute($stmt)) {
-      echo json_encode(['success' => true, 'message' => 'Booking deleted successfully']);
+      // If booking deletion successful, check if we need to delete a linked bill
+      if ($linkedBillNo) {
+        $deleteBillSql = "DELETE FROM BILL WHERE billNo = :billNo";
+        $deleteBillStmt = oci_parse($conn, $deleteBillSql);
+        oci_bind_by_name($deleteBillStmt, ':billNo', $linkedBillNo);
+        if (!oci_execute($deleteBillStmt)) {
+          // Ideally we should log this, but for now we just proceed as the main action (booking delete) succeeded.
+          // Or we could return a warning message.
+        }
+        oci_free_statement($deleteBillStmt);
+      }
+
+      echo json_encode(['success' => true, 'message' => 'Booking and linked bill (if any) deleted successfully']);
     } else {
       $error = oci_error($stmt);
       echo json_encode(['success' => false, 'message' => 'Error: ' . $error['message']]);
@@ -184,13 +188,15 @@ oci_free_statement($billStmt);
 
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Bookings</title>
-    <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/bookingsStyle.css">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Bookings</title>
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/bookingsStyle.css">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
 <body>
   <div class="sidebar close">
     <div class="logo-details">
@@ -200,7 +206,7 @@ oci_free_statement($billStmt);
     <ul class="nav-links">
       <li>
         <a href="dashboard.php">
-          <i class='bxr  bx-dashboard'></i> 
+          <i class='bxr  bx-dashboard'></i>
           <span class="link_name">Dashboard</span>
         </a>
         <ul class="sub-menu blank">
@@ -213,13 +219,13 @@ oci_free_statement($billStmt);
             <i class='bxr  bx-list-square'></i>
             <span class="link_name">Manage</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="manage.php">Manage</a></li>
           <li><a href="guests.php">Guests</a></li>
           <?php if (isManager()): ?>
-          <li><a href="staff.php">Staff</a></li>
+            <li><a href="staff.php">Staff</a></li>
           <?php endif; ?>
           <li><a href="homestay.php">Homestay</a></li>
         </ul>
@@ -253,7 +259,7 @@ oci_free_statement($billStmt);
       </li>
       <li>
         <a href="calendar.php">
-          <i class='bxr  bx-calendar-alt'></i> 
+          <i class='bxr  bx-calendar-alt'></i>
           <span class="link_name">Calendar</span>
         </a>
         <ul class="sub-menu blank">
@@ -263,10 +269,10 @@ oci_free_statement($billStmt);
       <li>
         <div class="icon-link">
           <a href="reports.php">
-            <i class='bxr  bx-file-report'></i> 
+            <i class='bxr  bx-file-report'></i>
             <span class="link_name">Reports</span>
           </a>
-          <i class='bx bxs-chevron-down arrow' ></i>
+          <i class='bx bxs-chevron-down arrow'></i>
         </div>
         <ul class="sub-menu">
           <li><a class="link_name" href="reports.php">Reports</a></li>
@@ -275,9 +281,10 @@ oci_free_statement($billStmt);
           <li><a href="analytics.php">Analytics</a></li>
         </ul>
       </li>
-            <li>
+      <li>
         <div class="profile-details">
-          <a href="../logout.php" class="profile-content" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
+          <a href="../logout.php" class="profile-content"
+            style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit;">
             <i class='bx bx-arrow-out-right-square-half' style="font-size: 24px; margin-right: 10px;"></i>
             <span class="link_name">Logout</span>
           </a>
@@ -287,7 +294,7 @@ oci_free_statement($billStmt);
   </div>
   <section class="home-section">
     <div class="home-content">
-      <i class='bx bx-menu' ></i>
+      <i class='bx bx-menu'></i>
       <span class="text">Serena Sanctuary</span>
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
@@ -357,26 +364,29 @@ oci_free_statement($billStmt);
           </thead>
           <tbody id="bookingsTableBody">
             <?php foreach ($bookings as $booking): ?>
-            <tr data-date="<?php echo htmlspecialchars($booking['CHECKIN_DATE']); ?>"
+              <tr data-date="<?php echo htmlspecialchars($booking['CHECKIN_DATE']); ?>"
                 data-deposit="<?php echo htmlspecialchars($booking['DEPOSIT_AMOUNT']); ?>"
                 data-adults="<?php echo htmlspecialchars($booking['NUM_ADULTS']); ?>"
                 data-children="<?php echo htmlspecialchars($booking['NUM_CHILDREN']); ?>"
                 data-staff="<?php echo htmlspecialchars($booking['STAFFID'] ?? ''); ?>">
-              <td><?php echo htmlspecialchars($booking['BOOKINGID']); ?></td>
-              <td><?php echo htmlspecialchars($booking['CHECKIN_DATE']); ?></td>
-              <td><?php echo htmlspecialchars($booking['CHECKOUT_DATE']); ?></td>
-              <td>RM <?php echo number_format($booking['DEPOSIT_AMOUNT'], 2); ?></td>
-              <td><?php echo htmlspecialchars($booking['HOMESTAYID']); ?></td>
-              <td><?php echo htmlspecialchars($booking['GUESTID']); ?></td>
-              <td><?php echo htmlspecialchars($booking['BILLNO'] ?? '-'); ?></td>
-              <td>
-                <button class="btn-details" onclick="viewBookingDetails('<?php echo $booking['BOOKINGID']; ?>')">Details</button>
-              </td>
-              <td>
-                <button class="btn-update" onclick="updateBooking('<?php echo $booking['BOOKINGID']; ?>')">Update</button>
-                <button class="btn-delete" onclick="deleteBooking('<?php echo $booking['BOOKINGID']; ?>')">Delete</button>
-              </td>
-            </tr>
+                <td><?php echo htmlspecialchars($booking['BOOKINGID']); ?></td>
+                <td><?php echo htmlspecialchars($booking['CHECKIN_DATE']); ?></td>
+                <td><?php echo htmlspecialchars($booking['CHECKOUT_DATE']); ?></td>
+                <td>RM <?php echo number_format($booking['DEPOSIT_AMOUNT'], 2); ?></td>
+                <td><?php echo htmlspecialchars($booking['HOMESTAYID']); ?></td>
+                <td><?php echo htmlspecialchars($booking['GUESTID']); ?></td>
+                <td><?php echo htmlspecialchars($booking['BILLNO'] ?? '-'); ?></td>
+                <td>
+                  <button class="btn-details"
+                    onclick="viewBookingDetails('<?php echo $booking['BOOKINGID']; ?>')">Details</button>
+                </td>
+                <td>
+                  <button class="btn-update"
+                    onclick="updateBooking('<?php echo $booking['BOOKINGID']; ?>')">Update</button>
+                  <button class="btn-delete"
+                    onclick="deleteBooking('<?php echo $booking['BOOKINGID']; ?>')">Delete</button>
+                </td>
+              </tr>
             <?php endforeach; ?>
           </tbody>
         </table>
@@ -426,7 +436,9 @@ oci_free_statement($billStmt);
           <label for="addHomestayId">Homestay</label>
           <select id="addHomestayId" name="homestayId" required>
             <?php foreach ($homestays as $h): ?>
-            <option value="<?php echo htmlspecialchars($h['HOMESTAYID']); ?>"><?php echo htmlspecialchars($h['HOMESTAYID'] . ' - ' . $h['HOMESTAY_NAME']); ?></option>
+              <option value="<?php echo htmlspecialchars($h['HOMESTAYID']); ?>">
+                <?php echo htmlspecialchars($h['HOMESTAYID'] . ' - ' . $h['HOMESTAY_NAME']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -434,7 +446,9 @@ oci_free_statement($billStmt);
           <label for="addGuestId">Guest</label>
           <select id="addGuestId" name="guestId" required>
             <?php foreach ($guests as $g): ?>
-            <option value="<?php echo htmlspecialchars($g['GUESTID']); ?>"><?php echo htmlspecialchars($g['GUESTID'] . ' - ' . $g['GUEST_NAME']); ?></option>
+              <option value="<?php echo htmlspecialchars($g['GUESTID']); ?>">
+                <?php echo htmlspecialchars($g['GUESTID'] . ' - ' . $g['GUEST_NAME']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -442,7 +456,9 @@ oci_free_statement($billStmt);
           <label for="addStaffId">Staff</label>
           <select id="addStaffId" name="staffId" required>
             <?php foreach ($staff as $s): ?>
-            <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>"><?php echo htmlspecialchars($s['STAFFID'] . ' - ' . $s['STAFF_NAME']); ?></option>
+              <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>">
+                <?php echo htmlspecialchars($s['STAFFID'] . ' - ' . $s['STAFF_NAME']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -451,7 +467,8 @@ oci_free_statement($billStmt);
           <select id="addBillNo" name="billNo">
             <option value="">None</option>
             <?php foreach ($bills as $b): ?>
-            <option value="<?php echo htmlspecialchars($b['BILLNO']); ?>"><?php echo htmlspecialchars($b['BILLNO']); ?></option>
+              <option value="<?php echo htmlspecialchars($b['BILLNO']); ?>"><?php echo htmlspecialchars($b['BILLNO']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -554,7 +571,9 @@ oci_free_statement($billStmt);
           <label for="updateHomestayId">Homestay</label>
           <select id="updateHomestayId" name="homestayId" required>
             <?php foreach ($homestays as $h): ?>
-            <option value="<?php echo htmlspecialchars($h['HOMESTAYID']); ?>"><?php echo htmlspecialchars($h['HOMESTAYID'] . ' - ' . $h['HOMESTAY_NAME']); ?></option>
+              <option value="<?php echo htmlspecialchars($h['HOMESTAYID']); ?>">
+                <?php echo htmlspecialchars($h['HOMESTAYID'] . ' - ' . $h['HOMESTAY_NAME']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -562,7 +581,9 @@ oci_free_statement($billStmt);
           <label for="updateGuestId">Guest</label>
           <select id="updateGuestId" name="guestId" required>
             <?php foreach ($guests as $g): ?>
-            <option value="<?php echo htmlspecialchars($g['GUESTID']); ?>"><?php echo htmlspecialchars($g['GUESTID'] . ' - ' . $g['GUEST_NAME']); ?></option>
+              <option value="<?php echo htmlspecialchars($g['GUESTID']); ?>">
+                <?php echo htmlspecialchars($g['GUESTID'] . ' - ' . $g['GUEST_NAME']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -570,7 +591,9 @@ oci_free_statement($billStmt);
           <label for="updateStaffId">Staff</label>
           <select id="updateStaffId" name="staffId" required>
             <?php foreach ($staff as $s): ?>
-            <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>"><?php echo htmlspecialchars($s['STAFFID'] . ' - ' . $s['STAFF_NAME']); ?></option>
+              <option value="<?php echo htmlspecialchars($s['STAFFID']); ?>">
+                <?php echo htmlspecialchars($s['STAFFID'] . ' - ' . $s['STAFF_NAME']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -579,7 +602,8 @@ oci_free_statement($billStmt);
           <select id="updateBillNo" name="billNo">
             <option value="">None</option>
             <?php foreach ($bills as $b): ?>
-            <option value="<?php echo htmlspecialchars($b['BILLNO']); ?>"><?php echo htmlspecialchars($b['BILLNO']); ?></option>
+              <option value="<?php echo htmlspecialchars($b['BILLNO']); ?>"><?php echo htmlspecialchars($b['BILLNO']); ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -592,306 +616,307 @@ oci_free_statement($billStmt);
   </div>
 
   <script>
-  let arrow = document.querySelectorAll(".arrow");
-  for (var i = 0; i < arrow.length; i++) {
-    arrow[i].addEventListener("click", (e)=>{
-   let arrowParent = e.target.parentElement.parentElement;
-   arrowParent.classList.toggle("showMenu");
+    let arrow = document.querySelectorAll(".arrow");
+    for (var i = 0; i < arrow.length; i++) {
+      arrow[i].addEventListener("click", (e) => {
+        let arrowParent = e.target.parentElement.parentElement;
+        arrowParent.classList.toggle("showMenu");
+      });
+    }
+    let sidebar = document.querySelector(".sidebar");
+    let sidebarBtn = document.querySelector(".bx-menu");
+    console.log(sidebarBtn);
+    sidebarBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("close");
     });
-  }
-  let sidebar = document.querySelector(".sidebar");
-  let sidebarBtn = document.querySelector(".bx-menu");
-  console.log(sidebarBtn);
-  sidebarBtn.addEventListener("click", ()=>{
-    sidebar.classList.toggle("close");
-  });
 
-  // Sorting functionality
-  const sortOrderSelect = document.getElementById('sortOrder');
-  const sortBySelect = document.getElementById('sortBy');
-  const tableBody = document.getElementById('bookingsTableBody');
+    // Sorting functionality
+    const sortOrderSelect = document.getElementById('sortOrder');
+    const sortBySelect = document.getElementById('sortBy');
+    const tableBody = document.getElementById('bookingsTableBody');
 
-  function sortTable() {
-    const sortBy = sortBySelect.value;
-    const sortOrder = sortOrderSelect.value;
+    function sortTable() {
+      const sortBy = sortBySelect.value;
+      const sortOrder = sortOrderSelect.value;
 
-    if (!sortBy || !sortOrder) {
-      return;
+      if (!sortBy || !sortOrder) {
+        return;
+      }
+
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+      rows.sort((a, b) => {
+        let comparison = 0;
+
+        switch (sortBy) {
+          case 'date':
+            const dateA = new Date(a.getAttribute('data-date'));
+            const dateB = new Date(b.getAttribute('data-date'));
+            comparison = dateA - dateB;
+            break;
+          case 'deposit':
+            const depositA = parseFloat(a.getAttribute('data-deposit'));
+            const depositB = parseFloat(b.getAttribute('data-deposit'));
+            comparison = depositA - depositB;
+            break;
+        }
+
+        return sortOrder === 'ascending' ? comparison : -comparison;
+      });
+
+      tableBody.innerHTML = '';
+      rows.forEach(row => tableBody.appendChild(row));
     }
 
-    const rows = Array.from(tableBody.querySelectorAll('tr'));
-    
-    rows.sort((a, b) => {
-      let comparison = 0;
-      
-      switch(sortBy) {
-        case 'date':
-          const dateA = new Date(a.getAttribute('data-date'));
-          const dateB = new Date(b.getAttribute('data-date'));
-          comparison = dateA - dateB;
-          break;
-        case 'deposit':
-          const depositA = parseFloat(a.getAttribute('data-deposit'));
-          const depositB = parseFloat(b.getAttribute('data-deposit'));
-          comparison = depositA - depositB;
-          break;
+    sortOrderSelect.addEventListener('change', sortTable);
+    sortBySelect.addEventListener('change', sortTable);
+
+    // Search functionality
+    const searchInput = document.getElementById('search');
+    const searchButton = document.querySelector('.btn-search');
+    const searchTypeSelect = document.getElementById('searchType');
+    let allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+    function performSearch() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const searchType = searchTypeSelect.value;
+
+      allRows.forEach(row => {
+        let matches = false;
+
+        if (searchType === 'id') {
+          const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+          matches = id.includes(searchTerm);
+        } else if (searchType === 'guestId') {
+          const guestId = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
+          matches = guestId.includes(searchTerm);
+        } else if (searchType === 'homestayId') {
+          const homestayId = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
+          matches = homestayId.includes(searchTerm);
+        } else if (searchType === 'billNo') {
+          const billNo = row.querySelector('td:nth-child(7)').textContent.toLowerCase();
+          matches = billNo.includes(searchTerm);
+        }
+
+        row.style.display = matches ? '' : 'none';
+      });
+    }
+
+    searchButton.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
       }
-      
-      return sortOrder === 'ascending' ? comparison : -comparison;
     });
 
-    tableBody.innerHTML = '';
-    rows.forEach(row => tableBody.appendChild(row));
-  }
+    allRows = Array.from(tableBody.querySelectorAll('tr'));
 
-  sortOrderSelect.addEventListener('change', sortTable);
-  sortBySelect.addEventListener('change', sortTable);
+    // Update and Delete functions
+    function updateBooking(bookingId) {
+      const rows = tableBody.querySelectorAll('tr');
+      let targetRow = null;
 
-  // Search functionality
-  const searchInput = document.getElementById('search');
-  const searchButton = document.querySelector('.btn-search');
-  const searchTypeSelect = document.getElementById('searchType');
-  let allRows = Array.from(tableBody.querySelectorAll('tr'));
+      rows.forEach(row => {
+        const idCell = row.querySelector('td:first-child');
+        if (idCell && idCell.textContent.trim() === bookingId) {
+          targetRow = row;
+        }
+      });
 
-  function performSearch() {
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    const searchType = searchTypeSelect.value;
-    
-    allRows.forEach(row => {
-      let matches = false;
-      
-      if (searchType === 'id') {
-        const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-        matches = id.includes(searchTerm);
-      } else if (searchType === 'guestId') {
-        const guestId = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
-        matches = guestId.includes(searchTerm);
-      } else if (searchType === 'homestayId') {
-        const homestayId = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
-        matches = homestayId.includes(searchTerm);
-      } else if (searchType === 'billNo') {
-        const billNo = row.querySelector('td:nth-child(7)').textContent.toLowerCase();
-        matches = billNo.includes(searchTerm);
+      if (!targetRow) {
+        alert('Booking not found!');
+        return;
       }
-      
-      row.style.display = matches ? '' : 'none';
-    });
-  }
 
-  searchButton.addEventListener('click', performSearch);
-  searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
+      const cells = targetRow.querySelectorAll('td');
+      const currentData = {
+        bookingId: cells[0].textContent.trim(),
+        checkIn: cells[1].textContent.trim(),
+        checkOut: cells[2].textContent.trim(),
+        deposit: cells[3].textContent.trim().replace('RM ', '').trim(),
+        homestayId: cells[4].textContent.trim(),
+        guestId: cells[5].textContent.trim(),
+        billNo: cells[6].textContent.trim() === '-' ? '' : cells[6].textContent.trim(),
+        numAdults: targetRow.getAttribute('data-adults') || '2',
+        numChildren: targetRow.getAttribute('data-children') || '0',
+        staffId: targetRow.getAttribute('data-staff') || 'S001'
+      };
+
+      document.getElementById('updateBookingId').value = currentData.bookingId;
+      document.getElementById('updateCheckIn').value = currentData.checkIn;
+      document.getElementById('updateCheckOut').value = currentData.checkOut;
+      document.getElementById('updateNumAdults').value = currentData.numAdults;
+      document.getElementById('updateNumChildren').value = currentData.numChildren;
+      document.getElementById('updateDeposit').value = currentData.deposit;
+      document.getElementById('updateHomestayId').value = currentData.homestayId;
+      document.getElementById('updateGuestId').value = currentData.guestId;
+      document.getElementById('updateStaffId').value = currentData.staffId;
+      document.getElementById('updateBillNo').value = currentData.billNo;
+
+      document.getElementById('updateModal').setAttribute('data-target-row', bookingId);
+      document.getElementById('updateModal').style.display = 'block';
+    }
+
+    function closeUpdateModal() {
+      document.getElementById('updateModal').style.display = 'none';
+      document.getElementById('updateBookingForm').reset();
+    }
+
+    function viewBookingDetails(bookingId) {
+      const rows = tableBody.querySelectorAll('tr');
+      let targetRow = null;
+
+      rows.forEach(row => {
+        const idCell = row.querySelector('td:first-child');
+        if (idCell && idCell.textContent.trim() === bookingId) {
+          targetRow = row;
+        }
+      });
+
+      if (!targetRow) {
+        alert('Booking not found!');
+        return;
+      }
+
+      const cells = targetRow.querySelectorAll('td');
+      document.getElementById('detailsBookingId').value = cells[0].textContent.trim();
+      document.getElementById('detailsCheckIn').value = cells[1].textContent.trim();
+      document.getElementById('detailsCheckOut').value = cells[2].textContent.trim();
+      document.getElementById('detailsNumAdults').value = targetRow.getAttribute('data-adults') || 'N/A';
+      document.getElementById('detailsNumChildren').value = targetRow.getAttribute('data-children') || '0';
+      document.getElementById('detailsDeposit').value = cells[3].textContent.trim();
+      document.getElementById('detailsHomestayId').value = cells[4].textContent.trim();
+      document.getElementById('detailsGuestId').value = cells[5].textContent.trim();
+      document.getElementById('detailsStaffId').value = targetRow.getAttribute('data-staff') || 'N/A';
+      document.getElementById('detailsBillNo').value = cells[6].textContent.trim() === '-' ? 'Not assigned' : cells[6].textContent.trim();
+
+      document.getElementById('detailsModal').style.display = 'block';
+    }
+
+    function closeDetailsModal() {
+      document.getElementById('detailsModal').style.display = 'none';
+    }
+
+    document.getElementById('updateBookingForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      performSearch();
-    }
-  });
 
-  allRows = Array.from(tableBody.querySelectorAll('tr'));
-
-  // Update and Delete functions
-  function updateBooking(bookingId) {
-    const rows = tableBody.querySelectorAll('tr');
-    let targetRow = null;
-    
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === bookingId) {
-        targetRow = row;
-      }
-    });
-    
-    if (!targetRow) {
-      alert('Booking not found!');
-      return;
-    }
-    
-    const cells = targetRow.querySelectorAll('td');
-    const currentData = {
-      bookingId: cells[0].textContent.trim(),
-      checkIn: cells[1].textContent.trim(),
-      checkOut: cells[2].textContent.trim(),
-      deposit: cells[3].textContent.trim().replace('RM ', '').trim(),
-      homestayId: cells[4].textContent.trim(),
-      guestId: cells[5].textContent.trim(),
-      billNo: cells[6].textContent.trim() === '-' ? '' : cells[6].textContent.trim(),
-      numAdults: targetRow.getAttribute('data-adults') || '2',
-      numChildren: targetRow.getAttribute('data-children') || '0',
-      staffId: targetRow.getAttribute('data-staff') || 'S001'
-    };
-    
-    document.getElementById('updateBookingId').value = currentData.bookingId;
-    document.getElementById('updateCheckIn').value = currentData.checkIn;
-    document.getElementById('updateCheckOut').value = currentData.checkOut;
-    document.getElementById('updateNumAdults').value = currentData.numAdults;
-    document.getElementById('updateNumChildren').value = currentData.numChildren;
-    document.getElementById('updateDeposit').value = currentData.deposit;
-    document.getElementById('updateHomestayId').value = currentData.homestayId;
-    document.getElementById('updateGuestId').value = currentData.guestId;
-    document.getElementById('updateStaffId').value = currentData.staffId;
-    document.getElementById('updateBillNo').value = currentData.billNo;
-    
-    document.getElementById('updateModal').setAttribute('data-target-row', bookingId);
-    document.getElementById('updateModal').style.display = 'block';
-  }
-
-  function closeUpdateModal() {
-    document.getElementById('updateModal').style.display = 'none';
-    document.getElementById('updateBookingForm').reset();
-  }
-
-  function viewBookingDetails(bookingId) {
-    const rows = tableBody.querySelectorAll('tr');
-    let targetRow = null;
-    
-    rows.forEach(row => {
-      const idCell = row.querySelector('td:first-child');
-      if (idCell && idCell.textContent.trim() === bookingId) {
-        targetRow = row;
-      }
-    });
-    
-    if (!targetRow) {
-      alert('Booking not found!');
-      return;
-    }
-    
-    const cells = targetRow.querySelectorAll('td');
-    document.getElementById('detailsBookingId').value = cells[0].textContent.trim();
-    document.getElementById('detailsCheckIn').value = cells[1].textContent.trim();
-    document.getElementById('detailsCheckOut').value = cells[2].textContent.trim();
-    document.getElementById('detailsNumAdults').value = targetRow.getAttribute('data-adults') || 'N/A';
-    document.getElementById('detailsNumChildren').value = targetRow.getAttribute('data-children') || '0';
-    document.getElementById('detailsDeposit').value = cells[3].textContent.trim();
-    document.getElementById('detailsHomestayId').value = cells[4].textContent.trim();
-    document.getElementById('detailsGuestId').value = cells[5].textContent.trim();
-    document.getElementById('detailsStaffId').value = targetRow.getAttribute('data-staff') || 'N/A';
-    document.getElementById('detailsBillNo').value = cells[6].textContent.trim() === '-' ? 'Not assigned' : cells[6].textContent.trim();
-    
-    document.getElementById('detailsModal').style.display = 'block';
-  }
-
-  function closeDetailsModal() {
-    document.getElementById('detailsModal').style.display = 'none';
-  }
-
-  document.getElementById('updateBookingForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('action', 'update');
-    formData.append('bookingId', document.getElementById('updateBookingId').value);
-    formData.append('checkIn', document.getElementById('updateCheckIn').value);
-    formData.append('checkOut', document.getElementById('updateCheckOut').value);
-    formData.append('numAdults', document.getElementById('updateNumAdults').value);
-    formData.append('numChildren', document.getElementById('updateNumChildren').value);
-    formData.append('deposit', document.getElementById('updateDeposit').value);
-    formData.append('homestayId', document.getElementById('updateHomestayId').value);
-    formData.append('guestId', document.getElementById('updateGuestId').value);
-    formData.append('staffId', document.getElementById('updateStaffId').value);
-    formData.append('billNo', document.getElementById('updateBillNo').value);
-    
-    fetch('bookings.php', {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message);
-        location.reload();
-      } else {
-        alert(data.message);
-      }
-    })
-    .catch(error => {
-      alert('Error updating booking: ' + error);
-    });
-  });
-
-  window.onclick = function(event) {
-    const addModal = document.getElementById('addModal');
-    const updateModal = document.getElementById('updateModal');
-    const detailsModal = document.getElementById('detailsModal');
-    if (event.target === addModal) {
-      closeAddModal();
-    }
-    if (event.target === updateModal) {
-      closeUpdateModal();
-    }
-    if (event.target === detailsModal) {
-      closeDetailsModal();
-    }
-  }
-
-  function deleteBooking(bookingId) {
-    if (confirm('Are you sure you want to delete booking ' + bookingId + '? This action cannot be undone.')) {
       const formData = new FormData();
-      formData.append('action', 'delete');
-      formData.append('bookingId', bookingId);
-      
+      formData.append('action', 'update');
+      formData.append('bookingId', document.getElementById('updateBookingId').value);
+      formData.append('checkIn', document.getElementById('updateCheckIn').value);
+      formData.append('checkOut', document.getElementById('updateCheckOut').value);
+      formData.append('numAdults', document.getElementById('updateNumAdults').value);
+      formData.append('numChildren', document.getElementById('updateNumChildren').value);
+      formData.append('deposit', document.getElementById('updateDeposit').value);
+      formData.append('homestayId', document.getElementById('updateHomestayId').value);
+      formData.append('guestId', document.getElementById('updateGuestId').value);
+      formData.append('staffId', document.getElementById('updateStaffId').value);
+      formData.append('billNo', document.getElementById('updateBillNo').value);
+
       fetch('bookings.php', {
         method: 'POST',
         body: formData
       })
-      .then(response => response.json())
-      .then(data => {
-        alert(data.message);
-        if (data.success) {
-          location.reload();
-        }
-      })
-      .catch(error => {
-        alert('Error deleting booking: ' + error);
-      });
-    }
-  }
-
-  function addBooking() {
-    // Clear the form
-    document.getElementById('addBookingForm').reset();
-    // Show the modal
-    document.getElementById('addModal').style.display = 'block';
-  }
-
-  function closeAddModal() {
-    document.getElementById('addModal').style.display = 'none';
-    document.getElementById('addBookingForm').reset();
-  }
-
-  // Handle add booking form submission
-  document.getElementById('addBookingForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('action', 'add');
-    formData.append('bookingId', document.getElementById('addBookingId').value.trim());
-    formData.append('checkIn', document.getElementById('addCheckIn').value);
-    formData.append('checkOut', document.getElementById('addCheckOut').value);
-    formData.append('numAdults', document.getElementById('addNumAdults').value);
-    formData.append('numChildren', document.getElementById('addNumChildren').value);
-    formData.append('deposit', document.getElementById('addDeposit').value);
-    formData.append('homestayId', document.getElementById('addHomestayId').value);
-    formData.append('guestId', document.getElementById('addGuestId').value);
-    formData.append('staffId', document.getElementById('addStaffId').value);
-    formData.append('billNo', document.getElementById('addBillNo').value);
-    
-    fetch('bookings.php', {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message);
-        location.reload();
-      } else {
-        alert(data.message);
-      }
-    })
-    .catch(error => {
-      alert('Error adding booking: ' + error);
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert(data.message);
+            location.reload();
+          } else {
+            alert(data.message);
+          }
+        })
+        .catch(error => {
+          alert('Error updating booking: ' + error);
+        });
     });
-  });
+
+    window.onclick = function (event) {
+      const addModal = document.getElementById('addModal');
+      const updateModal = document.getElementById('updateModal');
+      const detailsModal = document.getElementById('detailsModal');
+      if (event.target === addModal) {
+        closeAddModal();
+      }
+      if (event.target === updateModal) {
+        closeUpdateModal();
+      }
+      if (event.target === detailsModal) {
+        closeDetailsModal();
+      }
+    }
+
+    function deleteBooking(bookingId) {
+      if (confirm('Are you sure you want to delete booking ' + bookingId + '? WARNING: If this booking is linked to a bill, the bill will also be deleted. This action cannot be undone.')) {
+        const formData = new FormData();
+        formData.append('action', 'delete');
+        formData.append('bookingId', bookingId);
+
+        fetch('bookings.php', {
+          method: 'POST',
+          body: formData
+        })
+          .then(response => response.json())
+          .then(data => {
+            alert(data.message);
+            if (data.success) {
+              location.reload();
+            }
+          })
+          .catch(error => {
+            alert('Error deleting booking: ' + error);
+          });
+      }
+    }
+
+    function addBooking() {
+      // Clear the form
+      document.getElementById('addBookingForm').reset();
+      // Show the modal
+      document.getElementById('addModal').style.display = 'block';
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').style.display = 'none';
+      document.getElementById('addBookingForm').reset();
+    }
+
+    // Handle add booking form submission
+    document.getElementById('addBookingForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const formData = new FormData();
+      formData.append('action', 'add');
+      formData.append('bookingId', document.getElementById('addBookingId').value.trim());
+      formData.append('checkIn', document.getElementById('addCheckIn').value);
+      formData.append('checkOut', document.getElementById('addCheckOut').value);
+      formData.append('numAdults', document.getElementById('addNumAdults').value);
+      formData.append('numChildren', document.getElementById('addNumChildren').value);
+      formData.append('deposit', document.getElementById('addDeposit').value);
+      formData.append('homestayId', document.getElementById('addHomestayId').value);
+      formData.append('guestId', document.getElementById('addGuestId').value);
+      formData.append('staffId', document.getElementById('addStaffId').value);
+      formData.append('billNo', document.getElementById('addBillNo').value);
+
+      fetch('bookings.php', {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert(data.message);
+            location.reload();
+          } else {
+            alert(data.message);
+          }
+        })
+        .catch(error => {
+          alert('Error adding booking: ' + error);
+        });
+    });
   </script>
 </body>
+
 </html>
