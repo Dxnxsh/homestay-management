@@ -14,6 +14,12 @@ $recentGuests = [];
 $homestayOccupancy = [];
 $monthlyRevenue = 0;
 $lastMonthRevenue = 0;
+$highestMonthBookings = 0;
+$highestMonthIndex = 0;
+$highestYear = date('Y');
+$bookingsByMonth = [];
+$currentYearRevenue = array_fill(0, 12, 0);
+$lastYearRevenue = array_fill(0, 12, 0);
 
 // Connect to database
 $conn = getDBConnection();
@@ -154,6 +160,83 @@ if ($conn) {
     if (oci_execute($stmt)) {
         $row = oci_fetch_array($stmt, OCI_ASSOC);
         $lastMonthRevenue = $row['REVENUE'] ?? 0;
+    }
+    oci_free_statement($stmt);
+
+    // Get highest month bookings data
+    $highestMonthBookings = 0;
+    $highestMonthIndex = 0;
+    $highestYear = date('Y');
+    $bookingsByMonth = [];
+    
+    // Get bookings count by month for all available years
+    $sql = "SELECT EXTRACT(YEAR FROM checkin_date) as year,
+                   EXTRACT(MONTH FROM checkin_date) as month,
+                   COUNT(*) as booking_count
+            FROM BOOKING
+            GROUP BY EXTRACT(YEAR FROM checkin_date), EXTRACT(MONTH FROM checkin_date)
+            ORDER BY year DESC, month DESC";
+    $stmt = oci_parse($conn, $sql);
+    if (oci_execute($stmt)) {
+        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+            $year = (int)$row['YEAR'];
+            $month = (int)$row['MONTH'] - 1; // JavaScript months are 0-indexed
+            $count = (int)$row['BOOKING_COUNT'];
+            
+            if (!isset($bookingsByMonth[$year])) {
+                $bookingsByMonth[$year] = [];
+            }
+            $bookingsByMonth[$year][$month] = $count;
+            
+            // Track highest month
+            if ($count > $highestMonthBookings) {
+                $highestMonthBookings = $count;
+                $highestMonthIndex = $month;
+                $highestYear = $year;
+            }
+        }
+    }
+    oci_free_statement($stmt);
+
+    // Get monthly revenue data for current year and last year
+    $currentYear = (int)date('Y');
+    $lastYear = $currentYear - 1;
+    $currentYearRevenue = array_fill(0, 12, 0);
+    $lastYearRevenue = array_fill(0, 12, 0);
+    
+    // Get current year revenue by month
+    $sql = "SELECT EXTRACT(MONTH FROM bill_date) as month,
+                   NVL(SUM(total_amount), 0) as revenue
+            FROM BILL
+            WHERE EXTRACT(YEAR FROM bill_date) = :currentYear
+            AND UPPER(bill_status) = 'PAID'
+            GROUP BY EXTRACT(MONTH FROM bill_date)
+            ORDER BY month";
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':currentYear', $currentYear);
+    if (oci_execute($stmt)) {
+        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+            $month = (int)$row['MONTH'] - 1; // JavaScript months are 0-indexed
+            $currentYearRevenue[$month] = (float)$row['REVENUE'];
+        }
+    }
+    oci_free_statement($stmt);
+    
+    // Get last year revenue by month
+    $sql = "SELECT EXTRACT(MONTH FROM bill_date) as month,
+                   NVL(SUM(total_amount), 0) as revenue
+            FROM BILL
+            WHERE EXTRACT(YEAR FROM bill_date) = :lastYear
+            AND UPPER(bill_status) = 'PAID'
+            GROUP BY EXTRACT(MONTH FROM bill_date)
+            ORDER BY month";
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':lastYear', $lastYear);
+    if (oci_execute($stmt)) {
+        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+            $month = (int)$row['MONTH'] - 1; // JavaScript months are 0-indexed
+            $lastYearRevenue[$month] = (float)$row['REVENUE'];
+        }
     }
     oci_free_statement($stmt);
 
@@ -440,6 +523,11 @@ if ($conn) {
   const homestayOccupancy = <?php echo json_encode($homestayOccupancy); ?>;
   const currentMonthRevenue = <?php echo $monthlyRevenue; ?>;
   const lastMonthRevenue = <?php echo $lastMonthRevenue; ?>;
+  const highestMonthIndex = <?php echo $highestMonthIndex; ?>;
+  const highestMonthBookings = <?php echo $highestMonthBookings; ?>;
+  const highestYear = <?php echo $highestYear; ?>;
+  const currentYearRevenue = <?php echo json_encode($currentYearRevenue); ?>;
+  const lastYearRevenue = <?php echo json_encode($lastYearRevenue); ?>;
 
   let arrow = document.querySelectorAll(".arrow");
   for (var i = 0; i < arrow.length; i++) {
@@ -652,53 +740,17 @@ if ($conn) {
   const highestBookingsCount = document.getElementById("highestBookingsCount");
   
   if (highestMonthName && highestBookingsCount) {
-    // Sample booking data - replace with actual data from your API/database
-    // Format: { year: { month: bookingCount } }
-    const bookingsByMonth = {
-      2024: {
-        0: 45,   // January
-        1: 52,   // February
-        2: 48,   // March
-        3: 61,   // April
-        4: 58,   // May
-        5: 67,   // June
-        6: 73,   // July (highest)
-        7: 65,   // August
-        8: 59,   // September
-        9: 54,   // October
-        10: 49,  // November
-        11: 42   // December
-      }
-    };
-    
-    // Find the month with the highest bookings
-    let highestBookings = 0;
-    let highestMonthIndex = 0;
-    let highestYear = 2024;
-    
-    // Check all years and months
-    for (const year in bookingsByMonth) {
-      for (const month in bookingsByMonth[year]) {
-        const count = bookingsByMonth[year][month];
-        if (count > highestBookings) {
-          highestBookings = count;
-          highestMonthIndex = parseInt(month);
-          highestYear = parseInt(year);
-        }
-      }
-    }
-    
     // Format month name
     const monthNames = [
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
     ];
     
-    const highestMonthNameText = monthNames[highestMonthIndex];
+    const highestMonthNameText = monthNames[highestMonthIndex] || "N/A";
     
     // Update the display
     highestMonthName.textContent = highestMonthNameText;
-    highestBookingsCount.textContent = highestBookings;
+    highestBookingsCount.textContent = highestMonthBookings || 0;
   }
 
   // Revenue-Month Line Chart
@@ -710,10 +762,6 @@ if ($conn) {
     
     // Month labels
     const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
-    // Sample revenue data - replace with actual data from your API/database
-    const currentYearRevenue = [95000, 105000, 98000, 112000, 118000, 125000, 132000, 128000, 120000, 115000, 108000, 102000];
-    const lastYearRevenue = [88000, 92000, 85000, 98000, 105000, 110000, 118000, 115000, 108000, 102000, 95000, 90000];
     
     new Chart(revenueLineChartCanvas, {
       type: "line",
