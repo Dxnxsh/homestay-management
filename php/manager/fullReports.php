@@ -138,6 +138,7 @@ oci_free_statement($stmt);
     }
   </style>
 </head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <body>
   <div class="sidebar close">
@@ -253,6 +254,10 @@ oci_free_statement($stmt);
         <h1>Full Reports</h1>
         <p class="subdued">Complete data export for all bookings, guests, billing, and properties</p>
       </div>
+      <button onclick="generatePDF()" class="pill"
+        style="cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid #8a4d1c;">
+        <i class='bx bx-download' style="font-size: 18px;"></i> Download PDF
+      </button>
     </div><br>
 
     <div class="report-wrapper">
@@ -415,6 +420,37 @@ oci_free_statement($stmt);
     sidebarBtn.addEventListener("click", () => {
       sidebar.classList.toggle("close");
     });
+
+    function generatePDF() {
+      const element = document.querySelector('.report-wrapper');
+
+      // Clone the element to modify it for PDF generation without affecting the UI
+      const clone = element.cloneNode(true);
+
+      // Add some specific print styles to the clone if needed
+      clone.style.padding = '20px';
+      clone.style.background = '#fff';
+
+      const opt = {
+        margin: [0.5, 0.5],
+        filename: 'Full_Report_' + new Date().toISOString().slice(0, 10) + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      // Add a title to the clone for the PDF
+      const titleDiv = document.createElement('div');
+      titleDiv.style.marginBottom = '20px';
+      titleDiv.style.textAlign = 'center';
+      titleDiv.innerHTML = '<h1 style="color: #c5814b; margin-bottom: 5px;">Serena Sanctuary - Full Report</h1><p style="color: #666;">Generated on ' + new Date().toLocaleDateString() + '</p>';
+      clone.insertBefore(titleDiv, clone.firstChild);
+
+      html2pdf().set(opt).from(clone).toPdf().get('pdf').then(function (pdf) {
+        window.open(pdf.output('bloburl'), '_blank');
+      });
+    }
   </script>
 </body>
 
