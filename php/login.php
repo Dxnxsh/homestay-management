@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             oci_bind_by_name($staff_stmt, ':email', $email);
 
             if (oci_execute($staff_stmt)) {
-                $staff_row = oci_fetch_array($staff_stmt, OCI_ASSOC);
+                $staff_row = oci_fetch_array($staff_stmt, OCI_ASSOC + OCI_RETURN_NULLS);
 
                 if ($staff_row) {
                     // Check if password matches staff_password
@@ -83,7 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['staff_name'] = $staff_row['STAFF_NAME'];
                         $_SESSION['staff_email'] = $staff_row['STAFF_EMAIL'];
                         $_SESSION['staff_type'] = $staff_row['STAFF_TYPE'];
-                        $_SESSION['managerID'] = $staff_row['MANAGERID'];
+                        // Use array key check or null coalescing operator because OCI might not return the key if null
+                        $_SESSION['managerID'] = isset($staff_row['MANAGERID']) ? $staff_row['MANAGERID'] : null;
 
                         oci_free_statement($staff_stmt);
                         closeDBConnection($conn);
