@@ -16,52 +16,50 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $guestID = trim(isset($_POST['guestID']) ? $_POST['guestID'] : '');
+
     $guest_name = trim(isset($_POST['guest_name']) ? $_POST['guest_name'] : '');
     $guest_email = trim(isset($_POST['guest_email']) ? $_POST['guest_email'] : '');
     $guest_password = trim(isset($_POST['guest_password']) ? $_POST['guest_password'] : '');
-    
+
     // Validation
-    if (empty($guestID) || empty($guest_name) || empty($guest_email) || empty($guest_password)) {
+    if (empty($guest_name) || empty($guest_email) || empty($guest_password)) {
         $error_message = 'All fields are required.';
     } elseif (!filter_var($guest_email, FILTER_VALIDATE_EMAIL)) {
         $error_message = 'Please enter a valid email address.';
-    } elseif (!is_numeric($guestID) || $guestID <= 0) {
-        $error_message = 'Guest ID must be a positive number.';
+
     } elseif (strlen($guest_password) < 6) {
         $error_message = 'Password must be at least 6 characters.';
     } else {
         // Convert to uppercase (except email)
         $guest_name = strtoupper($guest_name);
         $guest_email = strtolower($guest_email); // Ensure email is lowercase
-        
+
         // Connect to database
         $conn = getDBConnection();
-        
+
         if ($conn) {
-            // Check if guestID or email already exists
-            $check_sql = "SELECT COUNT(*) as count FROM GUEST WHERE guestID = :guestID OR guest_email = :guest_email";
+            // Check if email already exists
+            $check_sql = "SELECT COUNT(*) as count FROM GUEST WHERE guest_email = :guest_email";
             $check_stmt = oci_parse($conn, $check_sql);
-            oci_bind_by_name($check_stmt, ':guestID', $guestID);
             oci_bind_by_name($check_stmt, ':guest_email', $guest_email);
-            
+
             if (oci_execute($check_stmt)) {
                 $row = oci_fetch_array($check_stmt, OCI_ASSOC);
                 if ($row && $row['COUNT'] > 0) {
-                    $error_message = 'Guest ID or Email already exists. Please use different credentials.';
+                    $error_message = 'Email already exists. Please use a different email.';
                 } else {
                     // Insert new guest with default guest_type = 'Regular'
-                    $guest_type = 'REGULAR';
-                    $insert_sql = "INSERT INTO GUEST (guestID, guest_name, guest_email, guest_type, guest_password) 
-                                   VALUES (:guestID, :guest_name, :guest_email, :guest_type, :guest_password)";
+                    // guestID is handled by trigger TRG_GUEST_ID
+                    $guest_type = 'Regular';
+                    $insert_sql = "INSERT INTO GUEST (guest_name, guest_email, guest_type, guest_password) 
+                                   VALUES (:guest_name, :guest_email, :guest_type, :guest_password)";
                     $insert_stmt = oci_parse($conn, $insert_sql);
-                    
-                    oci_bind_by_name($insert_stmt, ':guestID', $guestID);
+
                     oci_bind_by_name($insert_stmt, ':guest_name', $guest_name);
                     oci_bind_by_name($insert_stmt, ':guest_email', $guest_email);
                     oci_bind_by_name($insert_stmt, ':guest_type', $guest_type);
                     oci_bind_by_name($insert_stmt, ':guest_password', $guest_password);
-                    
+
                     if (oci_execute($insert_stmt)) {
                         oci_commit($conn);
                         $_SESSION['signup_success'] = true;
@@ -72,14 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = oci_error($insert_stmt);
                         $error_message = 'Registration failed: ' . $error['message'];
                     }
-                    
+
                     oci_free_statement($insert_stmt);
                 }
             } else {
                 $error = oci_error($check_stmt);
                 $error_message = 'Database error: ' . $error['message'];
             }
-            
+
             oci_free_statement($check_stmt);
             closeDBConnection($conn);
         } else {
@@ -90,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -99,8 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <div class="auth-container">
         <div class="auth-card">
@@ -118,38 +119,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" action="signup.php" class="auth-form">
-                <div class="form-group">
-                    <label for="guestID" class="form-label">
-                        <i class='bx bx-id-card'></i>
-                        Guest ID <span class="required">*</span>
-                    </label>
-                    <input 
-                        type="number" 
-                        id="guestID" 
-                        name="guestID" 
-                        class="form-input" 
-                        placeholder="Enter your Guest ID"
-                        value="<?php echo isset($guestID) ? htmlspecialchars($guestID) : ''; ?>"
-                        required
-                        min="1"
-                    >
-                </div>
 
                 <div class="form-group">
-                    <label for="guest_password" class="form-label">
-                        <i class='bx bx-lock-alt'></i>
-                        Password <span class="required">*</span>
+                    <label for="guest_email" class="form-label">
+                        <i class='bx bx-envelope'></i>
+                        Email Address <span class="required">*</span>
                     </label>
-                    <input 
-                        type="password" 
-                        id="guest_password" 
-                        name="guest_password" 
-                        class="form-input" 
-                        placeholder="Enter a strong password"
-                        required
-                        minlength="6"
-                    >
-                    <small class="form-hint">Use at least 6 characters. This will be your login password.</small>
+                    <input type="email" id="guest_email" name="guest_email" class="form-input"
+                        placeholder="Enter your email address"
+                        value="<?php echo isset($guest_email) ? htmlspecialchars($guest_email) : ''; ?>" required>
                 </div>
 
                 <div class="form-group">
@@ -157,31 +135,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class='bx bx-user'></i>
                         Full Name <span class="required">*</span>
                     </label>
-                    <input 
-                        type="text" 
-                        id="guest_name" 
-                        name="guest_name" 
-                        class="form-input" 
+                    <input type="text" id="guest_name" name="guest_name" class="form-input"
                         placeholder="Enter your full name"
-                        value="<?php echo isset($guest_name) ? htmlspecialchars($guest_name) : ''; ?>"
-                        required
-                    >
+                        value="<?php echo isset($guest_name) ? htmlspecialchars($guest_name) : ''; ?>" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="guest_email" class="form-label">
-                        <i class='bx bx-envelope'></i>
-                        Email Address <span class="required">*</span>
+                    <label for="guest_password" class="form-label">
+                        <i class='bx bx-lock-alt'></i>
+                        Password <span class="required">*</span>
                     </label>
-                    <input 
-                        type="email" 
-                        id="guest_email" 
-                        name="guest_email" 
-                        class="form-input" 
-                        placeholder="Enter your email address"
-                        value="<?php echo isset($guest_email) ? htmlspecialchars($guest_email) : ''; ?>"
-                        required
-                    >
+                    <input type="password" id="guest_password" name="guest_password" class="form-input"
+                        placeholder="Enter a strong password" required minlength="6">
+                    <small class="form-hint">Use at least 6 characters. This will be your login password.</small>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
@@ -219,26 +185,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         // Auto-redirect after 4 seconds if modal is shown
         <?php if ($show_success_modal): ?>
-        let redirectTimer;
-        
-        function redirectToLogin() {
-            clearTimeout(redirectTimer);
-            window.location.href = 'login.php';
-        }
-        
-        // Auto-redirect after 4 seconds
-        redirectTimer = setTimeout(function() {
-            redirectToLogin();
-        }, 4000);
-        
-        // Close modal on overlay click (optional - can be removed if you want to force button click)
-        document.getElementById('successModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                redirectToLogin();
+            let redirectTimer;
+
+            function redirectToLogin() {
+                clearTimeout(redirectTimer);
+                window.location.href = 'login.php';
             }
-        });
+
+            // Auto-redirect after 4 seconds
+            redirectTimer = setTimeout(function () {
+                redirectToLogin();
+            }, 4000);
+
+            // Close modal on overlay click (optional - can be removed if you want to force button click)
+            document.getElementById('successModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    redirectToLogin();
+                }
+            });
         <?php endif; ?>
     </script>
 </body>
-</html>
 
+</html>
