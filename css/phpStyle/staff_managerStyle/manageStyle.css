@@ -493,6 +493,7 @@ body {
 .content2 .sub-content2-2 {
   background: #fff;
   box-shadow: -2px 4px 10px rgba(0,0,0,0.08);
+  border: 1px solid #f0d5be;
   padding: 20px;
 }
 
@@ -540,6 +541,7 @@ body {
   min-height: 100px;
   background: #fff;
   box-shadow: -2px 4px 10px rgba(0,0,0,0.08);
+  border: 1px solid #f0d5be;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -608,6 +610,7 @@ body {
 .content3 .sub-content3-2 {
   background: #fff;
   box-shadow: -2px 4px 10px rgba(0,0,0,0.08);
+  border: 1px solid #f0d5be;
   padding: 16px;
   display: flex;
   align-items: center;
@@ -635,6 +638,7 @@ body {
   min-height: 240px;
   background: #fff;
   box-shadow: -2px 4px 10px rgba(0,0,0,0.08);
+  border: 1px solid #f0d5be;
   padding: 12px 12px 0px 12px;
   display: flex;
   flex-direction: column;
@@ -672,6 +676,7 @@ body {
   width: 100%;
   background: #fff;
   box-shadow: -2px 4px 10px rgba(0,0,0,0.08);
+  border: 1px solid #f0d5be;
   border-radius: 0;
   padding: 12px;
   padding-bottom: 18px;
@@ -975,6 +980,7 @@ body {
 .new-guests-table-container {
   background: #fff;
   box-shadow: -2px 4px 10px rgba(0,0,0,0.08);
+  border: 1px solid #f0d5be;
   padding: 20px;
   border-radius: 8px;
 }
