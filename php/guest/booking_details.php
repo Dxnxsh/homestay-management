@@ -5,33 +5,33 @@ require_once '../config/db_connection.php';
 requireGuestLogin();
 
 $guestID = getCurrentGuestID();
-$bookingID = isset($_GET['bookingID']) ? (int) $_GET['bookingID'] : null;
+$bookingID = isset($_GET['bookingID']) ? $_GET['bookingID'] : null;
 $errors = [];
 $booking = null;
 $membershipDiscount = 0.0;
 
 if (!$bookingID) {
-    $errors[] = 'No booking was selected. Choose a booking from your list to view its details.';
+  $errors[] = 'No booking was selected. Choose a booking from your list to view its details.';
 }
 
 $conn = getDBConnection();
 if (!$conn) {
-    $errors[] = 'Unable to reach the booking system right now. Please try again in a moment.';
+  $errors[] = 'Unable to reach the booking system right now. Please try again in a moment.';
 }
 
 if ($conn && empty($errors)) {
-    $membership_sql = 'SELECT disc_rate FROM MEMBERSHIP WHERE guestID = :guestID';
-    $membership_stmt = oci_parse($conn, $membership_sql);
-    oci_bind_by_name($membership_stmt, ':guestID', $guestID);
-    if (oci_execute($membership_stmt)) {
-        $membership_row = oci_fetch_array($membership_stmt, OCI_ASSOC + OCI_RETURN_NULLS);
-        if ($membership_row && isset($membership_row['DISC_RATE'])) {
-            $membershipDiscount = (float) $membership_row['DISC_RATE'];
-        }
+  $membership_sql = 'SELECT disc_rate FROM MEMBERSHIP WHERE guestID = :guestID';
+  $membership_stmt = oci_parse($conn, $membership_sql);
+  oci_bind_by_name($membership_stmt, ':guestID', $guestID);
+  if (oci_execute($membership_stmt)) {
+    $membership_row = oci_fetch_array($membership_stmt, OCI_ASSOC + OCI_RETURN_NULLS);
+    if ($membership_row && isset($membership_row['DISC_RATE'])) {
+      $membershipDiscount = (float) $membership_row['DISC_RATE'];
     }
-    oci_free_statement($membership_stmt);
+  }
+  oci_free_statement($membership_stmt);
 
-    $booking_sql = "SELECT b.bookingID, b.checkin_date, b.checkout_date, b.num_adults, b.num_children,
+  $booking_sql = "SELECT b.bookingID, b.checkin_date, b.checkout_date, b.num_adults, b.num_children,
                            b.deposit_amount, b.homestayID, h.homestay_name, h.homestay_address, h.rent_price,
                            b.billNo, bl.bill_status, bl.bill_date, bl.bill_subtotal, bl.disc_amount, bl.tax_amount,
                            bl.total_amount, bl.payment_method, bl.payment_date
@@ -39,77 +39,78 @@ if ($conn && empty($errors)) {
                     JOIN HOMESTAY h ON b.homestayID = h.homestayID
                     LEFT JOIN BILL bl ON b.billNo = bl.billNo
                     WHERE b.bookingID = :bookingID AND b.guestID = :guestID";
-    $booking_stmt = oci_parse($conn, $booking_sql);
-    oci_bind_by_name($booking_stmt, ':bookingID', $bookingID);
-    oci_bind_by_name($booking_stmt, ':guestID', $guestID);
+  $booking_stmt = oci_parse($conn, $booking_sql);
+  oci_bind_by_name($booking_stmt, ':bookingID', $bookingID);
+  oci_bind_by_name($booking_stmt, ':guestID', $guestID);
 
-    if (oci_execute($booking_stmt)) {
-        $row = oci_fetch_array($booking_stmt, OCI_ASSOC + OCI_RETURN_NULLS);
-        if ($row) {
-            $checkinDate = !empty($row['CHECKIN_DATE']) ? date_create($row['CHECKIN_DATE']) : null;
-            $checkoutDate = !empty($row['CHECKOUT_DATE']) ? date_create($row['CHECKOUT_DATE']) : null;
-            $nights = ($checkinDate && $checkoutDate) ? (int) $checkinDate->diff($checkoutDate)->format('%a') : 0;
-            $nights = max($nights, 1);
+  if (oci_execute($booking_stmt)) {
+    $row = oci_fetch_array($booking_stmt, OCI_ASSOC + OCI_RETURN_NULLS);
+    if ($row) {
+      $checkinDate = !empty($row['CHECKIN_DATE']) ? date_create($row['CHECKIN_DATE']) : null;
+      $checkoutDate = !empty($row['CHECKOUT_DATE']) ? date_create($row['CHECKOUT_DATE']) : null;
+      $nights = ($checkinDate && $checkoutDate) ? (int) $checkinDate->diff($checkoutDate)->format('%a') : 0;
+      $nights = max($nights, 1);
 
-            $rentPrice = isset($row['RENT_PRICE']) ? (float) $row['RENT_PRICE'] : 0.0;
-            $baseTotal = round($rentPrice * $nights, 2);
-            $depositAmount = isset($row['DEPOSIT_AMOUNT']) ? (float) $row['DEPOSIT_AMOUNT'] : 0.0;
-            $discountAmount = isset($row['DISC_AMOUNT']) ? (float) $row['DISC_AMOUNT'] : 0.0;
-            $paidAmount = isset($row['TOTAL_AMOUNT']) ? (float) $row['TOTAL_AMOUNT'] : 0.0;
-            $paymentMethod = isset($row['PAYMENT_METHOD']) ? $row['PAYMENT_METHOD'] : null;
-            $billStatusRaw = isset($row['BILL_STATUS']) ? $row['BILL_STATUS'] : null;
-            $isPaid = $billStatusRaw && strcasecmp($billStatusRaw, 'PAID') === 0;
-            $statusLabel = $isPaid ? 'Deposit Paid' : ($billStatusRaw ? ucwords(strtolower($billStatusRaw)) : 'Deposit Pending');
-            $statusClass = $isPaid ? 'status-paid' : 'status-pending';
-            $remainingBalance = max(0, $baseTotal - $depositAmount);
-            $imageMap = [1 => 'homestay1', 2 => 'homestay2', 3 => 'homestay3', 4 => 'homestay4'];
-            $imageFolder = $imageMap[$row['HOMESTAYID']] ?? 'homestay1';
+      $rentPrice = isset($row['RENT_PRICE']) ? (float) $row['RENT_PRICE'] : 0.0;
+      $baseTotal = round($rentPrice * $nights, 2);
+      $depositAmount = isset($row['DEPOSIT_AMOUNT']) ? (float) $row['DEPOSIT_AMOUNT'] : 0.0;
+      $discountAmount = isset($row['DISC_AMOUNT']) ? (float) $row['DISC_AMOUNT'] : 0.0;
+      $paidAmount = isset($row['TOTAL_AMOUNT']) ? (float) $row['TOTAL_AMOUNT'] : 0.0;
+      $paymentMethod = isset($row['PAYMENT_METHOD']) ? $row['PAYMENT_METHOD'] : null;
+      $billStatusRaw = isset($row['BILL_STATUS']) ? $row['BILL_STATUS'] : null;
+      $isPaid = $billStatusRaw && strcasecmp($billStatusRaw, 'PAID') === 0;
+      $statusLabel = $isPaid ? 'Deposit Paid' : ($billStatusRaw ? ucwords(strtolower($billStatusRaw)) : 'Deposit Pending');
+      $statusClass = $isPaid ? 'status-paid' : 'status-pending';
+      $remainingBalance = max(0, $baseTotal - $depositAmount);
+      $imageMap = [1 => 'homestay1', 2 => 'homestay2', 3 => 'homestay3', 4 => 'homestay4'];
+      $imageFolder = $imageMap[$row['HOMESTAYID']] ?? 'homestay1';
 
-            $booking = [
-                'id' => (int) $row['BOOKINGID'],
-                'checkin' => $checkinDate ? $checkinDate->format('d M Y') : '--',
-                'checkout' => $checkoutDate ? $checkoutDate->format('d M Y') : '--',
-                'raw_checkin' => $row['CHECKIN_DATE'] ?? null,
-                'raw_checkout' => $row['CHECKOUT_DATE'] ?? null,
-                'nights' => $nights,
-                'adults' => isset($row['NUM_ADULTS']) ? (int) $row['NUM_ADULTS'] : 0,
-                'children' => isset($row['NUM_CHILDREN']) ? (int) $row['NUM_CHILDREN'] : 0,
-                'homestay_name' => $row['HOMESTAY_NAME'] ?? 'Homestay',
-                'homestay_address' => $row['HOMESTAY_ADDRESS'] ?? 'Address not available',
-                'rent_price' => $rentPrice,
-                'base_total' => $baseTotal,
-                'deposit_amount' => $depositAmount,
-                'remaining_balance' => $remainingBalance,
-                'bill_no' => isset($row['BILLNO']) ? (int) $row['BILLNO'] : null,
-                'bill_status' => $billStatusRaw,
-                'bill_status_label' => $statusLabel,
-                'bill_status_class' => $statusClass,
-                'bill_date' => !empty($row['BILL_DATE']) ? date('d M Y', strtotime($row['BILL_DATE'])) : null,
-                'payment_date' => !empty($row['PAYMENT_DATE']) ? date('d M Y', strtotime($row['PAYMENT_DATE'])) : null,
-                'discount_amount' => $discountAmount,
-                'paid_amount' => $paidAmount,
-                'payment_method' => $paymentMethod,
-                'tax_amount' => isset($row['TAX_AMOUNT']) ? (float) $row['TAX_AMOUNT'] : 0.0,
-                'image_folder' => $imageFolder,
-                'is_paid' => $isPaid,
-                'deposit_discount_rate' => $membershipDiscount
-            ];
-        } else {
-            $errors[] = 'We could not find that booking or it does not belong to your account.';
-        }
+      $booking = [
+        'id' => $row['BOOKINGID'],
+        'checkin' => $checkinDate ? $checkinDate->format('d M Y') : '--',
+        'checkout' => $checkoutDate ? $checkoutDate->format('d M Y') : '--',
+        'raw_checkin' => $row['CHECKIN_DATE'] ?? null,
+        'raw_checkout' => $row['CHECKOUT_DATE'] ?? null,
+        'nights' => $nights,
+        'adults' => isset($row['NUM_ADULTS']) ? (int) $row['NUM_ADULTS'] : 0,
+        'children' => isset($row['NUM_CHILDREN']) ? (int) $row['NUM_CHILDREN'] : 0,
+        'homestay_name' => $row['HOMESTAY_NAME'] ?? 'Homestay',
+        'homestay_address' => $row['HOMESTAY_ADDRESS'] ?? 'Address not available',
+        'rent_price' => $rentPrice,
+        'base_total' => $baseTotal,
+        'deposit_amount' => $depositAmount,
+        'remaining_balance' => $remainingBalance,
+        'bill_no' => isset($row['BILLNO']) ? $row['BILLNO'] : null,
+        'bill_status' => $billStatusRaw,
+        'bill_status_label' => $statusLabel,
+        'bill_status_class' => $statusClass,
+        'bill_date' => !empty($row['BILL_DATE']) ? date('d M Y', strtotime($row['BILL_DATE'])) : null,
+        'payment_date' => !empty($row['PAYMENT_DATE']) ? date('d M Y', strtotime($row['PAYMENT_DATE'])) : null,
+        'discount_amount' => $discountAmount,
+        'paid_amount' => $paidAmount,
+        'payment_method' => $paymentMethod,
+        'tax_amount' => isset($row['TAX_AMOUNT']) ? (float) $row['TAX_AMOUNT'] : 0.0,
+        'image_folder' => $imageFolder,
+        'is_paid' => $isPaid,
+        'deposit_discount_rate' => $membershipDiscount
+      ];
     } else {
-        $errors[] = 'Unable to load this booking right now. Please try again later.';
+      $errors[] = 'We could not find that booking or it does not belong to your account.';
     }
-
-    oci_free_statement($booking_stmt);
+  } else {
+    $errors[] = 'Unable to load this booking right now. Please try again later.';
   }
 
-  if ($conn) {
-    closeDBConnection($conn);
-  }
-  ?>
+  oci_free_statement($booking_stmt);
+}
+
+if ($conn) {
+  closeDBConnection($conn);
+}
+?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+
 <head>
   <meta charset="UTF-8">
   <title>Booking Details - Serena Sanctuary</title>
@@ -118,10 +119,12 @@ if ($conn && empty($errors)) {
   <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="icon" type="image/png" href="../../images/logoNbg.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body>
   <nav class="navbar">
     <div class="nav-container">
@@ -163,33 +166,42 @@ if ($conn && empty($errors)) {
       </section>
     <?php else: ?>
       <?php $heroImage = '../../images/' . htmlspecialchars($booking['image_folder']) . '/' . htmlspecialchars($booking['image_folder']) . '.jpg'; ?>
-      <section class="details-hero" style="background-image: linear-gradient(120deg, rgba(0,0,0,0.45), rgba(0,0,0,0.35)), url('<?php echo $heroImage; ?>');">
+      <section class="details-hero"
+        style="background-image: linear-gradient(120deg, rgba(0,0,0,0.45), rgba(0,0,0,0.35)), url('<?php echo $heroImage; ?>');">
         <div class="container">
           <div class="hero-grid">
             <div class="hero-text">
               <div class="hero-actions">
                 <a class="btn btn-secondary" href="booking.php">Back to Bookings</a>
-                <a href="generate_receipt_pdf.php?bookingID=<?php echo htmlspecialchars($booking['id']); ?>" class="btn btn-secondary" aria-label="Download PDF" title="Download PDF">
+                <a href="generate_receipt_pdf.php?bookingID=<?php echo htmlspecialchars($booking['id']); ?>" target="_blank"
+                  class="btn btn-secondary" aria-label="Download PDF" title="Download PDF">
                   <i class='bx bx-printer'></i>
                 </a>
               </div><br>
               <p class="eyebrow">Booking #<?php echo htmlspecialchars($booking['id']); ?></p>
               <h1><?php echo htmlspecialchars($booking['homestay_name']); ?></h1>
-              <p class="hero-address"><i class='bx bx-map'></i> <?php echo htmlspecialchars($booking['homestay_address']); ?></p>
+              <p class="hero-address"><i class='bx bx-map'></i>
+                <?php echo htmlspecialchars($booking['homestay_address']); ?></p>
               <div class="hero-chips">
-                <span class="status-chip <?php echo htmlspecialchars($booking['bill_status_class']); ?>"><?php echo htmlspecialchars($booking['bill_status_label']); ?></span>
-                <span class="meta-chip"><i class='bx bx-calendar-star'></i> <?php echo htmlspecialchars($booking['checkin']); ?> - <?php echo htmlspecialchars($booking['checkout']); ?></span>
-                <span class="meta-chip"><i class='bx bx-moon'></i> <?php echo htmlspecialchars($booking['nights']); ?> nights</span>
+                <span
+                  class="status-chip <?php echo htmlspecialchars($booking['bill_status_class']); ?>"><?php echo htmlspecialchars($booking['bill_status_label']); ?></span>
+                <span class="meta-chip"><i class='bx bx-calendar-star'></i>
+                  <?php echo htmlspecialchars($booking['checkin']); ?> -
+                  <?php echo htmlspecialchars($booking['checkout']); ?></span>
+                <span class="meta-chip"><i class='bx bx-moon'></i> <?php echo htmlspecialchars($booking['nights']); ?>
+                  nights</span>
               </div>
             </div>
             <div class="hero-card">
               <div class="hero-card-row">
                 <span>Stay</span>
-                <strong><?php echo htmlspecialchars($booking['checkin']); ?> - <?php echo htmlspecialchars($booking['checkout']); ?></strong>
+                <strong><?php echo htmlspecialchars($booking['checkin']); ?> -
+                  <?php echo htmlspecialchars($booking['checkout']); ?></strong>
               </div>
               <div class="hero-card-row">
                 <span>Guests</span>
-                <strong><?php echo htmlspecialchars($booking['adults']); ?> adults<?php echo $booking['children'] > 0 ? ' · ' . htmlspecialchars($booking['children']) . ' children' : ''; ?></strong>
+                <strong><?php echo htmlspecialchars($booking['adults']); ?>
+                  adults<?php echo $booking['children'] > 0 ? ' · ' . htmlspecialchars($booking['children']) . ' children' : ''; ?></strong>
               </div>
               <div class="hero-card-row">
                 <span>Nightly Rate</span>
@@ -233,7 +245,9 @@ if ($conn && empty($errors)) {
                 </div>
                 <div class="data-item">
                   <p class="label">Guests</p>
-                  <p class="value"><?php echo htmlspecialchars($booking['adults']); ?> adults<?php echo $booking['children'] > 0 ? ' · ' . htmlspecialchars($booking['children']) . ' children' : ''; ?></p>
+                  <p class="value"><?php echo htmlspecialchars($booking['adults']); ?>
+                    adults<?php echo $booking['children'] > 0 ? ' · ' . htmlspecialchars($booking['children']) . ' children' : ''; ?>
+                  </p>
                 </div>
                 <div class="data-item">
                   <p class="label">Address</p>
@@ -271,7 +285,8 @@ if ($conn && empty($errors)) {
                 </div>
                 <div class="breakdown-row total">
                   <span>Paid</span>
-                  <strong>RM <?php echo number_format($booking['paid_amount'] ?: max(0, $booking['deposit_amount'] - $booking['discount_amount'] + $booking['tax_amount']), 2); ?></strong>
+                  <strong>RM
+                    <?php echo number_format($booking['paid_amount'] ?: max(0, $booking['deposit_amount'] - $booking['discount_amount'] + $booking['tax_amount']), 2); ?></strong>
                 </div>
                 <div class="breakdown-row muted">
                   <span>Estimated balance on arrival</span>
@@ -281,15 +296,19 @@ if ($conn && empty($errors)) {
               <div class="payment-meta">
                 <div class="meta">
                   <p class="label">Status</p>
-                  <p class="value status-inline <?php echo htmlspecialchars($booking['bill_status_class']); ?>"><?php echo htmlspecialchars($booking['bill_status_label']); ?></p>
+                  <p class="value status-inline <?php echo htmlspecialchars($booking['bill_status_class']); ?>">
+                    <?php echo htmlspecialchars($booking['bill_status_label']); ?></p>
                 </div>
                 <div class="meta">
                   <p class="label">Payment method</p>
-                  <p class="value"><?php echo $booking['payment_method'] ? htmlspecialchars($booking['payment_method']) : 'Not yet selected'; ?></p>
+                  <p class="value">
+                    <?php echo $booking['payment_method'] ? htmlspecialchars($booking['payment_method']) : 'Not yet selected'; ?>
+                  </p>
                 </div>
                 <div class="meta">
                   <p class="label">Payment date</p>
-                  <p class="value"><?php echo $booking['payment_date'] ? htmlspecialchars($booking['payment_date']) : '—'; ?></p>
+                  <p class="value">
+                    <?php echo $booking['payment_date'] ? htmlspecialchars($booking['payment_date']) : '—'; ?></p>
                 </div>
               </div>
             </div>
@@ -308,14 +327,17 @@ if ($conn && empty($errors)) {
                   <div class="dot"></div>
                   <div class="step-content">
                     <p class="step-title">Deposit</p>
-                    <p class="step-desc"><?php echo $booking['is_paid'] ? 'We have received your deposit and notified the team.' : 'Pay the 30% deposit to lock this stay.'; ?></p>
+                    <p class="step-desc">
+                      <?php echo $booking['is_paid'] ? 'We have received your deposit and notified the team.' : 'Pay the 30% deposit to lock this stay.'; ?>
+                    </p>
                   </div>
                 </li>
                 <li class="timeline-step <?php echo $booking['is_paid'] ? 'active' : ''; ?>">
                   <div class="dot"></div>
                   <div class="step-content">
                     <p class="step-title">Confirmation</p>
-                    <p class="step-desc">We will confirm arrival details and any special requests before your check-in date.</p>
+                    <p class="step-desc">We will confirm arrival details and any special requests before your check-in
+                      date.</p>
                   </div>
                 </li>
                 <li class="timeline-step">
@@ -337,8 +359,10 @@ if ($conn && empty($errors)) {
               </div>
               <ul class="notes-list">
                 <li><i class='bx bx-check'></i> Check-in starts at 3:00 PM; check-out by 12:00 PM.</li>
-                <li><i class='bx bx-check'></i> Present your booking reference (#<?php echo htmlspecialchars($booking['id']); ?>) at arrival.</li>
-                <li><i class='bx bx-check'></i> If you need changes, reach our support team at info@serenasanctuary.com.</li>
+                <li><i class='bx bx-check'></i> Present your booking reference
+                  (#<?php echo htmlspecialchars($booking['id']); ?>) at arrival.</li>
+                <li><i class='bx bx-check'></i> If you need changes, reach our support team at info@serenasanctuary.com.
+                </li>
               </ul>
             </div>
           </div>
@@ -408,4 +432,5 @@ if ($conn && empty($errors)) {
     });
   </script>
 </body>
+
 </html>

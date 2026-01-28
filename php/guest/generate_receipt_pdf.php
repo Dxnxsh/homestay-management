@@ -16,15 +16,28 @@ requireGuestLogin();
 
 // Provide minimal OCI8 stubs for linters/IDEs when extension isn't loaded
 if (!function_exists('oci_parse')) {
-    function oci_parse($conn, $sql) { return null; }
-    function oci_bind_by_name(&$statement, $name, &$variable) { }
-    function oci_execute($statement, $mode = null) { return false; }
-    function oci_fetch_array($statement, $mode = 0) { return []; }
-    function oci_free_statement($statement) { }
+    function oci_parse($conn, $sql)
+    {
+        return null;
+    }
+    function oci_bind_by_name(&$statement, $name, &$variable)
+    {
+    }
+    function oci_execute($statement, $mode = null)
+    {
+        return false;
+    }
+    function oci_fetch_array($statement, $mode = 0)
+    {
+        return [];
+    }
+    function oci_free_statement($statement)
+    {
+    }
 }
 
 $guestID = getCurrentGuestID();
-$bookingID = isset($_GET['bookingID']) ? (int) $_GET['bookingID'] : null;
+$bookingID = isset($_GET['bookingID']) ? $_GET['bookingID'] : null;
 
 if (!$bookingID) {
     die('No booking ID provided.');
@@ -93,7 +106,7 @@ $isPaid = $billStatusRaw && strcasecmp($billStatusRaw, 'PAID') === 0;
 $remainingBalance = max(0, $baseTotal - $depositAmount);
 
 $booking = [
-    'id' => (int) $row['BOOKINGID'],
+    'id' => $row['BOOKINGID'],
     'checkin' => $checkinDate ? $checkinDate->format('d M Y') : '--',
     'checkout' => $checkoutDate ? $checkoutDate->format('d M Y') : '--',
     'nights' => $nights,
@@ -105,7 +118,7 @@ $booking = [
     'base_total' => $baseTotal,
     'deposit_amount' => $depositAmount,
     'remaining_balance' => $remainingBalance,
-    'bill_no' => isset($row['BILLNO']) ? (int) $row['BILLNO'] : null,
+    'bill_no' => isset($row['BILLNO']) ? $row['BILLNO'] : null,
     'bill_date' => !empty($row['BILL_DATE']) ? date('d M Y', strtotime($row['BILL_DATE'])) : date('d M Y'),
     'payment_date' => !empty($row['PAYMENT_DATE']) ? date('d M Y', strtotime($row['PAYMENT_DATE'])) : '—',
     'discount_amount' => $discountAmount,
@@ -131,40 +144,40 @@ $fpdfPath = __DIR__ . '/../../vendor/fpdf/fpdf.php';
 
 if (file_exists($tcpdfPath)) {
     require_once($tcpdfPath);
-    
+
     // Create PDF using TCPDF
     $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-    
+
     $pdf->SetCreator('Serena Sanctuary');
     $pdf->SetAuthor('Serena Sanctuary');
     $pdf->SetTitle('Booking Receipt #' . $booking['id']);
     $pdf->SetSubject('Booking Receipt');
-    
+
     $pdf->setPrintHeader(false);
     $pdf->setPrintFooter(false);
     $pdf->SetMargins(15, 15, 15);
     $pdf->SetAutoPageBreak(TRUE, 15);
-    
+
     $pdf->AddPage();
-    
+
     // Set font
     $pdf->SetFont('helvetica', '', 10);
-    
+
     // Header
     $pdf->SetFont('helvetica', 'B', 20);
     $pdf->SetTextColor(138, 83, 40);
     $pdf->Cell(0, 10, 'SERENA SANCTUARY', 0, 1, 'L');
-    
+
     $pdf->SetFont('helvetica', '', 10);
     $pdf->SetTextColor(42, 28, 18);
     $pdf->Cell(0, 5, 'Booking Receipt', 0, 1, 'L');
     $pdf->Ln(3);
-    
+
     // Horizontal line
     $pdf->SetDrawColor(197, 129, 75);
     $pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
     $pdf->Ln(8);
-    
+
     // Booking and Bill info
     $pdf->SetFont('helvetica', 'B', 9);
     $pdf->SetTextColor(138, 83, 40);
@@ -178,7 +191,7 @@ if (file_exists($tcpdfPath)) {
     $pdf->SetFont('helvetica', '', 9);
     $pdf->Cell(100, 5, 'Issued: ' . $booking['bill_date'], 0, 1, 'L');
     $pdf->Ln(5);
-    
+
     // Guest details
     $pdf->SetFont('helvetica', 'B', 11);
     $pdf->SetTextColor(42, 28, 18);
@@ -193,7 +206,7 @@ if (file_exists($tcpdfPath)) {
         $pdf->Cell(0, 5, $booking['guest_phone'], 0, 1, 'L');
     }
     $pdf->Ln(5);
-    
+
     // Homestay details
     $pdf->SetFont('helvetica', 'B', 11);
     $pdf->SetTextColor(42, 28, 18);
@@ -204,22 +217,22 @@ if (file_exists($tcpdfPath)) {
     $pdf->SetTextColor(60, 60, 60);
     $pdf->Cell(0, 5, $booking['homestay_address'], 0, 1, 'L');
     $pdf->Ln(5);
-    
+
     // Stay details in a table
     $pdf->SetFont('helvetica', 'B', 11);
     $pdf->SetTextColor(42, 28, 18);
     $pdf->Cell(0, 6, 'Stay Information', 0, 1, 'L');
-    
+
     $pdf->SetFillColor(245, 230, 211);
     $pdf->SetFont('helvetica', 'B', 9);
     $pdf->SetTextColor(138, 83, 40);
-    
+
     $colWidth = 45;
     $pdf->Cell($colWidth, 6, 'Check-in', 1, 0, 'L', true);
     $pdf->Cell($colWidth, 6, 'Check-out', 1, 0, 'L', true);
     $pdf->Cell($colWidth, 6, 'Nights', 1, 0, 'L', true);
     $pdf->Cell($colWidth, 6, 'Guests', 1, 1, 'L', true);
-    
+
     $pdf->SetFont('helvetica', '', 9);
     $pdf->SetTextColor(42, 28, 18);
     $guestText = $booking['adults'] . ' adult' . ($booking['adults'] > 1 ? 's' : '');
@@ -228,50 +241,50 @@ if (file_exists($tcpdfPath)) {
     }
     $pdf->Cell($colWidth, 6, $booking['checkin'], 1, 0, 'L');
     $pdf->Cell($colWidth, 6, $booking['checkout'], 1, 0, 'L');
-    $pdf->Cell($colWidth, 6, (string)$booking['nights'], 1, 0, 'L');
+    $pdf->Cell($colWidth, 6, (string) $booking['nights'], 1, 0, 'L');
     $pdf->Cell($colWidth, 6, $guestText, 1, 1, 'L');
     $pdf->Ln(8);
-    
+
     // Payment breakdown
     $pdf->SetFont('helvetica', 'B', 11);
     $pdf->SetTextColor(42, 28, 18);
     $pdf->Cell(0, 6, 'Payment Summary', 0, 1, 'L');
-    
+
     $pdf->SetFont('helvetica', '', 9);
     $pdf->SetTextColor(60, 60, 60);
-    
+
     $labelWidth = 130;
     $amountWidth = 50;
-    
+
     $pdf->Cell($labelWidth, 5, 'Nightly rate x ' . $booking['nights'] . ' night' . ($booking['nights'] > 1 ? 's' : ''), 0, 0, 'L');
     $pdf->Cell($amountWidth, 5, 'RM ' . number_format($booking['base_total'], 2), 0, 1, 'R');
-    
+
     $pdf->Cell($labelWidth, 5, 'Deposit (30%)', 0, 0, 'L');
     $pdf->Cell($amountWidth, 5, 'RM ' . number_format($booking['deposit_amount'], 2), 0, 1, 'R');
-    
+
     $pdf->Cell($labelWidth, 5, 'Membership savings', 0, 0, 'L');
     $pdf->Cell($amountWidth, 5, '- RM ' . number_format($booking['discount_amount'], 2), 0, 1, 'R');
-    
+
     $pdf->Cell($labelWidth, 5, 'Tax', 0, 0, 'L');
     $pdf->Cell($amountWidth, 5, 'RM ' . number_format($booking['tax_amount'], 2), 0, 1, 'R');
-    
+
     $pdf->Ln(2);
     $pdf->SetDrawColor(197, 129, 75);
     $pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
     $pdf->Ln(3);
-    
+
     $pdf->SetFont('helvetica', 'B', 11);
     $pdf->SetTextColor(42, 28, 18);
     $pdf->Cell($labelWidth, 6, 'Total Paid', 0, 0, 'L');
     $pdf->Cell($amountWidth, 6, 'RM ' . number_format($booking['paid_amount'], 2), 0, 1, 'R');
-    
+
     $pdf->SetFont('helvetica', '', 9);
     $pdf->SetTextColor(107, 75, 50);
     $pdf->Cell($labelWidth, 5, 'Balance on arrival', 0, 0, 'L');
     $pdf->Cell($amountWidth, 5, 'RM ' . number_format($booking['remaining_balance'], 2), 0, 1, 'R');
-    
+
     $pdf->Ln(5);
-    
+
     // Payment details
     $pdf->SetFont('helvetica', 'B', 9);
     $pdf->SetTextColor(138, 83, 40);
@@ -279,16 +292,16 @@ if (file_exists($tcpdfPath)) {
     $pdf->SetFont('helvetica', '', 9);
     $pdf->SetTextColor(60, 60, 60);
     $pdf->Cell(0, 5, $booking['payment_method'], 0, 1, 'L');
-    
+
     $pdf->SetFont('helvetica', 'B', 9);
     $pdf->SetTextColor(138, 83, 40);
     $pdf->Cell(60, 5, 'Payment Date:', 0, 0, 'L');
     $pdf->SetFont('helvetica', '', 9);
     $pdf->SetTextColor(60, 60, 60);
     $pdf->Cell(0, 5, $booking['payment_date'], 0, 1, 'L');
-    
+
     $pdf->Ln(8);
-    
+
     // Footer note
     $pdf->SetFillColor(255, 253, 249);
     $pdf->SetDrawColor(231, 205, 178);
@@ -296,11 +309,11 @@ if (file_exists($tcpdfPath)) {
     $pdf->SetTextColor(92, 70, 52);
     $noteText = "Please present this receipt upon arrival. For any changes or inquiries, contact us at info@serenasanctuary.com or +60 17-204 2390.";
     $pdf->MultiCell(0, 5, $noteText, 1, 'L', true);
-    
+
     // Output PDF (download)
-    $pdf->Output('Booking_Receipt_' . $booking['id'] . '.pdf', 'D');
+    $pdf->Output('Booking_Receipt_' . $booking['id'] . '.pdf', 'I');
     exit;
-    
+
 } else {
     // Fallback - generate simple HTML receipt
     ob_end_clean();
@@ -308,57 +321,116 @@ if (file_exists($tcpdfPath)) {
     ?>
     <!DOCTYPE html>
     <html>
+
     <head>
         <meta charset="UTF-8">
         <title>Receipt - Booking #<?php echo $booking['id']; ?></title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #2a1c12; }
-            .header { border-bottom: 3px solid #c5814b; padding-bottom: 10px; margin-bottom: 20px; }
-            .header h1 { color: #8a5328; margin: 0 0 5px 0; }
-            .section { margin: 20px 0; }
-            .section h2 { color: #8a5328; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #e7cdb2; }
-            table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-            td { padding: 5px 0; }
-            .label { font-weight: bold; color: #8a5328; width: 150px; }
-            .amount { text-align: right; }
-            .total { font-weight: bold; font-size: 16px; border-top: 2px solid #c5814b; padding-top: 10px; }
-            .note { background: #fff5ec; padding: 15px; border: 1px solid #e7cdb2; border-radius: 5px; font-size: 12px; margin-top: 20px; }
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 40px auto;
+                padding: 20px;
+                color: #2a1c12;
+            }
+
+            .header {
+                border-bottom: 3px solid #c5814b;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }
+
+            .header h1 {
+                color: #8a5328;
+                margin: 0 0 5px 0;
+            }
+
+            .section {
+                margin: 20px 0;
+            }
+
+            .section h2 {
+                color: #8a5328;
+                font-size: 14px;
+                margin-bottom: 10px;
+                border-bottom: 1px solid #e7cdb2;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 10px 0;
+            }
+
+            td {
+                padding: 5px 0;
+            }
+
+            .label {
+                font-weight: bold;
+                color: #8a5328;
+                width: 150px;
+            }
+
+            .amount {
+                text-align: right;
+            }
+
+            .total {
+                font-weight: bold;
+                font-size: 16px;
+                border-top: 2px solid #c5814b;
+                padding-top: 10px;
+            }
+
+            .note {
+                background: #fff5ec;
+                padding: 15px;
+                border: 1px solid #e7cdb2;
+                border-radius: 5px;
+                font-size: 12px;
+                margin-top: 20px;
+            }
+
             @media print {
-                .no-print { display: none; }
+                .no-print {
+                    display: none;
+                }
             }
         </style>
     </head>
+
     <body>
         <div class="header">
             <h1>SERENA SANCTUARY</h1>
             <p>Booking Receipt</p>
         </div>
-        
+
         <div class="section">
             <p><strong>Booking Reference:</strong> #<?php echo $booking['id']; ?></p>
             <?php if ($booking['bill_no']): ?>
-            <p><strong>Bill:</strong> #<?php echo $booking['bill_no']; ?></p>
+                <p><strong>Bill:</strong> #<?php echo $booking['bill_no']; ?></p>
             <?php endif; ?>
             <p><strong>Issued:</strong> <?php echo $booking['bill_date']; ?></p>
         </div>
-        
+
         <div class="section">
             <h2>Guest Information</h2>
             <p><?php echo htmlspecialchars($booking['guest_name']); ?></p>
             <?php if ($booking['guest_email']): ?>
-            <p><?php echo htmlspecialchars($booking['guest_email']); ?></p>
+                <p><?php echo htmlspecialchars($booking['guest_email']); ?></p>
             <?php endif; ?>
             <?php if ($booking['guest_phone']): ?>
-            <p><?php echo htmlspecialchars($booking['guest_phone']); ?></p>
+                <p><?php echo htmlspecialchars($booking['guest_phone']); ?></p>
             <?php endif; ?>
         </div>
-        
+
         <div class="section">
             <h2>Homestay Details</h2>
             <p><strong><?php echo htmlspecialchars($booking['homestay_name']); ?></strong></p>
             <p><?php echo htmlspecialchars($booking['homestay_address']); ?></p>
         </div>
-        
+
         <div class="section">
             <h2>Stay Information</h2>
             <table>
@@ -372,16 +444,20 @@ if (file_exists($tcpdfPath)) {
                     <td class="label">Nights:</td>
                     <td><?php echo $booking['nights']; ?></td>
                     <td class="label">Guests:</td>
-                    <td><?php echo $booking['adults']; ?> adult<?php echo $booking['adults'] > 1 ? 's' : ''; ?><?php if ($booking['children'] > 0) echo ', ' . $booking['children'] . ' child' . ($booking['children'] > 1 ? 'ren' : ''); ?></td>
+                    <td><?php echo $booking['adults']; ?>
+                        adult<?php echo $booking['adults'] > 1 ? 's' : ''; ?><?php if ($booking['children'] > 0)
+                                     echo ', ' . $booking['children'] . ' child' . ($booking['children'] > 1 ? 'ren' : ''); ?>
+                    </td>
                 </tr>
             </table>
         </div>
-        
+
         <div class="section">
             <h2>Payment Summary</h2>
             <table>
                 <tr>
-                    <td>Nightly rate × <?php echo $booking['nights']; ?> night<?php echo $booking['nights'] > 1 ? 's' : ''; ?></td>
+                    <td>Nightly rate × <?php echo $booking['nights']; ?>
+                        night<?php echo $booking['nights'] > 1 ? 's' : ''; ?></td>
                     <td class="amount">RM <?php echo number_format($booking['base_total'], 2); ?></td>
                 </tr>
                 <tr>
@@ -402,21 +478,27 @@ if (file_exists($tcpdfPath)) {
                 </tr>
                 <tr>
                     <td style="color: #6b4b32;">Balance on arrival</td>
-                    <td class="amount" style="color: #6b4b32;">RM <?php echo number_format($booking['remaining_balance'], 2); ?></td>
+                    <td class="amount" style="color: #6b4b32;">RM
+                        <?php echo number_format($booking['remaining_balance'], 2); ?>
+                    </td>
                 </tr>
             </table>
             <p><strong>Payment Method:</strong> <?php echo htmlspecialchars($booking['payment_method']); ?></p>
             <p><strong>Payment Date:</strong> <?php echo htmlspecialchars($booking['payment_date']); ?></p>
         </div>
-        
+
         <div class="note">
-            <p>Please present this receipt upon arrival. For any changes or inquiries, contact us at info@serenasanctuary.com or +60 17-204 2390.</p>
+            <p>Please present this receipt upon arrival. For any changes or inquiries, contact us at
+                info@serenasanctuary.com or +60 17-204 2390.</p>
         </div>
-        
+
         <div class="no-print" style="margin-top: 20px; text-align: center;">
-            <button onclick="window.print()" style="padding: 10px 20px; background: #c5814b; color: white; border: none; border-radius: 5px; cursor: pointer;">Print Receipt</button>
+            <button onclick="window.print()"
+                style="padding: 10px 20px; background: #c5814b; color: white; border: none; border-radius: 5px; cursor: pointer;">Print
+                Receipt</button>
         </div>
     </body>
+
     </html>
     <?php
 }
