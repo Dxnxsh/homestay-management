@@ -58,9 +58,23 @@ if ($conn && empty($errors)) {
       $paidAmount = isset($row['TOTAL_AMOUNT']) ? (float) $row['TOTAL_AMOUNT'] : 0.0;
       $paymentMethod = isset($row['PAYMENT_METHOD']) ? $row['PAYMENT_METHOD'] : null;
       $billStatusRaw = isset($row['BILL_STATUS']) ? $row['BILL_STATUS'] : null;
-      $isPaid = $billStatusRaw && strcasecmp($billStatusRaw, 'PAID') === 0;
-      $statusLabel = $isPaid ? 'Deposit Paid' : ($billStatusRaw ? ucwords(strtolower($billStatusRaw)) : 'Deposit Pending');
-      $statusClass = $isPaid ? 'status-paid' : 'status-pending';
+      $billStatusUpper = $billStatusRaw ? strtoupper($billStatusRaw) : '';
+
+      $isFullyPaid = ($billStatusUpper === 'PAID');
+      $isDepositPaid = ($billStatusUpper === 'PAID' || $billStatusUpper === 'PENDING');
+
+      if ($isFullyPaid) {
+        $statusLabel = 'Fully Paid';
+        $statusClass = 'status-paid';
+      } elseif ($isDepositPaid) {
+        $statusLabel = 'Deposit Paid';
+        // Using status-pending (likely yellow) to indicate full payment is not yet done,
+        // even though deposit is paid.
+        $statusClass = 'status-pending';
+      } else {
+        $statusLabel = 'Deposit Pending';
+        $statusClass = 'status-pending';
+      }
       $remainingBalance = max(0, $baseTotal - $depositAmount);
       $imageMap = [1 => 'homestay1', 2 => 'homestay2', 3 => 'homestay3', 4 => 'homestay4'];
       $imageFolder = $imageMap[$row['HOMESTAYID']] ?? 'homestay1';
@@ -91,7 +105,8 @@ if ($conn && empty($errors)) {
         'payment_method' => $paymentMethod,
         'tax_amount' => isset($row['TAX_AMOUNT']) ? (float) $row['TAX_AMOUNT'] : 0.0,
         'image_folder' => $imageFolder,
-        'is_paid' => $isPaid,
+        'is_fully_paid' => $isFullyPaid,
+        'is_deposit_paid' => $isDepositPaid,
         'deposit_discount_rate' => $membershipDiscount
       ];
     } else {
@@ -173,8 +188,8 @@ if ($conn) {
             <div class="hero-text">
               <div class="hero-actions">
                 <a class="btn btn-secondary" href="booking.php">Back to Bookings</a>
-                <a href="generate_receipt_pdf.php?bookingID=<?php echo htmlspecialchars($booking['id']); ?>" target="_blank"
-                  class="btn btn-secondary" aria-label="Download PDF" title="Download PDF">
+                <a href="generate_receipt_pdf.php?bookingID=<?php echo htmlspecialchars($booking['id']); ?>"
+                  target="_blank" class="btn btn-secondary" aria-label="Download PDF" title="Download PDF">
                   <i class='bx bx-printer'></i>
                 </a>
               </div><br>
@@ -297,7 +312,8 @@ if ($conn) {
                 <div class="meta">
                   <p class="label">Status</p>
                   <p class="value status-inline <?php echo htmlspecialchars($booking['bill_status_class']); ?>">
-                    <?php echo htmlspecialchars($booking['bill_status_label']); ?></p>
+                    <?php echo htmlspecialchars($booking['bill_status_label']); ?>
+                  </p>
                 </div>
                 <div class="meta">
                   <p class="label">Payment method</p>
@@ -308,7 +324,8 @@ if ($conn) {
                 <div class="meta">
                   <p class="label">Payment date</p>
                   <p class="value">
-                    <?php echo $booking['payment_date'] ? htmlspecialchars($booking['payment_date']) : '—'; ?></p>
+                    <?php echo $booking['payment_date'] ? htmlspecialchars($booking['payment_date']) : '—'; ?>
+                  </p>
                 </div>
               </div>
             </div>
@@ -323,16 +340,16 @@ if ($conn) {
                 </div>
               </div>
               <ul class="timeline">
-                <li class="timeline-step <?php echo $booking['is_paid'] ? 'done' : 'active'; ?>">
+                <li class="timeline-step <?php echo $booking['is_deposit_paid'] ? 'done' : 'active'; ?>">
                   <div class="dot"></div>
                   <div class="step-content">
                     <p class="step-title">Deposit</p>
                     <p class="step-desc">
-                      <?php echo $booking['is_paid'] ? 'We have received your deposit and notified the team.' : 'Pay the 30% deposit to lock this stay.'; ?>
+                      <?php echo $booking['is_deposit_paid'] ? 'We have received your deposit and notified the team.' : 'Pay the 30% deposit to lock this stay.'; ?>
                     </p>
                   </div>
                 </li>
-                <li class="timeline-step <?php echo $booking['is_paid'] ? 'active' : ''; ?>">
+                <li class="timeline-step <?php echo $booking['is_deposit_paid'] ? 'active' : ''; ?>">
                   <div class="dot"></div>
                   <div class="step-content">
                     <p class="step-title">Confirmation</p>
@@ -344,7 +361,9 @@ if ($conn) {
                   <div class="dot"></div>
                   <div class="step-content">
                     <p class="step-title">Check-in</p>
-                    <p class="step-desc">Settle the remaining balance on arrival and enjoy your stay.</p>
+                    <p class="step-desc">
+                      <?php echo $booking['is_fully_paid'] ? 'Full payment received. Enjoy your stay.' : 'Settle the remaining balance on arrival and enjoy your stay.'; ?>
+                    </p>
                   </div>
                 </li>
               </ul>
