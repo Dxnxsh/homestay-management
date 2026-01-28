@@ -934,7 +934,6 @@ if (!$conn) {
                   <div class="select-wrapper">
                     <select name="payment_method" id="payment_method" required>
                       <option value="">Choose a method</option>
-                      <option value="Online Banking" <?php echo ($paymentMethodInput === 'Online Banking') ? 'selected' : ''; ?>>Online Banking</option>
                       <option value="Credit Card" <?php echo ($paymentMethodInput === 'Credit Card') ? 'selected' : ''; ?>>Credit / Debit Card</option>
                       <option value="E-Wallet" <?php echo ($paymentMethodInput === 'E-Wallet') ? 'selected' : ''; ?>>E-Wallet</option>
                     </select>

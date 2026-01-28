@@ -17,93 +17,96 @@ $show_success_modal = false;
 
 // Check for success/error messages
 if (isset($_GET['purchased']) && $_GET['purchased'] == '1') {
-    if (isset($_SESSION['membership_purchased'])) {
-        $success_message = 'Payment successful! Membership purchased successfully! Welcome to Bronze tier.';
-        unset($_SESSION['membership_purchased']);
-        $show_success_modal = true;
-    }
+  if (isset($_SESSION['membership_purchased'])) {
+    $success_message = 'Payment successful! Membership purchased successfully! Welcome to Bronze tier.';
+    unset($_SESSION['membership_purchased']);
+    $show_success_modal = true;
+  }
 }
 
 if (isset($_GET['error']) && $_GET['error'] == '1') {
-    if (isset($_SESSION['membership_error'])) {
-        $error_message = $_SESSION['membership_error'];
-        unset($_SESSION['membership_error']);
-    }
+  if (isset($_SESSION['membership_error'])) {
+    $error_message = $_SESSION['membership_error'];
+    unset($_SESSION['membership_error']);
+  }
 }
 
 if ($conn) {
-    // Get guest_type from GUEST table
-    $guest_type_sql = "SELECT guest_type FROM GUEST WHERE guestID = :guestID";
-    $guest_type_stmt = oci_parse($conn, $guest_type_sql);
-    oci_bind_by_name($guest_type_stmt, ':guestID', $guestID);
-    if (oci_execute($guest_type_stmt)) {
-        $row = oci_fetch_array($guest_type_stmt, OCI_ASSOC);
-        if ($row) {
-            $guest_type = strtoupper(trim($row['GUEST_TYPE'] ?? 'Regular'));
-        }
+  // Get guest_type from GUEST table
+  $guest_type_sql = "SELECT guest_type FROM GUEST WHERE guestID = :guestID";
+  $guest_type_stmt = oci_parse($conn, $guest_type_sql);
+  oci_bind_by_name($guest_type_stmt, ':guestID', $guestID);
+  if (oci_execute($guest_type_stmt)) {
+    $row = oci_fetch_array($guest_type_stmt, OCI_ASSOC);
+    if ($row) {
+      $guest_type = strtoupper(trim($row['GUEST_TYPE'] ?? 'Regular'));
     }
-    oci_free_statement($guest_type_stmt);
-    
-    // Get membership info
-    $membership_sql = "SELECT disc_rate 
+  }
+  oci_free_statement($guest_type_stmt);
+
+  // Get membership info
+  $membership_sql = "SELECT disc_rate 
                        FROM MEMBERSHIP 
                        WHERE guestID = :guestID";
-    $membership_stmt = oci_parse($conn, $membership_sql);
-    oci_bind_by_name($membership_stmt, ':guestID', $guestID);
-    if (oci_execute($membership_stmt)) {
-        $row = oci_fetch_array($membership_stmt, OCI_ASSOC);
-        if ($row) {
-            $has_membership = true;
-            $discount_rate = $row['DISC_RATE'] ?? 0;
-        }
+  $membership_stmt = oci_parse($conn, $membership_sql);
+  oci_bind_by_name($membership_stmt, ':guestID', $guestID);
+  if (oci_execute($membership_stmt)) {
+    $row = oci_fetch_array($membership_stmt, OCI_ASSOC);
+    if ($row) {
+      $has_membership = true;
+      $discount_rate = $row['DISC_RATE'] ?? 0;
     }
-    oci_free_statement($membership_stmt);
-    
-    // Count all paid bookings (date-agnostic per request)
-    $booking_sql = "SELECT COUNT(*) as count
+  }
+  oci_free_statement($membership_stmt);
+
+  // Count all paid bookings (date-agnostic per request)
+  $booking_sql = "SELECT COUNT(*) as count
             FROM BOOKING b
             JOIN BILL bl ON b.billNo = bl.billNo
             WHERE b.guestID = :guestID
               AND UPPER(bl.bill_status) = 'PAID'";
-    $booking_stmt = oci_parse($conn, $booking_sql);
-    oci_bind_by_name($booking_stmt, ':guestID', $guestID);
-    if (oci_execute($booking_stmt)) {
-      $row = oci_fetch_array($booking_stmt, OCI_ASSOC);
-      $booking_count = $row['COUNT'] ?? 0;
-    }
-    oci_free_statement($booking_stmt);
-    
-    // Show buy button only if guest_type is "REGULAR" (case-insensitive check)
-    $show_buy_button = (strtoupper($guest_type) === 'REGULAR' && !$has_membership);
-    
-    closeDBConnection($conn);
+  $booking_stmt = oci_parse($conn, $booking_sql);
+  oci_bind_by_name($booking_stmt, ':guestID', $guestID);
+  if (oci_execute($booking_stmt)) {
+    $row = oci_fetch_array($booking_stmt, OCI_ASSOC);
+    $booking_count = $row['COUNT'] ?? 0;
+  }
+  oci_free_statement($booking_stmt);
+
+  // Show buy button only if guest_type is "REGULAR" (case-insensitive check)
+  $show_buy_button = (strtoupper($guest_type) === 'REGULAR' && !$has_membership);
+
+  closeDBConnection($conn);
 }
 
 // Determine tier based on discount rate or booking count
 $membership_tier = 'None';
 if ($has_membership) {
-    if ($discount_rate >= 30) {
-        $membership_tier = 'Gold';
-    } elseif ($discount_rate >= 20) {
-        $membership_tier = 'Silver';
-    } else {
-        $membership_tier = 'Bronze';
-    }
+  if ($discount_rate >= 30) {
+    $membership_tier = 'Gold';
+  } elseif ($discount_rate >= 20) {
+    $membership_tier = 'Silver';
+  } else {
+    $membership_tier = 'Bronze';
+  }
 }
 ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Membership - Serena Sanctuary</title>
-    <link rel="stylesheet" href="../../css/phpStyle/guestStyle/membershipStyle.css">
-    <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="../../images/logoNbg.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  </head>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Membership - Serena Sanctuary</title>
+  <link rel="stylesheet" href="../../css/phpStyle/guestStyle/membershipStyle.css">
+  <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/png" href="../../images/logoNbg.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
 <body>
   <!-- Navigation -->
   <nav class="navbar">
@@ -144,14 +147,14 @@ if ($has_membership) {
             <span><?php echo htmlspecialchars($success_message); ?></span>
           </div>
         <?php endif; ?>
-        
+
         <?php if ($error_message): ?>
           <div class="alert alert-error-membership">
             <i class='bx bx-error-circle'></i>
             <span><?php echo htmlspecialchars($error_message); ?></span>
           </div>
         <?php endif; ?>
-        
+
         <div class="membership-status">
           <div class="status-card" id="membershipCard">
             <div class="status-icon">
@@ -173,12 +176,6 @@ if ($has_membership) {
             <h2>Not a Member</h2>
             <p class="membership-status-text">Join our membership program to unlock exclusive benefits</p>
             <div id="buyMembershipSection" style="display: none;">
-              <form method="POST" action="buy_membership.php" style="margin-top: 20px;">
-                <button type="submit" class="btn-buy-membership">
-                  <i class='bx bx-crown'></i>
-                  Buy Membership
-                </button>
-              </form>
               <p style="font-size: 0.85rem; margin-top: 10px; opacity: 0.8;">
                 Start at Bronze tier (10% discount) and upgrade automatically with each booking!
               </p>
@@ -187,8 +184,10 @@ if ($has_membership) {
         </div>
         <div class="membership-tiers">
           <h2 class="section-title">Membership Tiers & Progression</h2>
-          <p class="section-description" style="text-align: center; color: #666; margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">
-            Purchase membership once and automatically upgrade as you complete more bookings. Start at Bronze tier and progress to higher tiers with each booking!
+          <p class="section-description"
+            style="text-align: center; color: #666; margin-bottom: 30px; max-width: 800px; margin-left: auto; margin-right: auto;">
+            Purchase membership once and automatically upgrade as you complete more bookings. Start at Bronze tier and
+            progress to higher tiers with each booking!
           </p>
           <div class="tiers-grid">
             <!-- Bronze Tier -->
@@ -291,7 +290,7 @@ if ($has_membership) {
             </div>
             <div class="benefit-item">
               <div class="benefit-icon">
-                <i class='bxr  bx-timer'></i> 
+                <i class='bxr  bx-timer'></i>
               </div>
               <h3>24/7 Support</h3>
               <p>Dedicated member support</p>
@@ -436,7 +435,8 @@ if ($has_membership) {
         </div>
         <h2 class="success-modal-title">Payment Successful!</h2>
         <p class="success-modal-message">
-          Your membership has been purchased successfully! Welcome to Bronze tier. You can now enjoy exclusive benefits and discounts.
+          Your membership has been purchased successfully! Welcome to Bronze tier. You can now enjoy exclusive benefits
+          and discounts.
         </p>
         <button onclick="closeSuccessModal()" class="success-modal-button">
           <i class='bx bx-check-circle'></i>
@@ -449,29 +449,31 @@ if ($has_membership) {
   <script>
     // Success modal handling
     <?php if ($show_success_modal): ?>
-    function closeSuccessModal() {
-      document.getElementById('successModal').classList.remove('show');
-      // Refresh page to show updated membership status
-      setTimeout(function() {
-        window.location.reload();
-      }, 300);
-    }
-    
-    // Auto-close after 4 seconds
-    setTimeout(function() {
-      closeSuccessModal();
-    }, 4000);
-    
-    // Close modal on overlay click
-    document.getElementById('successModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeSuccessModal();
+      function closeSuccessModal() {
+        document.getElementById('successModal').classList.remove('show');
+        // Refresh page to show updated membership status
+        setTimeout(function () {
+          window.location.reload();
+        }, 300);
       }
-    });
+
+      // Auto-close after 4 seconds
+      setTimeout(function () {
+        closeSuccessModal();
+      }, 4000);
+
+      // Close modal on overlay click
+      document.getElementById('successModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+          closeSuccessModal();
+        }
+      });
     <?php endif; ?>
   </script>
 
   <!-- WhatsApp Chat Widget -->
-  <script src="https://sofowfweidqzxgaojsdq.supabase.co/storage/v1/object/public/widget-scripts/widget.js" data-widget-id="wa_d4nbxppub" async></script>
+  <script src="https://sofowfweidqzxgaojsdq.supabase.co/storage/v1/object/public/widget-scripts/widget.js"
+    data-widget-id="wa_d4nbxppub" async></script>
 </body>
+
 </html>

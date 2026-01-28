@@ -31,10 +31,10 @@ if ($conn) {
     $check_sql = "SELECT membershipID FROM MEMBERSHIP WHERE guestID = :guestID";
     $check_stmt = oci_parse($conn, $check_sql);
     oci_bind_by_name($check_stmt, ':guestID', $guestID);
-    
+
     if (oci_execute($check_stmt)) {
         $existing = oci_fetch_array($check_stmt, OCI_ASSOC);
-        
+
         if ($existing) {
             // Guest already has membership
             $error_message = 'You already have an active membership!';
@@ -49,15 +49,15 @@ if ($conn) {
             $insert_stmt = oci_parse($conn, $insert_sql);
             oci_bind_by_name($insert_stmt, ':guestID', $guestID);
             oci_bind_by_name($insert_stmt, ':disc_rate', $disc_rate);
-                
+
             if (oci_execute($insert_stmt)) {
                 // Update guest_type to "MEMBERSHIP" in GUEST table (uppercase)
-                $guest_type = strtoupper('MEMBERSHIP');
+                $guest_type = strtoupper('Member');
                 $update_sql = "UPDATE GUEST SET guest_type = :guest_type WHERE guestID = :guestID";
                 $update_stmt = oci_parse($conn, $update_sql);
                 oci_bind_by_name($update_stmt, ':guest_type', $guest_type);
                 oci_bind_by_name($update_stmt, ':guestID', $guestID);
-                
+
                 if (oci_execute($update_stmt)) {
                     oci_commit($conn);
                     $_SESSION['membership_purchased'] = true;
@@ -90,7 +90,7 @@ if ($conn) {
         $error = oci_error($check_stmt);
         $error_message = 'Database error: ' . $error['message'];
     }
-    
+
     oci_free_statement($check_stmt);
     closeDBConnection($conn);
 } else {
@@ -105,6 +105,3 @@ $_SESSION['membership_flash_type'] = 'error';
 header('Location: ' . $errorRedirect);
 exit();
 ?>
-
-
-
