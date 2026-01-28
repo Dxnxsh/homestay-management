@@ -86,10 +86,12 @@ while ($row = oci_fetch_array($homestaysStmt, OCI_ASSOC)) {
 }
 oci_free_statement($homestaysStmt);
 
-// Homestay Revenue (total from bills per homestay)
-$homestayRevenueSql = "SELECT NVL(SUM(b.total_amount), 0) as revenue 
-                       FROM BILL b 
-                       JOIN BOOKING bk ON b.guestID = bk.guestID 
+// Homestay Revenue (total PAID bill amount per homestay)
+// Match revenue logic used in Full Reports (only 'Paid' bills)
+$homestayRevenueSql = "SELECT NVL(SUM(bi.total_amount), 0) AS revenue
+                       FROM BOOKING bk
+                       LEFT JOIN BILL bi ON bk.billNo = bi.billNo
+                                          AND bi.bill_status = 'Paid'
                        WHERE bk.homestayID = :homestayID";
 $homestayRevenue = [];
 foreach ($homestays as $homestay) {
@@ -102,11 +104,11 @@ foreach ($homestays as $homestay) {
   oci_free_statement($revenueStmt);
 }
 
-// Homestay total guests this year
-$homestayGuestCountSql = "SELECT COUNT(*) as total 
-                          FROM BOOKING 
-                          WHERE homestayID = :homestayID 
-                          AND EXTRACT(YEAR FROM checkin_date) = EXTRACT(YEAR FROM SYSDATE)";
+// Homestay total BOOKINGS (all time, per homestay)
+// Match the \"Total Bookings\" metric shown in Full Reports (All Homestay table)
+$homestayGuestCountSql = "SELECT COUNT(DISTINCT bookingID) AS total
+                          FROM BOOKING
+                          WHERE homestayID = :homestayID";
 $homestayGuestCount = [];
 foreach ($homestays as $homestay) {
   $guestCountStmt = oci_parse($conn, $homestayGuestCountSql);
