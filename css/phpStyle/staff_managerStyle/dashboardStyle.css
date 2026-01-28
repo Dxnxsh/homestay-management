@@ -847,6 +847,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
   width: 100%;
 }
 .content3 .chart-header p{
@@ -855,6 +857,88 @@ body {
   font-weight: 500;
   color: #4b4b4b;
   text-align: center;
+}
+.content3 .info-icon-wrap{
+  position: relative;
+  display: inline-flex;
+}
+.content3 .info-icon{
+  font-size: 14px;
+  font-weight: 600;
+  color: #707070;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: help;
+  line-height: 1;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+.content3 .info-icon:hover{
+  color: #707070;
+  background: rgba(112, 112, 112, 0.15);
+}
+.content3 .info-icon i{
+  font-size: 1em;
+  color: inherit;
+  pointer-events: none;
+}
+.content3 .sql-tooltip{
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 8px);
+  background: #fff;
+  color: #333;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  white-space: pre-wrap;
+  width: max-content;
+  max-width: min(90vw, 520px);
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 1px solid #f0d5be;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 100;
+  pointer-events: auto;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+.content3 .sql-tooltip pre{
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+.content3 .info-icon-wrap:hover .sql-tooltip,
+.content3 .info-icon-wrap:focus-within .sql-tooltip,
+.content3 .sql-tooltip:hover{
+  opacity: 1;
+  visibility: visible;
+}
+.content3 .info-icon:focus{
+  outline: 2px solid #C5814B;
+  outline-offset: 2px;
 }
 .revenue-line-chart-container{
   flex: 1;

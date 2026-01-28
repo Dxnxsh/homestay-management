@@ -30,6 +30,11 @@ $sqlPendingBookings = "SELECT COUNT(*) as total \n            FROM BOOKING b\n  
 $sqlTotalHomestays = "SELECT COUNT(*) as total FROM HOMESTAY";
 $sqlOccupancyCurrentYear = "SELECT h.homestayID, h.homestay_name, \n                   COUNT(DISTINCT b.bookingID) as current_bookings\n            FROM HOMESTAY h\n            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID \n                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE)\n            GROUP BY h.homestayID, h.homestay_name\n            ORDER BY h.homestayID";
 $sqlOccupancyLastYear = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings\n            FROM HOMESTAY h\n            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID \n                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE) - 1\n            GROUP BY h.homestayID\n            ORDER BY h.homestayID";
+$sqlMonthlyRevenueCurrent = "SELECT NVL(SUM(total_amount), 0) as revenue\n            FROM BILL\n            WHERE EXTRACT(MONTH FROM bill_date) = EXTRACT(MONTH FROM SYSDATE)\n            AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM SYSDATE)\n            AND UPPER(bill_status) = 'PAID'";
+$sqlMonthlyRevenueLast = "SELECT NVL(SUM(total_amount), 0) as revenue\n            FROM BILL\n            WHERE EXTRACT(MONTH FROM bill_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))\n            AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))\n            AND UPPER(bill_status) = 'PAID'";
+$sqlHighestMonthBookings = "SELECT EXTRACT(YEAR FROM checkin_date) as year,\n                   EXTRACT(MONTH FROM checkin_date) as month,\n                   COUNT(*) as booking_count\n            FROM BOOKING\n            GROUP BY EXTRACT(YEAR FROM checkin_date), EXTRACT(MONTH FROM checkin_date)\n            ORDER BY year DESC, month DESC";
+$sqlRevenueTrendCurrent = "SELECT EXTRACT(MONTH FROM bill_date) as month,\n                   NVL(SUM(total_amount), 0) as revenue\n            FROM BILL\n            WHERE EXTRACT(YEAR FROM bill_date) = :currentYear\n            AND UPPER(bill_status) = 'PAID'\n            GROUP BY EXTRACT(MONTH FROM bill_date)\n            ORDER BY month";
+$sqlRevenueTrendLast = "SELECT EXTRACT(MONTH FROM bill_date) as month,\n                   NVL(SUM(total_amount), 0) as revenue\n            FROM BILL\n            WHERE EXTRACT(YEAR FROM bill_date) = :lastYear\n            AND UPPER(bill_status) = 'PAID'\n            GROUP BY EXTRACT(MONTH FROM bill_date)\n            ORDER BY month";
 
 if ($conn) {
   // Get total guests
@@ -122,12 +127,7 @@ if ($conn) {
   oci_free_statement($stmt);
 
   // Get current month revenue
-  $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
-            FROM BILL
-            WHERE EXTRACT(MONTH FROM bill_date) = EXTRACT(MONTH FROM SYSDATE)
-            AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM SYSDATE)
-            AND UPPER(bill_status) = 'PAID'";
-  $stmt = oci_parse($conn, $sql);
+  $stmt = oci_parse($conn, $sqlMonthlyRevenueCurrent);
   if (oci_execute($stmt)) {
     $row = oci_fetch_array($stmt, OCI_ASSOC);
     $monthlyRevenue = $row['REVENUE'] ?? 0;
@@ -135,12 +135,7 @@ if ($conn) {
   oci_free_statement($stmt);
 
   // Get last month revenue
-  $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
-            FROM BILL
-            WHERE EXTRACT(MONTH FROM bill_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
-            AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
-            AND UPPER(bill_status) = 'PAID'";
-  $stmt = oci_parse($conn, $sql);
+  $stmt = oci_parse($conn, $sqlMonthlyRevenueLast);
   if (oci_execute($stmt)) {
     $row = oci_fetch_array($stmt, OCI_ASSOC);
     $lastMonthRevenue = $row['REVENUE'] ?? 0;
@@ -154,13 +149,7 @@ if ($conn) {
   $bookingsByMonth = [];
 
   // Get bookings count by month for all available years
-  $sql = "SELECT EXTRACT(YEAR FROM checkin_date) as year,
-                   EXTRACT(MONTH FROM checkin_date) as month,
-                   COUNT(*) as booking_count
-            FROM BOOKING
-            GROUP BY EXTRACT(YEAR FROM checkin_date), EXTRACT(MONTH FROM checkin_date)
-            ORDER BY year DESC, month DESC";
-  $stmt = oci_parse($conn, $sql);
+  $stmt = oci_parse($conn, $sqlHighestMonthBookings);
   if (oci_execute($stmt)) {
     while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
       $year = (int) $row['YEAR'];
@@ -189,14 +178,7 @@ if ($conn) {
   $lastYearRevenue = array_fill(0, 12, 0);
 
   // Get current year revenue by month
-  $sql = "SELECT EXTRACT(MONTH FROM bill_date) as month,
-                   NVL(SUM(total_amount), 0) as revenue
-            FROM BILL
-            WHERE EXTRACT(YEAR FROM bill_date) = :currentYear
-            AND UPPER(bill_status) = 'PAID'
-            GROUP BY EXTRACT(MONTH FROM bill_date)
-            ORDER BY month";
-  $stmt = oci_parse($conn, $sql);
+  $stmt = oci_parse($conn, $sqlRevenueTrendCurrent);
   oci_bind_by_name($stmt, ':currentYear', $currentYear);
   if (oci_execute($stmt)) {
     while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
@@ -207,14 +189,7 @@ if ($conn) {
   oci_free_statement($stmt);
 
   // Get last year revenue by month
-  $sql = "SELECT EXTRACT(MONTH FROM bill_date) as month,
-                   NVL(SUM(total_amount), 0) as revenue
-            FROM BILL
-            WHERE EXTRACT(YEAR FROM bill_date) = :lastYear
-            AND UPPER(bill_status) = 'PAID'
-            GROUP BY EXTRACT(MONTH FROM bill_date)
-            ORDER BY month";
-  $stmt = oci_parse($conn, $sql);
+  $stmt = oci_parse($conn, $sqlRevenueTrendLast);
   oci_bind_by_name($stmt, ':lastYear', $lastYear);
   if (oci_execute($stmt)) {
     while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
@@ -476,6 +451,14 @@ Last year:
         <div class="sub-content3-1">
           <div class="chart-header">
             <p>Monthly Revenue</p>
+            <span class="info-icon-wrap">
+              <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+              <span class="sql-tooltip"><pre>Current month:
+<?php echo htmlspecialchars($sqlMonthlyRevenueCurrent); ?>
+
+Last month:
+<?php echo htmlspecialchars($sqlMonthlyRevenueLast); ?></pre></span>
+            </span>
           </div>
           <div class="revenue-chart-container">
             <canvas id="monthlyRevenueChartOuter" aria-label="Current month revenue chart"></canvas>
@@ -489,6 +472,10 @@ Last year:
         <div class="sub-content3-1">
           <div class="chart-header">
             <p>Highest Month Bookings</p>
+            <span class="info-icon-wrap">
+              <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+              <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlHighestMonthBookings); ?></pre></span>
+            </span>
           </div>
           <div class="highest-bookings-container">
             <img src="../../images/calendarShape.png" alt="Calendar shape" class="calendar-shape-image">
@@ -502,6 +489,14 @@ Last year:
         <div class="sub-content3-2">
           <div class="chart-header">
             <p>Revenue Trend</p>
+            <span class="info-icon-wrap">
+              <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+              <span class="sql-tooltip"><pre>Current year:
+<?php echo htmlspecialchars($sqlRevenueTrendCurrent); ?>
+
+Last year:
+<?php echo htmlspecialchars($sqlRevenueTrendLast); ?></pre></span>
+            </span>
           </div>
           <div class="revenue-line-chart-container">
             <canvas id="revenueLineChart" aria-label="Revenue by month line chart"></canvas>
