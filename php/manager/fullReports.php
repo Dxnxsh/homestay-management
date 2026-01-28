@@ -60,16 +60,28 @@ while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
 }
 oci_free_statement($stmt);
 
-// Fetch all properties
+// Fetch all homestays with aggregated booking and revenue info
+// Note: revenue only includes PAID bills to match accounting
 $propertiesData = [];
-$propSql = "SELECT h.homestayID, h.homestay_name,
-         COUNT(DISTINCT b.bookingID) AS total_bookings,
-         NVL(SUM(bi.total_amount), 0) AS total_revenue
-       FROM HOMESTAY h
-       LEFT JOIN BOOKING b ON h.homestayID = b.homestayID
-       LEFT JOIN BILL bi ON b.billNo = bi.billNo AND bi.bill_status = 'Paid'
-       GROUP BY h.homestayID, h.homestay_name
-       ORDER BY total_revenue DESC";
+$propSql = "SELECT h.homestayID,
+                   h.homestay_name,
+                   h.homestay_address,
+                   h.office_phoneNo,
+                   h.rent_price,
+                   h.staffID,
+                   COUNT(DISTINCT b.bookingID) AS total_bookings,
+                   NVL(SUM(bi.total_amount), 0) AS total_revenue
+            FROM HOMESTAY h
+            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID
+            LEFT JOIN BILL bi ON b.billNo = bi.billNo
+                               AND bi.bill_status = 'Paid'
+            GROUP BY h.homestayID,
+                     h.homestay_name,
+                     h.homestay_address,
+                     h.office_phoneNo,
+                     h.rent_price,
+                     h.staffID
+            ORDER BY total_revenue DESC";
 $stmt = oci_parse($conn, $propSql);
 oci_execute($stmt);
 while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
@@ -304,7 +316,7 @@ oci_free_statement($stmt);
                 <option value="bookings">Bookings</option>
                 <option value="guests">Guests</option>
                 <option value="bills">Bills</option>
-                <option value="properties">Properties</option>
+                <option value="properties">Homestay</option>
               </select>
             </div>
           </div>
@@ -420,7 +432,7 @@ oci_free_statement($stmt);
                   <td><?php echo htmlspecialchars($bi['GUEST_NAME'] ?? 'N/A'); ?></td>
                   <td><?php echo htmlspecialchars($bi['HOMESTAY_NAME'] ?? 'N/A'); ?></td>
                   <td><?php echo htmlspecialchars($bi['BILL_DATE']); ?></td>
-                  <td>$<?php echo number_format($bi['TOTAL_AMOUNT'], 2); ?></td>
+                  <td>RM <?php echo number_format($bi['TOTAL_AMOUNT'], 2); ?></td>
                   <td><span class="pill-sm"><?php echo htmlspecialchars($bi['BILL_STATUS']); ?></span></td>
                   <td><?php echo htmlspecialchars($bi['PAYMENT_METHOD'] ?? 'N/A'); ?></td>
                 </tr>
@@ -434,15 +446,18 @@ oci_free_statement($stmt);
         </table>
       </div>
 
-      <!-- Properties Report -->
+      <!-- Homestay Report -->
       <div class="report-section" data-report="properties">
-        <h2>All Properties</h2>
+        <h2>All Homestay</h2>
         <table class="report-table">
           <thead>
             <tr>
-              <th>Property ID</th>
+              <th>Homestay ID</th>
               <th>Name</th>
-              <th>Location</th>
+              <th>Address</th>
+              <th>Office Phone No.</th>
+              <th>Rent Price (per night)</th>
+              <th>Staff ID</th>
               <th>Total Bookings</th>
               <th>Total Revenue</th>
             </tr>
@@ -453,9 +468,12 @@ oci_free_statement($stmt);
                 <tr>
                   <td><?php echo htmlspecialchars($p['HOMESTAYID']); ?></td>
                   <td><?php echo htmlspecialchars($p['HOMESTAY_NAME']); ?></td>
-                  <td><?php echo htmlspecialchars($p['LOCATION'] ?? 'N/A'); ?></td>
+                  <td><?php echo htmlspecialchars($p['HOMESTAY_ADDRESS']); ?></td>
+                  <td><?php echo htmlspecialchars($p['OFFICE_PHONENO']); ?></td>
+                  <td>RM <?php echo number_format($p['RENT_PRICE'], 2); ?></td>
+                  <td><?php echo htmlspecialchars($p['STAFFID']); ?></td>
                   <td><?php echo (int) $p['TOTAL_BOOKINGS']; ?></td>
-                  <td>$<?php echo number_format($p['TOTAL_REVENUE'], 2); ?></td>
+                  <td>RM <?php echo number_format($p['TOTAL_REVENUE'], 2); ?></td>
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>
