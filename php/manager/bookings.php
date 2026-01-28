@@ -300,8 +300,21 @@ oci_free_statement($billStmt);
       <div class="header-profile">
         <i class='bxr  bx-user-circle'></i>
         <div class="header-profile-info">
-          <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Manager'); ?></div>
-          <div class="header-profile-job">Manager</div>
+          <div class="header-profile-name"><?php echo htmlspecialchars($_SESSION['staff_name'] ?? 'Staff'); ?></div>
+          <div class="header-profile-job"><?php
+            if (isManager()) {
+              echo 'Manager';
+            } else {
+              $st = $_SESSION['staff_type'] ?? '';
+              if (stripos($st, 'part') !== false) {
+                echo 'Part-time';
+              } elseif (stripos($st, 'full') !== false) {
+                echo 'Full-time';
+              } else {
+                echo htmlspecialchars($st ?: 'Staff');
+              }
+            }
+          ?></div>
         </div>
       </div>
     </div>
@@ -311,7 +324,7 @@ oci_free_statement($billStmt);
     <!-- Content -->
     <div class="content">
       <div class="button-container">
-        <button class="btn-add-booking" onclick="addBooking()">Add Booking</button>
+        <button class="btn-add-booking" onclick="addBooking()"><i class='bx bx-plus'></i> Add Booking</button>
         <div class="spinner-container">
           <div class="spinner-select-wrapper">
             <select class="spinner-select" id="sortOrder">
