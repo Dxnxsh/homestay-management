@@ -83,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     oci_bind_by_name($stmt, ':guestID', $guestID);
     oci_bind_by_name($stmt, ':staffID', $staffID);
     oci_bind_by_name($stmt, ':billNo', $billNo);
+    oci_bind_by_name($stmt, ':id', $bookingID);
 
 
     if (oci_execute($stmt)) {
