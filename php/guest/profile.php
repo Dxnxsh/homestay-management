@@ -165,6 +165,116 @@ if ($conn) {
               </div>
             </div>
             <div class="profile-details-section">
+              <!-- Membership Card -->
+              <?php
+              // Fetch membership details
+              $membership_tier = 'None';
+              $discount_rate = 0;
+              $booking_count = 0;
+              $has_membership = false;
+
+              // Update tier first
+              require_once '../config/membership_helper.php';
+              updateMembershipTier($conn, $guestID);
+
+              // Get membership info
+              $mem_sql = "SELECT disc_rate FROM MEMBERSHIP WHERE guestID = :guestID";
+              $mem_stmt = oci_parse($conn, $mem_sql);
+              oci_bind_by_name($mem_stmt, ':guestID', $guestID);
+              if (oci_execute($mem_stmt)) {
+                $mem_row = oci_fetch_array($mem_stmt, OCI_ASSOC);
+                if ($mem_row) {
+                  $has_membership = true;
+                  $discount_rate = (float) $mem_row['DISC_RATE'];
+                  if ($discount_rate >= 30)
+                    $membership_tier = 'Gold';
+                  elseif ($discount_rate >= 20)
+                    $membership_tier = 'Silver';
+                  else
+                    $membership_tier = 'Bronze';
+                }
+              }
+              oci_free_statement($mem_stmt);
+
+              // Get booking count for progress
+              $count_sql = "SELECT COUNT(*) as count FROM BOOKING b JOIN BILL bl ON b.billNo = bl.billNo WHERE b.guestID = :guestID AND UPPER(bl.bill_status) = 'PAID'";
+              $count_stmt = oci_parse($conn, $count_sql);
+              oci_bind_by_name($count_stmt, ':guestID', $guestID);
+              if (oci_execute($count_stmt)) {
+                $cnt_row = oci_fetch_array($count_stmt, OCI_ASSOC);
+                $booking_count = (int) ($cnt_row['COUNT'] ?? 0);
+              }
+              oci_free_statement($count_stmt);
+
+              // Calculate progress
+              $next_tier_bookings = 5;
+              $progress_width = 0;
+              $next_tier_name = 'Silver';
+
+              if ($membership_tier === 'Bronze') {
+                $next_tier_bookings = 5;
+                $next_tier_name = 'Silver';
+                $progress_width = min(100, ($booking_count / 5) * 100);
+              } elseif ($membership_tier === 'Silver') {
+                $next_tier_bookings = 10;
+                $next_tier_name = 'Gold';
+                $progress_width = min(100, (($booking_count - 5) / 5) * 100);
+              } elseif ($membership_tier === 'Gold') {
+                $progress_width = 100;
+                $next_tier_name = 'Max Level';
+              }
+              ?>
+
+              <div class="membership-profile-card"
+                style="background: linear-gradient(135deg, #FFF8F0 0%, #FFFFFF 100%); border: 1px solid #E6D5C3; border-radius: 12px; padding: 20px; margin-bottom: 30px; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 12px rgba(197, 129, 75, 0.05);">
+                <div class="mem-icon"
+                  style="width: 60px; height: 60px; background: #C5814B; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; flex-shrink: 0;">
+                  <?php if ($membership_tier === 'Gold'): ?>
+                    <i class='bx bx-crown'></i>
+                  <?php elseif ($membership_tier === 'Silver'): ?>
+                    <i class='bx bx-medal'></i>
+                  <?php else: ?>
+                    <i class='bx bx-award'></i>
+                  <?php endif; ?>
+                </div>
+                <div class="mem-details" style="flex: 1;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #2c1810; font-size: 1.1rem;">
+                      <?php echo $has_membership ? $membership_tier . ' Member' : 'Regular Guest'; ?>
+                    </h3>
+                    <span
+                      style="background: #e8f5e9; color: #2e7d32; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;">
+                      <?php echo $has_membership ? number_format($discount_rate, 0) . '% Discount' : 'No Discount'; ?>
+                    </span>
+                  </div>
+
+                  <?php if ($has_membership): ?>
+                    <div class="mem-progress">
+                      <div
+                        style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #666; margin-bottom: 6px;">
+                        <span><?php echo $booking_count; ?> bookings</span>
+                        <?php if ($membership_tier !== 'Gold'): ?>
+                          <span><?php echo ($next_tier_bookings - $booking_count); ?> to <?php echo $next_tier_name; ?></span>
+                        <?php else: ?>
+                          <span>Max Tier</span>
+                        <?php endif; ?>
+                      </div>
+                      <div style="width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">
+                        <div
+                          style="width: <?php echo $progress_width; ?>%; height: 100%; background: #C5814B; border-radius: 4px; transition: width 0.5s ease;">
+                        </div>
+                      </div>
+                    </div>
+                  <?php else: ?>
+                    <p style="margin: 0; font-size: 0.9rem; color: #666;">
+                      Join our membership program to unlock exclusive discounts and rewards!
+                      <a href="membership.php" style="color: #C5814B; font-weight: 500; text-decoration: none;">View
+                        details</a>
+                    </p>
+                  <?php endif; ?>
+                </div>
+              </div>
+
               <h3>Personal Information</h3>
               <form method="POST" action="profile.php" class="profile-form">
                 <div class="form-row">
