@@ -90,8 +90,8 @@ if ($conn) {
   }
   oci_free_statement($stmt);
 
-    // Get homestay occupancy for current month
-    $sql = "SELECT h.homestayID, h.homestay_name, 
+  // Get homestay occupancy for current month
+  $sql = "SELECT h.homestayID, h.homestay_name, 
                    COUNT(DISTINCT b.bookingID) as current_bookings
             FROM HOMESTAY h
             LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
@@ -99,37 +99,37 @@ if ($conn) {
                 AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE)
             GROUP BY h.homestayID, h.homestay_name
             ORDER BY h.homestayID";
-    $stmt = oci_parse($conn, $sql);
-    if (oci_execute($stmt)) {
-        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-            $homestayOccupancy[] = [
-                'id' => $row['HOMESTAYID'],
-                'name' => $row['HOMESTAY_NAME'],
-                'current' => $row['CURRENT_BOOKINGS'] ?? 0
-            ];
-        }
+  $stmt = oci_parse($conn, $sql);
+  if (oci_execute($stmt)) {
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+      $homestayOccupancy[] = [
+        'id' => $row['HOMESTAYID'],
+        'name' => $row['HOMESTAY_NAME'],
+        'current' => $row['CURRENT_BOOKINGS'] ?? 0
+      ];
     }
-    oci_free_statement($stmt);
+  }
+  oci_free_statement($stmt);
 
-    // Get last month occupancy for comparison
-    $sql = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings
+  // Get last month occupancy for comparison
+  $sql = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings
             FROM HOMESTAY h
             LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
                 AND EXTRACT(MONTH FROM b.checkin_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
                 AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
             GROUP BY h.homestayID
             ORDER BY h.homestayID";
-    $stmt = oci_parse($conn, $sql);
-    if (oci_execute($stmt)) {
-        $i = 0;
-        while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
-            if (isset($homestayOccupancy[$i])) {
-                $homestayOccupancy[$i]['last'] = $row['LAST_BOOKINGS'] ?? 0;
-            }
-            $i++;
-        }
+  $stmt = oci_parse($conn, $sql);
+  if (oci_execute($stmt)) {
+    $i = 0;
+    while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
+      if (isset($homestayOccupancy[$i])) {
+        $homestayOccupancy[$i]['last'] = $row['LAST_BOOKINGS'] ?? 0;
+      }
+      $i++;
     }
-    oci_free_statement($stmt);
+  }
+  oci_free_statement($stmt);
 
   // Get current month revenue
   $sql = "SELECT NVL(SUM(total_amount), 0) as revenue
@@ -593,86 +593,86 @@ Last year:
       dateLine.textContent = `${format.format(monthStart)} - ${format.format(monthEnd)}`;
     }
 
-  const chartCanvas = document.getElementById("houseComparisonChart");
-  if (chartCanvas) {
-    const houseLabels = homestayOccupancy.map(h => h.name);
-    const currentMonthValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
-    const lastMonthValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
-    const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];
+    const chartCanvas = document.getElementById("houseComparisonChart");
+    if (chartCanvas) {
+      const houseLabels = homestayOccupancy.map(h => h.name);
+      const currentMonthValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
+      const lastMonthValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
+      const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];
 
-    new Chart(chartCanvas, {
-      type: "bar",
-      data: {
-        labels: houseLabels,
-        datasets: [
-          {
-            label: "Current Month",
-            data: currentMonthValues,
-            backgroundColor: "#00bf63",
-            barThickness: 24,
-          },
-          {
-            label: "Last Month",
-            data: lastMonthValues,
-            backgroundColor: "#d9d9d9",
-            barThickness: 24,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "top",
-            labels: {
-              boxWidth: 12,
-              usePointStyle: true,
-            },
-          },
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false,
-            },
-          },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: "rgba(0,0,0,0.05)",
-            },
-          },
-        },
-      },
-    });
-
-      const pieCanvas = document.getElementById("housePieChart");
-      const pieLegend = document.getElementById("housePieLegend");
-
-    if (pieCanvas && currentMonthValues.some(v => v > 0)) {
-      new Chart(pieCanvas, {
-        type: "pie",
+      new Chart(chartCanvas, {
+        type: "bar",
         data: {
           labels: houseLabels,
-          datasets: [{
-            data: currentMonthValues,
-            backgroundColor: pieColors.slice(0, houseLabels.length),
-            borderColor: "#ffffff",
-            borderWidth: 2,
-          }],
+          datasets: [
+            {
+              label: "Current Month",
+              data: currentMonthValues,
+              backgroundColor: "#00bf63",
+              barThickness: 24,
+            },
+            {
+              label: "Last Month",
+              data: lastMonthValues,
+              backgroundColor: "#d9d9d9",
+              barThickness: 24,
+            },
+          ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              display: false,
+              position: "top",
+              labels: {
+                boxWidth: 12,
+                usePointStyle: true,
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false,
+              },
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(0,0,0,0.05)",
+              },
             },
           },
         },
       });
-    }
+
+      const pieCanvas = document.getElementById("housePieChart");
+      const pieLegend = document.getElementById("housePieLegend");
+
+      if (pieCanvas && currentMonthValues.some(v => v > 0)) {
+        new Chart(pieCanvas, {
+          type: "pie",
+          data: {
+            labels: houseLabels,
+            datasets: [{
+              data: currentMonthValues,
+              backgroundColor: pieColors.slice(0, houseLabels.length),
+              borderColor: "#ffffff",
+              borderWidth: 2,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+          },
+        });
+      }
 
       if (pieLegend) {
         pieLegend.innerHTML = houseLabels.map((label, index) => `
