@@ -185,7 +185,7 @@ if ($conn) {
     </div>
     <div class="page-heading">
       <h1>Staff Management</h1>
-      <button class="btn-add-staff" onclick="openAddModal()">
+      <button class="btn-add" onclick="openAddModal()">
         <i class='bx bx-plus'></i> Add Staff
       </button>
     </div>
