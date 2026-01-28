@@ -28,6 +28,8 @@ $sqlCurrentGuests   = "SELECT COUNT(*) as total FROM GUEST";
 $sqlTotalStaff     = "SELECT COUNT(*) as total FROM STAFF";
 $sqlPendingBookings = "SELECT COUNT(*) as total \n            FROM BOOKING b\n            LEFT JOIN BILL bl ON b.billNo = bl.billNo\n            WHERE b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID'";
 $sqlTotalHomestays = "SELECT COUNT(*) as total FROM HOMESTAY";
+$sqlOccupancyCurrentYear = "SELECT h.homestayID, h.homestay_name, \n                   COUNT(DISTINCT b.bookingID) as current_bookings\n            FROM HOMESTAY h\n            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID \n                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE)\n            GROUP BY h.homestayID, h.homestay_name\n            ORDER BY h.homestayID";
+$sqlOccupancyLastYear = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings\n            FROM HOMESTAY h\n            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID \n                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE) - 1\n            GROUP BY h.homestayID\n            ORDER BY h.homestayID";
 
 if ($conn) {
     // Get total guests
@@ -83,16 +85,8 @@ if ($conn) {
     }
     oci_free_statement($stmt);
 
-    // Get homestay occupancy for current month
-    $sql = "SELECT h.homestayID, h.homestay_name, 
-                   COUNT(DISTINCT b.bookingID) as current_bookings
-            FROM HOMESTAY h
-            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
-                AND EXTRACT(MONTH FROM b.checkin_date) = EXTRACT(MONTH FROM SYSDATE)
-                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE)
-            GROUP BY h.homestayID, h.homestay_name
-            ORDER BY h.homestayID";
-    $stmt = oci_parse($conn, $sql);
+    // Get homestay occupancy for current year
+    $stmt = oci_parse($conn, $sqlOccupancyCurrentYear);
     if (oci_execute($stmt)) {
         while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
             $homestayOccupancy[] = [
@@ -104,15 +98,8 @@ if ($conn) {
     }
     oci_free_statement($stmt);
 
-    // Get last month occupancy for comparison
-    $sql = "SELECT h.homestayID, COUNT(DISTINCT b.bookingID) as last_bookings
-            FROM HOMESTAY h
-            LEFT JOIN BOOKING b ON h.homestayID = b.homestayID 
-                AND EXTRACT(MONTH FROM b.checkin_date) = EXTRACT(MONTH FROM ADD_MONTHS(SYSDATE, -1))
-                AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM ADD_MONTHS(SYSDATE, -1))
-            GROUP BY h.homestayID
-            ORDER BY h.homestayID";
-    $stmt = oci_parse($conn, $sql);
+    // Get last year occupancy for comparison
+    $stmt = oci_parse($conn, $sqlOccupancyLastYear);
     if (oci_execute($stmt)) {
         $i = 0;
         while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
@@ -421,10 +408,33 @@ if ($conn) {
       </div>
       <div class="content2">
         <div class="sub-content2-1">
-          <canvas id="houseComparisonChart" aria-label="House occupancy comparison chart"></canvas>
+          <div class="chart-header">
+            <p>Occupancy by Homestay</p>
+            <span class="info-icon-wrap">
+              <button type="button" class="info-icon" aria-label="Show SQL query"><i class='bxr  bx-info-circle'></i></button>
+              <span class="sql-tooltip"><pre>Current year:
+<?php echo htmlspecialchars($sqlOccupancyCurrentYear); ?>
+
+Last year:
+<?php echo htmlspecialchars($sqlOccupancyLastYear); ?></pre></span>
+            </span>
+          </div>
+          <div class="bar-chart-wrapper">
+            <canvas id="houseComparisonChart" aria-label="House occupancy comparison chart"></canvas>
+          </div>
         </div>
         <div class="sub-content2-2">
-          <p>House Distribution</p>
+          <div class="chart-header">
+            <p>House Distribution</p>
+            <span class="info-icon-wrap">
+              <button type="button" class="info-icon" aria-label="Show SQL query"><i class='bxr  bx-info-circle'></i></button>
+              <span class="sql-tooltip"><pre>Current year:
+<?php echo htmlspecialchars($sqlOccupancyCurrentYear); ?>
+
+Last year:
+<?php echo htmlspecialchars($sqlOccupancyLastYear); ?></pre></span>
+            </span>
+          </div>
           <div class="pie-chart-wrapper">
             <div class="pie-chart">
               <canvas id="housePieChart" aria-label="House distribution pie chart"></canvas>
@@ -547,8 +557,8 @@ if ($conn) {
   const chartCanvas = document.getElementById("houseComparisonChart");
   if (chartCanvas) {
     const houseLabels = homestayOccupancy.map(h => h.name);
-    const currentMonthValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
-    const lastMonthValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
+    const currentYearValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
+    const lastYearValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
     const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];
 
     new Chart(chartCanvas, {
@@ -557,14 +567,14 @@ if ($conn) {
         labels: houseLabels,
         datasets: [
           {
-            label: "Current Month",
-            data: currentMonthValues,
+            label: "Current Year",
+            data: currentYearValues,
             backgroundColor: "#00bf63",
             barThickness: 24,
           },
           {
-            label: "Last Month",
-            data: lastMonthValues,
+            label: "Last Year",
+            data: lastYearValues,
             backgroundColor: "#d9d9d9",
             barThickness: 24,
           },
@@ -601,13 +611,13 @@ if ($conn) {
     const pieCanvas = document.getElementById("housePieChart");
     const pieLegend = document.getElementById("housePieLegend");
 
-    if (pieCanvas && currentMonthValues.some(v => v > 0)) {
+    if (pieCanvas && currentYearValues.some(v => v > 0)) {
       new Chart(pieCanvas, {
         type: "pie",
         data: {
           labels: houseLabels,
           datasets: [{
-            data: currentMonthValues,
+            data: currentYearValues,
             backgroundColor: pieColors.slice(0, houseLabels.length),
             borderColor: "#ffffff",
             borderWidth: 2,
@@ -631,7 +641,7 @@ if ($conn) {
           <span class="legend-dot" style="background-color:${pieColors[index]}"></span>
           <div class="legend-info">
             <strong>${label}</strong>
-            <span>${currentMonthValues[index]} bookings</span>
+            <span>${currentYearValues[index]} bookings</span>
           </div>
         </li>
       `).join("");

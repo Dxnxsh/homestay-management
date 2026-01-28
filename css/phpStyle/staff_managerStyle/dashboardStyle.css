@@ -553,7 +553,17 @@ body {
   flex: 3 1 480px;
   min-height: 320px;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
+  gap: 12px;
+}
+.content2 .sub-content2-1 .bar-chart-wrapper{
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.content2 .sub-content2-1 .bar-chart-wrapper canvas{
+  width: 100%;
+  height: 100%;
 }
 .content2 .sub-content2-2{
   flex: 2 1 320px;
@@ -562,6 +572,101 @@ body {
   flex-direction: column;
   gap: 12px;
 }
+.content2 .sub-content2-1 .chart-header,
+.content2 .sub-content2-2 .chart-header{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.content2 .sub-content2-1 .chart-header p,
+.content2 .sub-content2-2 .chart-header p{
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #4b4b4b;
+}
+.content2 .sub-content2-1 .info-icon-wrap,
+.content2 .sub-content2-2 .info-icon-wrap{
+  position: relative;
+  display: inline-flex;
+}
+.content2 .sub-content2-1 .info-icon,
+.content2 .sub-content2-2 .info-icon{
+  font-size: 14px;
+  font-weight: 600;
+  color: #707070;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: help;
+  line-height: 1;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+.content2 .sub-content2-1 .info-icon:hover,
+.content2 .sub-content2-2 .info-icon:hover{
+  color: #707070;
+  background: rgba(112, 112, 112, 0.15);
+}
+.content2 .sub-content2-1 .info-icon i,
+.content2 .sub-content2-2 .info-icon i{
+  font-size: 1em;
+  color: inherit;
+  pointer-events: none;
+}
+.content2 .sub-content2-1 .sql-tooltip,
+.content2 .sub-content2-2 .sql-tooltip{
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 8px);
+  background: #fff;
+  color: #333;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  white-space: pre-wrap;
+  width: max-content;
+  max-width: min(90vw, 520px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 1px solid #f0d5be;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 100;
+  pointer-events: none;
+  text-align: left;
+}
+.content2 .sub-content2-1 .sql-tooltip pre,
+.content2 .sub-content2-2 .sql-tooltip pre{
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.content2 .sub-content2-1 .info-icon-wrap:hover .sql-tooltip,
+.content2 .sub-content2-1 .info-icon-wrap:focus-within .sql-tooltip,
+.content2 .sub-content2-2 .info-icon-wrap:hover .sql-tooltip,
+.content2 .sub-content2-2 .info-icon-wrap:focus-within .sql-tooltip{
+  opacity: 1;
+  visibility: visible;
+}
+.content2 .sub-content2-1 .info-icon:focus,
+.content2 .sub-content2-2 .info-icon:focus{
+  outline: 2px solid #C5814B;
+  outline-offset: 2px;
+}
+.content2 .sub-content2-1 p,
 .content2 .sub-content2-2 p{
   text-align: center;
   margin: 0;
@@ -574,7 +679,6 @@ body {
   flex-wrap: nowrap;
   flex: 1;
 }
-.content2 .sub-content2-1 canvas,
 .content2 .sub-content2-2 .pie-chart-wrapper canvas{
   width: 100%;
   height: 100%;
