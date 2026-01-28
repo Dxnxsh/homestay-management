@@ -590,7 +590,7 @@ oci_free_statement($stmt);
       const titleDiv = document.createElement('div');
       titleDiv.style.marginBottom = '20px';
       titleDiv.style.textAlign = 'center';
-      titleDiv.innerHTML = '<h1 style="color: #c5814b; margin-bottom: 5px;">Serena Sanctuary - Full Report</h1><p style="color: #666;">Generated on ' + new Date().toLocaleDateString() + '</p>';
+      titleDiv.innerHTML = '<h1 style="color: #c5814b; margin-bottom: 5px;">Serena Sanctuary - Full Report</h1>';
       clone.insertBefore(titleDiv, clone.firstChild.nextSibling);
 
       html2pdf().set(opt).from(clone).toPdf().get('pdf').then(function (pdf) {
