@@ -596,8 +596,8 @@ Last year:
     const chartCanvas = document.getElementById("houseComparisonChart");
     if (chartCanvas) {
       const houseLabels = homestayOccupancy.map(h => h.name);
-      const currentMonthValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
-      const lastMonthValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
+      const currentYearValues = homestayOccupancy.map(h => parseInt(h.current) || 0);
+      const lastYearValues = homestayOccupancy.map(h => parseInt(h.last) || 0);
       const pieColors = ["#00bf63", "#ffde59", "#38b6ff", "#8c52ff", "#ff3131"];
 
       new Chart(chartCanvas, {
@@ -606,14 +606,14 @@ Last year:
           labels: houseLabels,
           datasets: [
             {
-              label: "Current Month",
-              data: currentMonthValues,
+              label: "Current Year",
+              data: currentYearValues,
               backgroundColor: "#00bf63",
               barThickness: 24,
             },
             {
-              label: "Last Month",
-              data: lastMonthValues,
+              label: "Last Year",
+              data: lastYearValues,
               backgroundColor: "#d9d9d9",
               barThickness: 24,
             },
@@ -650,13 +650,13 @@ Last year:
       const pieCanvas = document.getElementById("housePieChart");
       const pieLegend = document.getElementById("housePieLegend");
 
-      if (pieCanvas && currentMonthValues.some(v => v > 0)) {
+      if (pieCanvas) {
         new Chart(pieCanvas, {
           type: "pie",
           data: {
             labels: houseLabels,
             datasets: [{
-              data: currentMonthValues,
+              data: currentYearValues,
               backgroundColor: pieColors.slice(0, houseLabels.length),
               borderColor: "#ffffff",
               borderWidth: 2,
@@ -672,18 +672,19 @@ Last year:
             },
           },
         });
-      }
 
-      if (pieLegend) {
-        pieLegend.innerHTML = houseLabels.map((label, index) => `
-        <li>
-          <span class="legend-dot" style="background-color:${pieColors[index]}"></span>
-          <div class="legend-info">
-            <strong>${label}</strong>
-            <span>${currentYearValues[index]} bookings</span>
-          </div>
-        </li>
-      `).join("");
+        // Update legend to show all homestays with current year data
+        if (pieLegend) {
+          pieLegend.innerHTML = houseLabels.map((label, index) => `
+          <li>
+            <span class="legend-dot" style="background-color:${pieColors[index]}"></span>
+            <div class="legend-info">
+              <strong>${label}</strong>
+              <span>${currentYearValues[index]} bookings</span>
+            </div>
+          </li>
+        `).join("");
+        }
       }
     }
 
