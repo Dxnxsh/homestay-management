@@ -486,10 +486,8 @@ oci_free_statement($stmt);
         <div class="form-group">
           <label for="updatePaymentMethod">Payment Method</label>
           <select id="updatePaymentMethod" name="paymentMethod" required>
-            <option value="Cash">Cash</option>
-            <option value="Bank in">Bank in</option>
-            <option value="Credit Card">Credit Card</option>
-            <option value="Online Transfer">Online Transfer</option>
+            <option value="Credit/Debit Card">Credit/Debit Card</option>
+            <option value="QR Payment">QR Payment</option>
           </select>
         </div>
         <div class="form-group">
