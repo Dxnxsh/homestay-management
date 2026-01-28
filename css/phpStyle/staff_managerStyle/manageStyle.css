@@ -495,8 +495,10 @@ body {
 .content2 .sub-content2-2 {
   background: #fff;
   box-shadow: -2px 4px 10px rgba(0,0,0,0.08);
-  border: 1px solid #f0d5be;
   padding: 20px;
+}
+.content2 .sub-content2-1 {
+  border: 1px solid #f0d5be;
 }
 
 .content2 .sub-content2-1 {
@@ -514,6 +516,7 @@ body {
   flex-direction: column;
   gap: 12px;
   background: transparent;
+  border: none;
   box-shadow: none;
   padding: 0;
 }
