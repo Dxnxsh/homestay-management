@@ -35,6 +35,7 @@ $sqlMonthlyRevenueLast = "SELECT NVL(SUM(total_amount), 0) as revenue\n         
 $sqlHighestMonthBookings = "SELECT EXTRACT(YEAR FROM checkin_date) as year,\n                   EXTRACT(MONTH FROM checkin_date) as month,\n                   COUNT(*) as booking_count\n            FROM BOOKING\n            GROUP BY EXTRACT(YEAR FROM checkin_date), EXTRACT(MONTH FROM checkin_date)\n            ORDER BY year DESC, month DESC";
 $sqlRevenueTrendCurrent = "SELECT EXTRACT(MONTH FROM bill_date) as month,\n                   NVL(SUM(total_amount), 0) as revenue\n            FROM BILL\n            WHERE EXTRACT(YEAR FROM bill_date) = :currentYear\n            AND UPPER(bill_status) = 'PAID'\n            GROUP BY EXTRACT(MONTH FROM bill_date)\n            ORDER BY month";
 $sqlRevenueTrendLast = "SELECT EXTRACT(MONTH FROM bill_date) as month,\n                   NVL(SUM(total_amount), 0) as revenue\n            FROM BILL\n            WHERE EXTRACT(YEAR FROM bill_date) = :lastYear\n            AND UPPER(bill_status) = 'PAID'\n            GROUP BY EXTRACT(MONTH FROM bill_date)\n            ORDER BY month";
+$sqlRecentGuests = "SELECT * FROM (\n                SELECT guestID, guest_name, guest_phoneNo, guest_gender, guest_email, guest_type\n                FROM GUEST\n                ORDER BY guestID DESC\n            ) WHERE ROWNUM <= 5";
 
 if ($conn) {
   // Get total guests
@@ -70,12 +71,7 @@ if ($conn) {
   oci_free_statement($stmt);
 
   // Get recent 5 guests (newest first)
-  $sql = "SELECT * FROM (
-                SELECT guestID, guest_name, guest_phoneNo, guest_gender, guest_email, guest_type
-                FROM GUEST
-                ORDER BY guestID DESC
-            ) WHERE ROWNUM <= 5";
-  $stmt = oci_parse($conn, $sql);
+  $stmt = oci_parse($conn, $sqlRecentGuests);
   if (oci_execute($stmt)) {
     while ($row = oci_fetch_array($stmt, OCI_ASSOC)) {
       $type = $row['GUEST_TYPE'] ?? '';
@@ -506,7 +502,13 @@ Last year:
       <div class="content4">
         <div class="new-guests-table-container">
           <div class="table-header-row">
-            <p>New Guests</p>
+            <div class="chart-header">
+              <p>New Guests</p>
+              <span class="info-icon-wrap">
+                <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
+                <span class="sql-tooltip"><pre><?php echo htmlspecialchars($sqlRecentGuests); ?></pre></span>
+              </span>
+            </div>
             <a href="guests.php" class="btn-manage">Manage Guests</a>
           </div>
           <table class="new-guests-table">
@@ -528,7 +530,7 @@ Last year:
               <?php else: ?>
                 <?php foreach ($recentGuests as $guest): ?>
                   <tr>
-                    <td>G<?php echo str_pad($guest['id'], 3, '0', STR_PAD_LEFT); ?></td>
+                    <td><?php echo htmlspecialchars($guest['id']); ?></td>
                     <td><?php echo htmlspecialchars($guest['name']); ?></td>
                     <td><?php echo htmlspecialchars($guest['phone']); ?></td>
                     <td><?php echo htmlspecialchars($guest['gender']); ?></td>
@@ -539,6 +541,7 @@ Last year:
               <?php endif; ?>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
