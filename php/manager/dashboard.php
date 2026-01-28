@@ -6,7 +6,6 @@ requireStaffLogin();
 
 // Initialize variables
 $totalGuests = 0;
-$newGuests = 0;
 $totalStaff = 0;
 $pendingBookings = 0;
 $totalHomestays = 0;
@@ -26,7 +25,6 @@ $conn = getDBConnection();
 
 // SQL queries for dashboard stats (used in UI info tooltips)
 $sqlCurrentGuests = "SELECT COUNT(*) as total FROM GUEST";
-$sqlNewGuests = "SELECT COUNT(*) as total FROM (\n                SELECT guestID FROM GUEST ORDER BY guestID DESC\n            ) WHERE ROWNUM <= 30";
 $sqlTotalStaff = "SELECT COUNT(*) as total FROM STAFF";
 $sqlPendingBookings = "SELECT COUNT(*) as total \n            FROM BOOKING b\n            LEFT JOIN BILL bl ON b.billNo = bl.billNo\n            WHERE b.billNo IS NULL OR UPPER(bl.bill_status) <> 'PAID'";
 $sqlTotalHomestays = "SELECT COUNT(*) as total FROM HOMESTAY";
@@ -37,14 +35,6 @@ if ($conn) {
   if (oci_execute($stmt)) {
     $row = oci_fetch_array($stmt, OCI_ASSOC);
     $totalGuests = $row['TOTAL'] ?? 0;
-  }
-  oci_free_statement($stmt);
-
-  // Get new guests (last 30 guest IDs as proxy for recent registrations)
-  $stmt = oci_parse($conn, $sqlNewGuests);
-  if (oci_execute($stmt)) {
-    $row = oci_fetch_array($stmt, OCI_ASSOC);
-    $newGuests = $row['TOTAL'] ?? 0;
   }
   oci_free_statement($stmt);
 
@@ -394,25 +384,6 @@ if ($conn) {
             </div>
           </div>
           <i class='bxr  bxs-user'></i>
-        </a>
-        <a href="guests.php" class="sub-content1">
-          <div class="subcard">
-            <div class="subcard-number">
-              <?php echo $newGuests; ?>
-            </div>
-            <div class="subcard-text-line">
-              <span class="subcard-text">New Guests</span>
-              <span class="info-icon-wrap">
-                <button type="button" class="info-icon" aria-label="Show SQL query"
-                  onclick="event.preventDefault(); event.stopPropagation();"><i
-                    class='bxr  bx-info-circle'></i></button>
-                <span class="sql-tooltip">
-                  <pre><?php echo htmlspecialchars($sqlNewGuests); ?></pre>
-                </span>
-              </span>
-            </div>
-          </div>
-          <i class='bxr  bxs-user-plus'></i>
         </a>
         <a href="staff.php" class="sub-content1">
           <div class="subcard">
