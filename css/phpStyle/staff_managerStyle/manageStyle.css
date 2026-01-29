@@ -903,6 +903,9 @@ body {
   gap: 12px;
 }
 
+.content3-charts .content3-chart-card {
+  overflow: visible;
+}
 .content3-charts .content3-chart-card .chart-header {
   display: flex;
   align-items: center;
@@ -957,7 +960,8 @@ body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
+  bottom: auto;
   background: #fff;
   color: #333;
   padding: 10px 12px;

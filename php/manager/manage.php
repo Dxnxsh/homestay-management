@@ -93,6 +93,13 @@ $homestayRevenueSql = "SELECT NVL(SUM(bi.total_amount), 0) AS revenue
                        LEFT JOIN BILL bi ON bk.billNo = bi.billNo
                                           AND bi.bill_status = 'Paid'
                        WHERE bk.homestayID = :homestayID";
+// Tooltip: equivalent aggregate query (run per homestay in code)
+$homestayRevenueSqlTooltip = "SELECT h.homestay_name,
+       NVL(SUM(bi.total_amount), 0) AS revenue
+FROM HOMESTAY h
+LEFT JOIN BOOKING b ON h.homestayID = b.homestayID
+LEFT JOIN BILL bi ON b.billNo = bi.billNo AND bi.bill_status = 'Paid'
+GROUP BY h.homestayID, h.homestay_name";
 $homestayRevenue = [];
 foreach ($homestays as $homestay) {
   $revenueStmt = oci_parse($conn, $homestayRevenueSql);
@@ -109,6 +116,11 @@ foreach ($homestays as $homestay) {
 $homestayGuestCountSql = "SELECT COUNT(DISTINCT bookingID) AS total
                           FROM BOOKING
                           WHERE homestayID = :homestayID";
+$homestayGuestCountSqlTooltip = "SELECT h.homestay_name,
+       COUNT(DISTINCT b.bookingID) AS total
+FROM HOMESTAY h
+LEFT JOIN BOOKING b ON h.homestayID = b.homestayID
+GROUP BY h.homestayID, h.homestay_name";
 $homestayGuestCount = [];
 foreach ($homestays as $homestay) {
   $guestCountStmt = oci_parse($conn, $homestayGuestCountSql);
@@ -392,7 +404,7 @@ oci_free_statement($monthlyGuestsStmt);
             <p>Homestay Total Revenue</p>
             <span class="info-icon-wrap">
               <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
-              <span class="sql-tooltip"><pre><?php echo htmlspecialchars($homestayRevenueSql); ?></pre></span>
+              <span class="sql-tooltip"><pre><?php echo htmlspecialchars($homestayRevenueSqlTooltip); ?></pre></span>
             </span>
           </div>
           <div class="chart-container">
@@ -404,7 +416,7 @@ oci_free_statement($monthlyGuestsStmt);
             <p>Homestay Total Guests</p>
             <span class="info-icon-wrap">
               <button type="button" class="info-icon" aria-label="Show SQL query" onclick="event.preventDefault(); event.stopPropagation();"><i class='bxr  bx-info-circle'></i></button>
-              <span class="sql-tooltip"><pre><?php echo htmlspecialchars($homestayGuestCountSql); ?></pre></span>
+              <span class="sql-tooltip"><pre><?php echo htmlspecialchars($homestayGuestCountSqlTooltip); ?></pre></span>
             </span>
           </div>
           <div class="chart-container">
