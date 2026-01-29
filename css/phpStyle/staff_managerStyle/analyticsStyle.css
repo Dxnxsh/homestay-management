@@ -589,11 +589,13 @@ body {
 .salary-row-profit.profit .salary-label,
 .salary-row-profit.profit .salary-value {
   color: #1a7f3c;
+  font-weight: 700;
 }
 
 .salary-row-profit.loss .salary-label,
 .salary-row-profit.loss .salary-value {
   color: #c0392b;
+  font-weight: 700;
 }
 /* Analytics layout wrapper (aligns with page heading padding) */
 .analytics-wrapper {
