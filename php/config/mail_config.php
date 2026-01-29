@@ -9,6 +9,6 @@ define('MAIL_PORT', 587);                    // TCP port to connect to; use 587 
 define('MAIL_ENCRYPTION', 'tls');            // Enable implicit TLS encryption
 
 // Sender Details
-define('MAIL_FROM_ADDRESS', 'info@serenasanctuary.com');
+define('MAIL_FROM_ADDRESS', 'danishfarhan700@gmail.com');
 define('MAIL_FROM_NAME', 'Serena Sanctuary');
 ?>

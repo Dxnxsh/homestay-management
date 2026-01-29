@@ -47,8 +47,10 @@ function generateReceiptPDF($bookingID, $guestID, $outputMode = 'I')
 
     $conn = getDBConnection();
     if (!$conn) {
-        if ($outputMode === 'S')
+        if ($outputMode === 'S') {
+            echo 'Database connection failed.';
             return null;
+        }
         die('Database connection failed.');
     }
 
@@ -84,15 +86,19 @@ function generateReceiptPDF($bookingID, $guestID, $outputMode = 'I')
     oci_bind_by_name($booking_stmt, ':guestID', $guestID);
 
     if (!oci_execute($booking_stmt)) {
-        if ($outputMode === 'S')
+        if ($outputMode === 'S') {
+            echo 'Failed to fetch booking details. OCI execute error.';
             return null;
+        }
         die('Failed to fetch booking details.');
     }
 
     $row = oci_fetch_array($booking_stmt, $ociFetchFlags);
     if (!$row) {
-        if ($outputMode === 'S')
+        if ($outputMode === 'S') {
+            echo 'Booking not found or access denied (ID: ' . $bookingID . ').';
             return null;
+        }
         die('Booking not found or access denied.');
     }
 
@@ -326,20 +332,13 @@ function generateReceiptPDF($bookingID, $guestID, $outputMode = 'I')
         }
 
     } else {
-        // Fallback or Error if TCPDF not found
-        if ($outputMode === 'S')
+        // TCPDF not found
+        if ($outputMode === 'S') {
+            echo "TCPDF library not found at: " . $tcpdfPath;
             return null;
+        }
 
-        // Simple HTML receipt fallback for direct view only (can't easily email HTML as attachment well without mix)
-        // ... (keep HTML fallback code optionally or just error)
-        // For brevity and purpose of task, I'll keep the HTML fallback just for 'I' mode
-
-        ob_end_clean();
-        header('Content-Type: text/html; charset=utf-8');
-        // ... (HTML CONTENT WOULD GO HERE - but I will output a simple message for now to safe tokens if we are just doing PDF)
-        // Actually, reusing the HTML fallback is fine, I will just paste it back roughly or include it. 
-        // Beacuse of the tool limit, I'll just error if no TCPDF for email mode.
-        error_log("TCPDF not found");
+        error_log("TCPDF not found at " . $tcpdfPath);
         return null;
     }
 }
