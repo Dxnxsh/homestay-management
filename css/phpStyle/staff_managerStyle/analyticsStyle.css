@@ -413,6 +413,206 @@ body {
   color: white;
 }
 
+/* Panel + data list styles (analytics containers 1 & 2) */
+.panel {
+  background: #fff;
+  border: 1px solid #eed9c8;
+  border-radius: 10px;
+  padding: 0;
+  box-shadow: 0 4px 20px rgba(197, 129, 75, 0.08);
+  width: 100%;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #c5814b;
+  margin: 0 0 16px 0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.panel .salary-block:first-of-type {
+  padding-top: 18px;
+}
+
+.panel .salary-block {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.panel .salary-block:last-of-type {
+  padding-bottom: 20px;
+}
+
+.pill-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #ffe6d3;
+  color: #8a4d1c;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #f4c79c;
+}
+
+.kpi-panel {
+  padding: 12px 12px 8px 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 20px 24px 24px 24px;
+}
+
+@media (max-width: 800px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.data-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.data-list.compact {
+  gap: 8px;
+}
+
+.data-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px;
+  gap: 10px;
+  align-items: center;
+}
+
+.panel .data-row + .data-row {
+  border-top: 1px solid #f4e1d1;
+  padding-top: 8px;
+}
+
+.data-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2d2a32;
+}
+
+.data-bar {
+  width: 100%;
+  height: 8px;
+  background: #f7e8da;
+  overflow: hidden;
+}
+
+.data-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #c5814b 0%, #e7c5a4 100%);
+  min-width: 6px;
+}
+
+.data-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a4d1c;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Salary vs revenue summary - cleaner rows without bars */
+.salary-block {
+  margin-bottom: 20px;
+}
+.salary-block:last-of-type {
+  margin-bottom: 0;
+}
+.salary-period {
+  font-size: 14px;
+  font-weight: 600;
+  color: #8a4d1c;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e8d4c4;
+}
+.salary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.salary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  border-bottom: 1px solid #f4e1d1;
+}
+
+.salary-row:last-child {
+  border-bottom: none;
+}
+
+.salary-label {
+  font-size: 13px;
+  color: #2d2a32;
+}
+
+.salary-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2d2a32;
+  white-space: nowrap;
+}
+
+.salary-row-total .salary-label {
+  font-weight: 700;
+}
+
+.salary-row-profit.profit .salary-label,
+.salary-row-profit.profit .salary-value {
+  color: #1a7f3c;
+}
+
+.salary-row-profit.loss .salary-label,
+.salary-row-profit.loss .salary-value {
+  color: #c0392b;
+}
+/* Analytics layout wrapper (aligns with page heading padding) */
+.analytics-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 24px 24px 24px;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* Remove white panel card around KPI row on analytics page */
+.analytics-wrapper .kpi-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
 .metric-content {
   flex: 1;
 }
@@ -454,6 +654,35 @@ body {
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   padding: 0 24px 24px 24px;
+}
+
+/* Stat-style KPI cards (match Reports page stat cards) */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  padding: 20px 24px 0 24px;
+}
+
+.stat-card {
+  background: #fff;
+  border: 1px solid #f0d5be;
+  padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+
+.stat-label {
+  margin: 0;
+  color: #8a4d1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-value {
+  margin: 6px 0 0 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: #2d2a32;
 }
 
 .chart-card {
@@ -595,7 +824,7 @@ body {
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px;
   padding: 20px 24px 0 24px;
 }
@@ -603,23 +832,20 @@ body {
 .kpi-card {
   background: #fff;
   border: 1px solid #f0d5be;
-  border-radius: 12px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
 }
 
 .kpi-card .kpi-label {
   margin: 0;
   color: #8a4d1c;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .kpi-card .kpi-value {
-  margin: 8px 0 0 0;
-  font-size: 28px;
+  margin: 6px 0 0 0;
+  font-size: 26px;
   font-weight: 700;
   color: #2d2a32;
 }

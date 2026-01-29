@@ -113,6 +113,108 @@ oci_free_statement($stmt);
 // Guest Demographics - Adults vs Children
 $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_children) AS CHILDREN FROM BOOKING");
 
+// Staff salary analytics
+// Assume FULL_TIME_SALARY and HOURLY_RATE represent monthly base amounts, so annual = monthly * 12
+$fullTimeSalaryRow = fetchOne($conn, "SELECT NVL(SUM(FULL_TIME_SALARY), 0) AS TOTAL FROM FULL_TIME");
+$partTimeSalaryRow = fetchOne($conn, "SELECT NVL(SUM(HOURLY_RATE), 0) AS TOTAL FROM PART_TIME");
+
+$fullTimeAnnualSalary = 12 * (float)($fullTimeSalaryRow['TOTAL'] ?? 0);
+$partTimeAnnualSalary = 12 * (float)($partTimeSalaryRow['TOTAL'] ?? 0);
+$totalAnnualStaffSalary = $fullTimeAnnualSalary + $partTimeAnnualSalary;
+
+// Annual revenue (current calendar year, paid bills only)
+$annualRevenueRow = fetchOne($conn, "
+  SELECT NVL(SUM(total_amount), 0) AS TOTAL
+  FROM BILL
+  WHERE bill_status = 'Paid'
+    AND EXTRACT(YEAR FROM bill_date) = EXTRACT(YEAR FROM SYSDATE)
+");
+$annualRevenue = (float)($annualRevenueRow['TOTAL'] ?? 0);
+
+// Profit / Loss = Annual Revenue - Total Annual Staff Salary
+$annualProfit = $annualRevenue - $totalAnnualStaffSalary;
+
+// Last year – same staff salary (current roster), revenue filtered by previous calendar year (DB year)
+$lastYearRow = fetchOne($conn, "SELECT EXTRACT(YEAR FROM SYSDATE) - 1 AS YR FROM DUAL");
+$lastYear = (int)($lastYearRow['YR'] ?? (date('Y') - 1));
+$lastYearRevenueRow = fetchOne($conn, "
+  SELECT NVL(SUM(total_amount), 0) AS TOTAL
+  FROM BILL
+  WHERE bill_status = 'Paid'
+    AND EXTRACT(YEAR FROM bill_date) = " . $lastYear . "
+");
+$lastYearRevenue = (float)($lastYearRevenueRow['TOTAL'] ?? 0);
+// Staff cost: use current annual total as proxy (no historical payroll in schema)
+$lastYearProfit = $lastYearRevenue - $totalAnnualStaffSalary;
+
+// Container 2: highest/lowest month and homestay by booking count
+$highestMonthRow = fetchOne($conn, "
+  SELECT TO_CHAR(checkin_date, 'Mon YYYY') AS MONTH_LABEL, COUNT(*) AS CNT
+  FROM BOOKING
+  GROUP BY TO_CHAR(checkin_date, 'YYYY-MM'), TO_CHAR(checkin_date, 'Mon YYYY')
+  ORDER BY COUNT(*) DESC
+  FETCH FIRST 1 ROW ONLY
+");
+$lowestMonthRow = fetchOne($conn, "
+  SELECT TO_CHAR(checkin_date, 'Mon YYYY') AS MONTH_LABEL, COUNT(*) AS CNT
+  FROM BOOKING
+  GROUP BY TO_CHAR(checkin_date, 'YYYY-MM'), TO_CHAR(checkin_date, 'Mon YYYY')
+  ORDER BY COUNT(*) ASC
+  FETCH FIRST 1 ROW ONLY
+");
+$highestHomestayRow = fetchOne($conn, "
+  SELECT h.homestay_name AS NAME, COUNT(b.bookingID) AS CNT
+  FROM HOMESTAY h
+  INNER JOIN BOOKING b ON h.homestayID = b.homestayID
+  GROUP BY h.homestayID, h.homestay_name
+  ORDER BY COUNT(b.bookingID) DESC
+  FETCH FIRST 1 ROW ONLY
+");
+$lowestHomestayRow = fetchOne($conn, "
+  SELECT h.homestay_name AS NAME, COUNT(b.bookingID) AS CNT
+  FROM HOMESTAY h
+  LEFT JOIN BOOKING b ON h.homestayID = b.homestayID
+  GROUP BY h.homestayID, h.homestay_name
+  ORDER BY COUNT(b.bookingID) ASC
+  FETCH FIRST 1 ROW ONLY
+");
+
+// Annually (current year only)
+$currentYearRow = fetchOne($conn, "SELECT EXTRACT(YEAR FROM SYSDATE) AS YR FROM DUAL");
+$currentYear = (int)($currentYearRow['YR'] ?? date('Y'));
+$highestMonthAnnualRow = fetchOne($conn, "
+  SELECT TO_CHAR(checkin_date, 'Mon YYYY') AS MONTH_LABEL, COUNT(*) AS CNT
+  FROM BOOKING
+  WHERE EXTRACT(YEAR FROM checkin_date) = EXTRACT(YEAR FROM SYSDATE)
+  GROUP BY TO_CHAR(checkin_date, 'YYYY-MM'), TO_CHAR(checkin_date, 'Mon YYYY')
+  ORDER BY COUNT(*) DESC
+  FETCH FIRST 1 ROW ONLY
+");
+$lowestMonthAnnualRow = fetchOne($conn, "
+  SELECT TO_CHAR(checkin_date, 'Mon YYYY') AS MONTH_LABEL, COUNT(*) AS CNT
+  FROM BOOKING
+  WHERE EXTRACT(YEAR FROM checkin_date) = EXTRACT(YEAR FROM SYSDATE)
+  GROUP BY TO_CHAR(checkin_date, 'YYYY-MM'), TO_CHAR(checkin_date, 'Mon YYYY')
+  ORDER BY COUNT(*) ASC
+  FETCH FIRST 1 ROW ONLY
+");
+$highestHomestayAnnualRow = fetchOne($conn, "
+  SELECT h.homestay_name AS NAME, COUNT(b.bookingID) AS CNT
+  FROM HOMESTAY h
+  INNER JOIN BOOKING b ON h.homestayID = b.homestayID AND EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE)
+  GROUP BY h.homestayID, h.homestay_name
+  ORDER BY COUNT(b.bookingID) DESC
+  FETCH FIRST 1 ROW ONLY
+");
+$lowestHomestayAnnualRow = fetchOne($conn, "
+  SELECT h.homestay_name AS NAME, COUNT(CASE WHEN EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE) THEN 1 END) AS CNT
+  FROM HOMESTAY h
+  LEFT JOIN BOOKING b ON h.homestayID = b.homestayID
+  GROUP BY h.homestayID, h.homestay_name
+  ORDER BY COUNT(CASE WHEN EXTRACT(YEAR FROM b.checkin_date) = EXTRACT(YEAR FROM SYSDATE) THEN 1 END) ASC
+  FETCH FIRST 1 ROW ONLY
+");
+
 ?>
 
 <!DOCTYPE html>
@@ -121,7 +223,7 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
 <head>
   <meta charset="UTF-8">
   <title>Analytics</title>
-  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/summaryStyle.css?v=3">
+  <link rel="stylesheet" href="../../css/phpStyle/staff_managerStyle/analyticsStyle.css?v=1">
   <link href='https://cdn.boxicons.com/3.0.5/fonts/basic/boxicons.min.css' rel='stylesheet'>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -250,129 +352,138 @@ $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_child
     </div>
 
     <div class="page-heading">
-      <h1>Analytics</h1>
-    </div><br>
+      <div>
+        <h1>Analytics</h1>
+      </div>
+    </div>
 
-    <div class="analytics-wrapper">
-      <section class="panel kpi-panel">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <p class="stat-label">Avg. Stay</p>
+        <p class="stat-value"><?php echo $avgStay['AVG_DAYS'] ?? 0; ?> days</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Repeat Guests</p>
+        <p class="stat-value"><?php echo $repeatRate; ?>%</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Revenue Growth</p>
+        <p class="stat-value"><?php echo $revGrowth >= 0 ? '+' : ''; ?><?php echo $revGrowth; ?>%</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Adults / Children</p>
+        <p class="stat-value"><?php echo $demographics['ADULTS'] ?? 0; ?> / <?php echo $demographics['CHILDREN'] ?? 0; ?></p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <section class="panel">
         <div class="panel-header">
-          <h3>At a Glance</h3>
+          <h3>Staff Salary vs Revenue (Annual)</h3>
         </div>
-        <div class="kpi-row">
-          <div class="kpi-card">
-            <h4 class="kpi-label">Avg. Stay</h4>
-            <p class="kpi-value"><?php echo $avgStay['AVG_DAYS'] ?? 0; ?> days</p>
+        <div class="salary-block">
+          <h4 class="salary-period">Current year (<?php echo (int)date('Y'); ?>)</h4>
+          <div class="salary-list">
+            <div class="salary-row">
+              <span class="salary-label">Full-time annual salary</span>
+              <span class="salary-value">RM <?php echo number_format($fullTimeAnnualSalary, 0); ?></span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Part-time annual salary</span>
+              <span class="salary-value">RM <?php echo number_format($partTimeAnnualSalary, 0); ?></span>
+            </div>
+            <div class="salary-row salary-row-total">
+              <span class="salary-label">Total annual staff salary</span>
+              <span class="salary-value">RM <?php echo number_format($totalAnnualStaffSalary, 0); ?></span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Annual revenue (paid)</span>
+              <span class="salary-value">RM <?php echo number_format($annualRevenue, 0); ?></span>
+            </div>
+            <div class="salary-row salary-row-profit <?php echo $annualProfit >= 0 ? 'profit' : 'loss'; ?>">
+              <span class="salary-label"><?php echo $annualProfit >= 0 ? 'Profit' : 'Loss'; ?></span>
+              <span class="salary-value">
+                RM <?php echo number_format(abs($annualProfit), 0); ?>
+              </span>
+            </div>
           </div>
-          <div class="kpi-card">
-            <h4 class="kpi-label">Repeat Guests</h4>
-            <p class="kpi-value"><?php echo $repeatRate; ?>%</p>
-          </div>
-          <div class="kpi-card">
-            <h4 class="kpi-label">Revenue Growth</h4>
-            <p class="kpi-value <?php echo $revGrowth >= 0 ? 'positive' : 'negative'; ?>">
-              <?php echo $revGrowth >= 0 ? '+' : ''; ?><?php echo $revGrowth; ?>%</p>
-          </div>
-          <div class="kpi-card">
-            <h4 class="kpi-label">Adults / Children</h4>
-            <p class="kpi-value"><?php echo $demographics['ADULTS'] ?? 0; ?> /
-              <?php echo $demographics['CHILDREN'] ?? 0; ?></p>
+        </div>
+        <div class="salary-block">
+          <h4 class="salary-period">Last year (<?php echo $lastYear; ?>)</h4>
+          <div class="salary-list">
+            <div class="salary-row">
+              <span class="salary-label">Full-time annual salary</span>
+              <span class="salary-value">RM <?php echo number_format($fullTimeAnnualSalary, 0); ?></span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Part-time annual salary</span>
+              <span class="salary-value">RM <?php echo number_format($partTimeAnnualSalary, 0); ?></span>
+            </div>
+            <div class="salary-row salary-row-total">
+              <span class="salary-label">Total annual staff salary</span>
+              <span class="salary-value">RM <?php echo number_format($totalAnnualStaffSalary, 0); ?></span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Annual revenue (paid)</span>
+              <span class="salary-value">RM <?php echo number_format($lastYearRevenue, 0); ?></span>
+            </div>
+            <div class="salary-row salary-row-profit <?php echo $lastYearProfit >= 0 ? 'profit' : 'loss'; ?>">
+              <span class="salary-label"><?php echo $lastYearProfit >= 0 ? 'Profit' : 'Loss'; ?></span>
+              <span class="salary-value">
+                RM <?php echo number_format(abs($lastYearProfit), 0); ?>
+              </span>
+            </div>
           </div>
         </div>
       </section>
 
-      <div class="grid-2">
-        <section class="panel">
-          <div class="panel-header">
-            <h3>Guest Growth</h3>
-            <span class="pill-sm">Last 12 months</span>
+      <section class="panel">
+        <div class="panel-header">
+          <h3>Booking highlights</h3>
+        </div>
+        <div class="salary-block">
+          <h4 class="salary-period">All time</h4>
+          <div class="salary-list">
+            <div class="salary-row">
+              <span class="salary-label">Highest month (bookings)</span>
+              <span class="salary-value"><?php echo htmlspecialchars($highestMonthRow['MONTH_LABEL'] ?? '—'); ?> (<?php echo (int)($highestMonthRow['CNT'] ?? 0); ?>)</span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Lowest month (bookings)</span>
+              <span class="salary-value"><?php echo htmlspecialchars($lowestMonthRow['MONTH_LABEL'] ?? '—'); ?> (<?php echo (int)($lowestMonthRow['CNT'] ?? 0); ?>)</span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Highest booking homestay</span>
+              <span class="salary-value"><?php echo htmlspecialchars($highestHomestayRow['NAME'] ?? '—'); ?> (<?php echo (int)($highestHomestayRow['CNT'] ?? 0); ?>)</span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Lowest booking homestay</span>
+              <span class="salary-value"><?php echo htmlspecialchars($lowestHomestayRow['NAME'] ?? '—'); ?> (<?php echo (int)($lowestHomestayRow['CNT'] ?? 0); ?>)</span>
+            </div>
           </div>
-          <div class="data-list compact">
-            <?php if (!empty($guestGrowth)): ?>
-              <?php $maxGuests = max(array_column($guestGrowth, 'CNT')); ?>
-              <?php foreach ($guestGrowth as $data): ?>
-                <?php $pct = $maxGuests > 0 ? ($data['CNT'] / $maxGuests) * 100 : 0; ?>
-                <div class="data-row">
-                  <span class="data-label"><?php echo $data['MONTH_NAME']; ?></span>
-                  <div class="data-bar"><span style="width: <?php echo max(4, $pct); ?>%;"></span></div>
-                  <span class="data-value"><?php echo $data['CNT']; ?></span>
-                </div>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <p class="no-data">No guest data available</p>
-            <?php endif; ?>
+        </div>
+        <div class="salary-block">
+          <h4 class="salary-period">Annually (<?php echo $currentYear; ?>)</h4>
+          <div class="salary-list">
+            <div class="salary-row">
+              <span class="salary-label">Highest month (bookings)</span>
+              <span class="salary-value"><?php echo htmlspecialchars($highestMonthAnnualRow['MONTH_LABEL'] ?? '—'); ?> (<?php echo (int)($highestMonthAnnualRow['CNT'] ?? 0); ?>)</span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Lowest month (bookings)</span>
+              <span class="salary-value"><?php echo htmlspecialchars($lowestMonthAnnualRow['MONTH_LABEL'] ?? '—'); ?> (<?php echo (int)($lowestMonthAnnualRow['CNT'] ?? 0); ?>)</span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Highest booking homestay</span>
+              <span class="salary-value"><?php echo htmlspecialchars($highestHomestayAnnualRow['NAME'] ?? '—'); ?> (<?php echo (int)($highestHomestayAnnualRow['CNT'] ?? 0); ?>)</span>
+            </div>
+            <div class="salary-row">
+              <span class="salary-label">Lowest booking homestay</span>
+              <span class="salary-value"><?php echo htmlspecialchars($lowestHomestayAnnualRow['NAME'] ?? '—'); ?> (<?php echo (int)($lowestHomestayAnnualRow['CNT'] ?? 0); ?>)</span>
+            </div>
           </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <h3>Bookings (This Month)</h3>
-            <span class="pill-sm">Daily</span>
-          </div>
-          <div class="data-list compact">
-            <?php if (!empty($bookingTrends)): ?>
-              <?php $maxBookings = max(array_column($bookingTrends, 'CNT')); ?>
-              <?php foreach ($bookingTrends as $data): ?>
-                <?php $pct = $maxBookings > 0 ? ($data['CNT'] / $maxBookings) * 100 : 0; ?>
-                <div class="data-row">
-                  <span class="data-label">Day <?php echo $data['DAY']; ?></span>
-                  <div class="data-bar"><span style="width: <?php echo max(4, $pct); ?>%;"></span></div>
-                  <span class="data-value"><?php echo $data['CNT']; ?></span>
-                </div>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <p class="no-data">No booking data for current month</p>
-            <?php endif; ?>
-          </div>
-        </section>
-      </div>
-
-      <div class="grid-2">
-        <section class="panel">
-          <div class="panel-header">
-            <h3>Revenue by Property</h3>
-            <span class="pill-sm">All time</span>
-          </div>
-          <div class="revenue-list compact">
-            <?php $maxRev = !empty($revenueByProperty) ? max(array_column($revenueByProperty, 'REVENUE')) : 0; ?>
-            <?php if (!empty($revenueByProperty)): ?>
-              <?php foreach ($revenueByProperty as $idx => $data): ?>
-                <?php $pct = $maxRev > 0 ? ($data['REVENUE'] / $maxRev) * 100 : 0; ?>
-                <div class="revenue-item">
-                  <div class="revenue-rank"><?php echo $idx + 1; ?></div>
-                  <div class="revenue-name"><?php echo htmlspecialchars($data['HOMESTAY_NAME']); ?></div>
-                  <div class="revenue-bar-container">
-                    <div class="revenue-bar" style="width: <?php echo max(6, $pct); ?>%;"></div>
-                  </div>
-                  <div class="revenue-amount">RM <?php echo number_format($data['REVENUE'], 0); ?></div>
-                </div>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <p class="no-data">No revenue data available</p>
-            <?php endif; ?>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <h3>Occupancy Rate</h3>
-            <span class="pill-sm">By month</span>
-          </div>
-          <div class="data-list compact">
-            <?php if (!empty($occupancyRate)): ?>
-              <?php foreach ($occupancyRate as $data): ?>
-                <?php $pct = max(0, $data['OCCUPANCY_PCT']); ?>
-                <div class="data-row">
-                  <span class="data-label"><?php echo $data['MONTH_NAME']; ?></span>
-                  <div class="data-bar"><span style="width: <?php echo max(4, $pct); ?>%;"></span></div>
-                  <span class="data-value"><?php echo $data['OCCUPANCY_PCT']; ?>%</span>
-                </div>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <p class="no-data">No occupancy data available</p>
-            <?php endif; ?>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
 
     <footer class="footer">
