@@ -114,12 +114,13 @@ oci_free_statement($stmt);
 $demographics = fetchOne($conn, "SELECT SUM(num_adults) AS ADULTS, SUM(num_children) AS CHILDREN FROM BOOKING");
 
 // Staff salary analytics
-// Assume FULL_TIME_SALARY and HOURLY_RATE represent monthly base amounts, so annual = monthly * 12
+// Full-time: monthly salary * 12 = annual
 $fullTimeSalaryRow = fetchOne($conn, "SELECT NVL(SUM(FULL_TIME_SALARY), 0) AS TOTAL FROM FULL_TIME");
-$partTimeSalaryRow = fetchOne($conn, "SELECT NVL(SUM(HOURLY_RATE), 0) AS TOTAL FROM PART_TIME");
-
 $fullTimeAnnualSalary = 12 * (float)($fullTimeSalaryRow['TOTAL'] ?? 0);
-$partTimeAnnualSalary = 12 * (float)($partTimeSalaryRow['TOTAL'] ?? 0);
+
+// Part-time: (hourly rate * 8 hours) per person, sum total, then * 12 months = annual
+$partTimeSalaryRow = fetchOne($conn, "SELECT NVL(SUM(HOURLY_RATE * 8) * 12, 0) AS TOTAL FROM PART_TIME");
+$partTimeAnnualSalary = (float)($partTimeSalaryRow['TOTAL'] ?? 0);
 $totalAnnualStaffSalary = $fullTimeAnnualSalary + $partTimeAnnualSalary;
 
 // Annual revenue (current calendar year, paid bills only)
