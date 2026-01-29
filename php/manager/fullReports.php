@@ -724,27 +724,31 @@ oci_free_statement($stmt);
 
     function generatePDF() {
       const element = document.querySelector('.report-wrapper');
+      if (!element) return;
 
       // Clone the element to modify it for PDF generation without affecting the UI
       const clone = element.cloneNode(true);
 
-      // Add some specific print styles to the clone if needed
+      // Ensure ALL report sections are visible in the PDF (ignore current filter)
+      clone.querySelectorAll('.report-section').forEach(function (sec) {
+        sec.style.display = '';
+      });
+      // Show all table rows in the PDF (ignore current search filter)
+      clone.querySelectorAll('.report-table tbody tr').forEach(function (tr) {
+        tr.style.display = '';
+      });
+
       clone.style.padding = '20px';
       clone.style.background = '#fff';
 
-      // Tweak the wider Guests table for PDF so all columns fit nicely
-      const guestSection = clone.querySelector('.report-section[data-report="guests"]');
-      if (guestSection) {
-        const guestTable = guestSection.querySelector('.report-table');
-        if (guestTable) {
-          guestTable.style.fontSize = '11px';
-          const guestCells = guestTable.querySelectorAll('th, td');
-          guestCells.forEach(function (cell) {
-            cell.style.padding = '6px 8px';
-            cell.style.wordBreak = 'break-word';
-          });
-        }
-      }
+      // Tweak tables for PDF so columns fit; apply to all report tables
+      clone.querySelectorAll('.report-section .report-table').forEach(function (tbl) {
+        tbl.style.fontSize = '10px';
+        tbl.querySelectorAll('th, td').forEach(function (cell) {
+          cell.style.padding = '4px 6px';
+          cell.style.wordBreak = 'break-word';
+        });
+      });
 
       const opt = {
         margin: [0.5, 0.5],
@@ -777,7 +781,11 @@ oci_free_statement($stmt);
       clone.insertBefore(titleDiv, clone.firstChild.nextSibling);
 
       html2pdf().set(opt).from(clone).toPdf().get('pdf').then(function (pdf) {
-        window.open(pdf.output('bloburl'), '_blank');
+        const blobUrl = pdf.output('bloburl');
+        if (blobUrl) window.open(blobUrl, '_blank');
+      }).catch(function (err) {
+        console.error('PDF generation failed:', err);
+        alert('Failed to generate PDF. Please try again or check the console for details.');
       });
     }
   </script>
